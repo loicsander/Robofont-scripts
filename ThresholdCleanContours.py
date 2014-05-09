@@ -2,6 +2,7 @@ from robofab.pens.filterPen import thresholdGlyph
 
 font = CurrentFont()
 glyph = CurrentGlyph()
+#Units per em value passed to the ThresholdPen
 threshold = 4
 
 class CleanOutline:
@@ -9,13 +10,16 @@ class CleanOutline:
     def __init__(self, glyph):
         self.glyph = glyph
         self.glyph.prepareUndo("cleanOutline")
+        # storing and clearing anchors in current glyph
         self.storedAnchors = self.saveAnchors(glyph)
+        # clean outline through the ThresholdPen
         self.cleanOutline(self.glyph)
+        # putting stored anchors back in place
         self.replaceAnchors(self.storedAnchors)
         self.glyph.update()
         self.glyph.performUndo()
         
-
+        
     def saveAnchors(self, glyph):
     
         anchorList = []
