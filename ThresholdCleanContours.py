@@ -1,3 +1,12 @@
+
+# Based on Robofab’s ThresholdPen, the script executes four tasks:
+# – Saving anchors (which would otherwise be destroyed by the ThresholdPen)
+# – Moving aligned points (i.e if there’s a useless point on a straight line)
+# – Redrawing the glyph through the Threshold point to get rid of unnecessary points (default threshold value is of 4 units)
+# – Replacing the anchors at their initial position
+
+
+
 from robofab.pens.filterPen import thresholdGlyph
 
 font = CurrentFont()
