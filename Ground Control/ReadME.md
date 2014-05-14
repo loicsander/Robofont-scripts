@@ -9,7 +9,7 @@ At first, I started writing this script only to have a window in which I could d
 + You can input text that is simultaneously set on each line of type drawn by the script
 + Then, on each line separately, you can modify tracking, display options (show metrics, white on black, upside down) and send the current font in a space center window to modify spacing.
 + On each line, you can switch between any open font, at any time.
-+ Ultimately, you can also apply global tracking, and each, global and local tracking can be applied in an additive way.
++ Ultimately, you can also apply global tracking, and each, global and local tracking can be applied in an additive way. To put it simply: you get what you see.
 
 ![alt tag](http://www.akalollip.com/images/github/Ground-Control-1.png)
 ![alt tag](http://www.akalollip.com/images/github/Ground-Control-2.png)
