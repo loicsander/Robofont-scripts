@@ -35,6 +35,16 @@ def modifyTracking(font, trackingValue):
 
 	myTypeBench.lastModifiedFont = font	
 
+def getFontName(font):
+	return font.info.familyName + " " + font.info.styleName
+
+
+def getFontByName(setOfFonts, fontName):
+
+	for font in setOfFonts:
+		if getFontName(font) == fontName:
+			return font
+
 
 # Class for each line/font in the window, hosting local parameters (which font is displayed, what tracking is applied on which line)
 class BenchLine:
@@ -47,6 +57,7 @@ class BenchLine:
 		self.trackingValuesList = trackingValuesList
 		self.line = Group(posSize)
 		self.lineIndex = 0
+		self.displayModes = {'metrics': False, 'inverse': False, 'upsideDown': False}
 		self.line.glyphView = MultiLineView(
 		    (0, 0, 0, 0), 
 		    pointSize = self.pointSize, 
@@ -57,10 +68,14 @@ class BenchLine:
 		    hasHorizontalScroller=False, 
 		    hasVerticalScroller=False, 
 		    displayOptions= {'Waterfall':False}, 
-		    selectionCallback=self.lineSelectionCallback,
+		    selectionCallback=None,
 		    menuForEventCallback=None)
-		self.line.controls = Group((-310, 41, 300, 50))
+		self.line.glyphView.setCanSelect(True)
 
+		self.line.buttonToControls = Button((-45, 5, 35, 14), "+", callback=self.displayControls, sizeStyle="mini")
+		self.line.buttonToSpaceCenter = Button((-85, 5, 35, 14), "SC", callback=self.toSpacecenter, sizeStyle="mini")
+
+		self.line.controls = Group((-310, 41, 300, 50))
 		self.line.controls.fontChoice = PopUpButton((5, 0, 0, 22), allFontsList, callback=self.switchFontCallback)
 		self.line.controls.localTracking = PopUpButton((5, 28, 60, 22), trackingValuesList, callback=self.localTrackingCallback)
 		self.line.controls.applyTrackingButton = Button((66, 28, 60, 22), "Apply", callback=self.applyTrackingCallback)
@@ -73,10 +88,12 @@ class BenchLine:
 
 	def makeLine(self, font, glyphSet):
 		self.setFont(font)
+		self.line.glyphView._glyphLineView._font = self.font.naked()
+		self.line.glyphView._glyphLineView.setItalicAngle()
 		self.setGlyphs(glyphSet)
 		return self.line
 
-	def update(self, font, glyphSet):
+	def refreshLine(self, font, glyphSet):
 		self.setFont(font)
 		self.setGlyphs(glyphSet)
 		self.resizeLine()
@@ -98,13 +115,14 @@ class BenchLine:
 
 	def setFont(self, font):
 		self.font = font
-		return self.line.glyphView
+		self.line.controls.fontChoice.setTitle(getFontName(font))
+		# return self.line.glyphView
 		
 	def getGlyphsByName(self, glyphSet):
 		self.glyphSet = [self.font[glyphSet[i]].naked() for i in range(len(glyphSet))]
 		
 	def switchFontCallback(self, sender):
-		myTypeBench.changeFontOnLine(self.lineIndex, sender.get())
+		myTypeBench.changeFontOnLine(self.lineIndex, sender.getTitle())
 		
 	def hideControls(self):
 	    self.line.controls.show(False)
@@ -115,7 +133,6 @@ class BenchLine:
 	def localTrackingCallback(self, sender):
 		self.localTrackingValue = int(sender.getTitle())
 		myTypeBench.displayTracking()
-		#self.setGlyphs(self.glyphSet)
 
 	def localTracking(self):
 		return self.localTrackingValue
@@ -135,26 +152,36 @@ class BenchLine:
 		self.localTrackingValue = 0
 		self.line.controls.localTracking.set(int(len(self.trackingValuesList)/2))
 
-	def lineSelectionCallback(self, info):
+	def toSpacecenter(self, info):
+		OpenSpaceCenter(self.font, False)
+		CurrentSpaceCenter().set(myTypeBench.glyphSet)
+
+	def displayControls(self, sender):
 		if self.line.controls.isVisible():
 			self.line.controls.show(False)
+			self.line.buttonToControls.setTitle("+")
 		else:
 			self.line.controls.show(True)
+			self.line.buttonToControls.setTitle("-")
 
 	def displayNegative(self, sender):
 		self.line.glyphView.setDisplayMode("Inverse")
+		self.displayModes["inverse"] = not self.displayModes["inverse"]
 
 	def displayUpsideDown(self, sender):
 		self.line.glyphView.setDisplayMode("Upside Down")
+		self.displayModes["upsideDown"] = not self.displayModes["upsideDown"]
 
 	def displayMetrics(self, sender):
 		self.line.glyphView.setDisplayMode("Show Metrics")	
+		self.displayModes["metrics"] = not self.displayModes["metrics"]
 
 	def updateFontList(self, fontList):
 		self.line.controls.fontChoice.setItems(myTypeBench.allFontsList())
 
 	def resizeLine(self):
 		self.line.setPosSize(myTypeBench.linePosSize(self.lineIndex))
+
 
 		
 # Main class hosting the main window and global parameters	
@@ -165,12 +192,14 @@ class TypeBench:
 		self.footerHeight = 28
 		self.fonts = AllFonts()
 		self.charMap = CurrentFont().getCharacterMapping()
-		self.numberOfBenchLines = 6
+		self.numberOfBenchLines = 9
+		self.singleFontNumberOfBenchLines = 2
 		self.fontsOnBench = []
 		self.lastModifiedFont = None
 		self.glyphSet = glyphSet
 		self.pointSize = 100
 		self.pointSizeList = ["36", "48", "56", "64", "72", "96", "128", "160", "192", "256", "364", "512"]
+		self.line = ["firstLine", "secondLine", "thirdLine", "fourthLine", "fifthLine", "sixthLine", "seventhLine", "eighthLine", "ninthLine"]
 		self.lineHeight = 150
 		self.globalTrackingValue = 0
 		self.localTrackingValues = []
@@ -191,49 +220,29 @@ class TypeBench:
 
 		if hasattr(self.w, "allLines") == False:
 			self.w.allLines = Group((1, self.headerHeight, -1, -self.footerHeight))
-		
-		if (len(self.fontsOnBench) > 0):
-			if hasattr(self.w.allLines, "firstLine") == False:
-				self.w.allLines.firstLine = Group(self.linePosSize(0))
-				self.w.allLines.firstLine.bench = self.multiLines[0].makeLine(self.fontsOnBench[0], self.glyphSet)
-				self.multiLines[0].identify(0)
-			else:
-				self.multiLines[0].update(self.fontsOnBench[0], self.glyphSet)
-		if (len(self.fontsOnBench) > 1):
-			if hasattr(self.w.allLines, "secondLine") == False:
-				self.w.allLines.secondLine = Group(self.linePosSize(1))
-				self.w.allLines.secondLine.bench = self.multiLines[1].makeLine(self.fontsOnBench[1], self.glyphSet)
-				self.multiLines[1].identify(1)
-			else:
-				self.multiLines[1].update(self.fontsOnBench[1], self.glyphSet)
-		if (len(self.fontsOnBench) > 2):
-			if hasattr(self.w.allLines, "thirdLine") == False:
-				self.w.allLines.thirdLine = Group(self.linePosSize(2))
-				self.w.allLines.thirdLine.bench = self.multiLines[2].makeLine(self.fontsOnBench[2], self.glyphSet)
-				self.multiLines[2].identify(2)
-			else:
-				self.multiLines[2].update(self.fontsOnBench[2], self.glyphSet)
-		if (len(self.fontsOnBench) > 3):
-			if hasattr(self.w.allLines, "fourthLine") == False:
-				self.w.allLines.fourthLine = Group(self.linePosSize(3))
-				self.w.allLines.fourthLine.bench = self.multiLines[3].makeLine(self.fontsOnBench[3], self.glyphSet)
-				self.multiLines[3].identify(3)
-			else:
-				self.multiLines[3].update(self.fontsOnBench[3], self.glyphSet)
-		if (len(self.fontsOnBench) > 4):
-			if hasattr(self.w.allLines, "fifthLine") == False:
-				self.w.allLines.fifthLine = Group(self.linePosSize(4))
-				self.w.allLines.fifthLine.bench = self.multiLines[4].makeLine(self.fontsOnBench[4], self.glyphSet)
-				self.multiLines[4].identify(4)
-			else:
-				self.multiLines[4].update(self.fontsOnBench[4], self.glyphSet)
-		if (len(self.fontsOnBench) > 5):
-			if hasattr(self.w.allLines, "sixthLine") == False:
-				self.w.allLines.sixthLine = Group(self.linePosSize(5))
-				self.w.allLines.sixthLine.bench = self.multiLines[5].makeLine(self.fontsOnBench[5], self.glyphSet)
-				self.multiLines[5].identify(5)
-			else:
-				self.multiLines[5].update(self.fontsOnBench[5], self.glyphSet)
+
+		displayedFonts = len(self.fontsOnBench)
+
+		if displayedFonts == 1:
+
+			self.fontsOnBench = self.fontsOnBench * self.singleFontNumberOfBenchLines
+
+			for i in range(self.singleFontNumberOfBenchLines):
+				if hasattr(self.w.allLines, self.line[i]) == False:
+					setattr(self.w.allLines, self.line[i], Group(self.linePosSize(i)))
+					setattr(getattr(self.w.allLines, self.line[i]), "bench", self.multiLines[i].makeLine(self.fontsOnBench[i], self.glyphSet))
+					self.multiLines[i].identify(i)
+				else:
+					self.multiLines[i].refreshLine(self.fontsOnBench[i], self.glyphSet)
+		else:
+			for i in range(displayedFonts):
+				if displayedFonts > i:
+					if hasattr(self.w.allLines, self.line[i]) == False:
+						setattr(self.w.allLines, self.line[i], Group(self.linePosSize(i)))
+						setattr(getattr(self.w.allLines, self.line[i]), "bench", self.multiLines[i].makeLine(self.fontsOnBench[i], self.glyphSet))
+						self.multiLines[i].identify(i)
+					else:
+						self.multiLines[i].refreshLine(self.fontsOnBench[i], self.glyphSet)
 
 		self.w.open()
 		
@@ -261,18 +270,9 @@ class TypeBench:
 		
 	def sizeUpdate(self, sender):
 
-		if (len(self.fontsOnBench) > 0):
-			sender.allLines.firstLine.setPosSize(self.linePosSize(0))
-		if (len(self.fontsOnBench) > 1):
-			sender.allLines.secondLine.setPosSize(self.linePosSize(1))
-		if (len(self.fontsOnBench) > 2):
-			sender.allLines.thirdLine.setPosSize(self.linePosSize(2))
-		if (len(self.fontsOnBench) > 3):
-			sender.allLines.fourthLine.setPosSize(self.linePosSize(3))
-		if (len(self.fontsOnBench) > 4):
-			sender.allLines.fifthLine.setPosSize(self.linePosSize(4))
-		if (len(self.fontsOnBench) > 5):
-			sender.allLines.sixthLine.setPosSize(self.linePosSize(5))
+		for i in range(len(self.fontsOnBench)):
+			line = getattr(sender.allLines, self.line[i])
+			line.setPosSize(self.linePosSize(i))
 		
 	def linePosSize(self, index):
 		self.benchLineHeight = ((self.w.getPosSize()[3] - (self.headerHeight + self.footerHeight)) / (len(self.fontsOnBench)))
@@ -280,9 +280,8 @@ class TypeBench:
 		
 	def allFontsList(self):
 		fontSetNames = []
-		for i in range(len(AllFonts())):
-			fontName = self.fonts[i].info.familyName + " " + self.fonts[i].info.styleName
-			fontSetNames.append(fontName)
+		for font in AllFonts():
+			fontSetNames.append(getFontName(font))
 		return fontSetNames
 
 	def addFontToBench(self, font):
@@ -331,40 +330,21 @@ class TypeBench:
 		localTrackingValues = self.getlocalTracking()
 		globalTrackingValue = self.globalTrackingValue
 
-		if (len(self.fontsOnBench) > 0):
-			self.w.allLines.firstLine.bench.glyphView.setTracking(self.globalTrackingValue + localTrackingValues[0])
-		if (len(self.fontsOnBench) > 1):
-			self.w.allLines.secondLine.bench.glyphView.setTracking(self.globalTrackingValue + localTrackingValues[1])
-		if (len(self.fontsOnBench) > 2):
-			self.w.allLines.thirdLine.bench.glyphView.setTracking(self.globalTrackingValue + localTrackingValues[2])
-		if (len(self.fontsOnBench) > 3):
-			self.w.allLines.fourthLine.bench.glyphView.setTracking(self.globalTrackingValue + localTrackingValues[3])
-		if (len(self.fontsOnBench) > 4):
-			self.w.allLines.fifthLine.bench.glyphView.setTracking(self.globalTrackingValue + localTrackingValues[4])
-		if (len(self.fontsOnBench) > 5):
-			self.w.allLines.sixthLine.bench.glyphView.setTracking(self.globalTrackingValue + localTrackingValues[5])
-
 		for i in range(len(self.fontsOnBench)):
-			self.multiLines[i].setGlyphs(self.glyphSet)
+			line = getattr(self.w.allLines, self.line[i])
+			line.bench.glyphView.setTracking(self.globalTrackingValue + localTrackingValues[i])
 			
 	def pointSizePopUpCallback(self, sender):
 		pointSize = int(sender.getTitle())
-		if (len(self.fontsOnBench) > 0):
-			self.w.allLines.firstLine.bench.glyphView.setPointSize(pointSize)
-		if (len(self.fontsOnBench) > 1):
-			self.w.allLines.secondLine.bench.glyphView.setPointSize(pointSize)
-		if (len(self.fontsOnBench) > 2):
-			self.w.allLines.thirdLine.bench.glyphView.setPointSize(pointSize)
-		if (len(self.fontsOnBench) > 3):
-			self.w.allLines.fourthLine.bench.glyphView.setPointSize(pointSize)
-		if (len(self.fontsOnBench) > 4):
-			self.w.allLines.fifthLine.bench.glyphView.setPointSize(pointSize)
-		if (len(self.fontsOnBench) > 5):
-			self.w.allLines.sixthLine.bench.glyphView.setPointSize(pointSize)
+
+		for i in range(len(self.fontsOnBench)):
+			line = getattr(self.w.allLines, self.line[i])
+			line.bench.glyphView.setPointSize(pointSize)
 			
-	def changeFontOnLine(self, lineIndex, fontIndex):
-		self.multiLines[lineIndex].setFont(self.fonts[fontIndex])
+	def changeFontOnLine(self, lineIndex, fontName):
+		self.multiLines[lineIndex].setFont(getFontByName(AllFonts(), fontName))
 		self.multiLines[lineIndex].setGlyphs(self.glyphSet)
+
 
 	def ApplyAllTracking(self, sender):
 
@@ -387,7 +367,6 @@ class TypeBench:
 		if (len(self.fontsOnBench) > 0) and (len(self.fontsOnBench) < self.numberOfBenchLines):
 			self.addFontToBench(None)
 			self.buildBench()
-			print self.fontsOnBench
 		else:
 			return
 
@@ -395,8 +374,8 @@ class TypeBench:
 
 		if len(self.fontsOnBench) > 0:
 			self.fontsOnBench = self.fontsOnBench[:-1]
+
 			self.buildBench()
-			print self.fontsOnBench
 		else:
 			return
 
