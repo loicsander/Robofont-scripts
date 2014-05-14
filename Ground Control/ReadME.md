@@ -11,5 +11,9 @@ At first, I started writing this script only to have a window in which I could d
 – On each line, you can switch between any open font, at any time.
 – Ultimately, you can also apply global tracking, and each, global and local tracking can be applied in an additive way.
 
+![alt tag](http://www.akalollip.com/images/github/Ground-Control-1.png)
+![alt tag](http://www.akalollip.com/images/github/Ground-Control-2.png)
+![alt tag](http://www.akalollip.com/images/github/Ground-Control-3.png)
+
 ### Further functionality
 Eventually, I’d like to extend the capabilities of the script and give more flexibility to the user about how many fonts/lines are displayed and allow to take out or add fonts dynamically (for the time being, you have to manage with opened, and closed fonts… not ideal, but hey, it’s a start).
