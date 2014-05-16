@@ -36,7 +36,10 @@ def modifyTracking(font, trackingValue):
 	myTypeBench.lastModifiedFont = font	
 
 def getFontName(font):
-	return font.info.familyName + " " + font.info.styleName
+	if font is not None:
+		return font.info.familyName + " " + font.info.styleName
+	else:
+		print "getFontName — No Font"
 
 
 def getFontByName(setOfFonts, fontName):
@@ -68,7 +71,7 @@ class BenchLine:
 		    hasHorizontalScroller=False, 
 		    hasVerticalScroller=False, 
 		    displayOptions= {'Waterfall':False}, 
-		    selectionCallback=None,
+		    selectionCallback=self.lineSelectionCallback,
 		    menuForEventCallback=None)
 		self.line.glyphView.setCanSelect(True)
 
@@ -117,6 +120,9 @@ class BenchLine:
 		self.font = font
 		self.line.controls.fontChoice.setTitle(getFontName(font))
 		# return self.line.glyphView
+
+	def getFont(self):
+		return self.font
 		
 	def getGlyphsByName(self, glyphSet):
 		self.glyphSet = [self.font[glyphSet[i]].naked() for i in range(len(glyphSet))]
@@ -176,12 +182,16 @@ class BenchLine:
 		self.line.glyphView.setDisplayMode("Show Metrics")	
 		self.displayModes["metrics"] = not self.displayModes["metrics"]
 
-	def updateFontList(self, fontList):
-		self.line.controls.fontChoice.setItems(myTypeBench.allFontsList())
-
 	def resizeLine(self):
 		self.line.setPosSize(myTypeBench.linePosSize(self.lineIndex))
 
+	def lineSelectionCallback(self, info):
+		if (info._glyphLineView.getSelected() is not None) and (NSEvent.modifierFlags() & NSAlternateKeyMask):
+			OpenGlyphWindow(self.font[info._glyphLineView.getSelected().name])
+
+	def updateFontList(self):
+		self.line.controls.fontChoice.setItems(myTypeBench.allFontsList())
+		self.line.controls.fontChoice.setTitle(getFontName(self.font))
 
 		
 # Main class hosting the main window and global parameters	
@@ -210,6 +220,10 @@ class TypeBench:
 		self.addControls()
 		self.w.bind("resize", self.sizeUpdate)
 		
+
+	def stuff(self, sender):
+		print "clicked!"
+
 	def buildBench(self):
 
 		if (hasattr(self, 'multiLines') == False) or (len(self.multiLines) < 0):
@@ -243,6 +257,11 @@ class TypeBench:
 						self.multiLines[i].identify(i)
 					else:
 						self.multiLines[i].refreshLine(self.fontsOnBench[i], self.glyphSet)
+
+		addObserver(self, "_currentGlyphChanged", "draw")
+		addObserver(self, "updateFontsCallback", "fontDidOpen")
+		addObserver(self, "updateFontsCallback", "fontWillClose")
+		self.w.bind("close", self.windowClose)
 
 		self.w.open()
 		
@@ -382,5 +401,19 @@ class TypeBench:
 	def getAvailableFonts(self):
 		allFonts = AllFonts()
 		self.fontsOnBench = [allFonts[i] for i in range(len(allFonts)) if i < self.numberOfBenchLines]
+
+	def windowClose(self, sender):
+		removeObserver(self, "_currentGlyphChanged")
+		removeObserver(self, "updateFontList")
+
+	def _currentGlyphChanged(self, info):
+		if (CurrentGlyph() is not None) and (CurrentGlyph().name in self.glyphSet):
+			for i in range(len(self.fontsOnBench)):
+				if getFontName(CurrentFont()) == getFontName(self.multiLines[i].getFont()):
+					self.multiLines[i].setGlyphs(self.glyphSet)
+
+	def updateFontsCallback(self, info):
+		for i in range(len(self.fontsOnBench)):
+			self.multiLines[i].updateFontList()
 
 myTypeBench = TypeBench()
