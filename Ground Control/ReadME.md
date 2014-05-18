@@ -21,6 +21,3 @@ At first, I started writing this script only to have a window in which I could d
 ![alt tag](http://www.akalollip.com/images/github/Ground-Control-1.png)
 ![alt tag](http://www.akalollip.com/images/github/Ground-Control-2.png)
 ![alt tag](http://www.akalollip.com/images/github/Ground-Control-3.png)
-
-### Further functionality
-I should find a way to make selection of a line more obvious but I haven’t figured out how to change glyph color or something like that yet.
