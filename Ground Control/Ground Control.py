@@ -200,6 +200,10 @@ class GroundControl:
 
 	def __init__(self):
 
+		if len(AllFonts()) == 0:
+			print "Please open at least one font before using Ground Control"
+			return
+
 		# [windowWidth, maxWindowWidth, minWindowWidth]
 		self.xDimensions = [1200, 2880, 400]		
 		# [windowHeight, maxWindowHeight, minWindowHeight headerHeight, footerHeight]
