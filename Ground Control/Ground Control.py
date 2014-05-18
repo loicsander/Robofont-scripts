@@ -19,6 +19,7 @@ GCVersion = "1.0"
 from mojo.UI import *
 from mojo.events import addObserver, removeObserver
 from vanilla import *
+from AppKit import NSColor
 
 class BenchToolBox:
 
@@ -166,9 +167,6 @@ class BenchLine:
 
 		if (multiLineView._glyphLineView.getSelected() is None):
 			self.selected = not self.selected
-		
-		# if (multiLineView._glyphLineView.getSelected() is not None):
-		# 	self.selected == True
 
 		if (self.selected == True) or (multiLineView._glyphLineView.getSelected() is not None):
 			myTypeBench.selectedLine = self.index
@@ -179,6 +177,9 @@ class BenchLine:
 
 		if (multiLineView._glyphLineView.getSelected() is not None) and (NSEvent.modifierFlags() & NSAlternateKeyMask):
 			OpenGlyphWindow(self.font[multiLineView._glyphLineView.getSelected().name], False)
+
+	def setColor(self, color):
+		self.line.view._glyphLineView._glyphColor = color
 
 	def toSpacecenter(self, info):
 		OpenSpaceCenter(self.font, False)
@@ -222,6 +223,8 @@ class GroundControl:
 		self.selectedLine = None
 		self.showAllControls = False
 		self.displaySettings = {"Show Metrics": [[False, False] for i in range(self.maxNumberOfLines)], "Inverse": [[False, False] for i in range(self.maxNumberOfLines)], "Upside Down": [[False, False] for i in range(self.maxNumberOfLines)]}
+		self.baseColor = NSColor.blackColor()
+		self.selectionColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(.3, .1, .1, 0.8)
 
 		self.w = Window((self.xDimensions[0], self.yDimensions[0]), "Ground Control " + GCVersion, maxSize=(self.xDimensions[1], self.yDimensions[1]), minSize=(self.xDimensions[2], self.yDimensions[2]))
 		self.w.header = Group((0, 0, -0, self.yDimensions[3]))
@@ -438,6 +441,11 @@ class GroundControl:
 			thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
 			if i != self.selectedLine:
 				thisLineMethAttr.selected = False
+				thisLineMethAttr.setColor(self.baseColor)
+				thisLineMethAttr.setGlyphs(self.glyphSet)
+			elif (i == self.selectedLine) and (thisLineMethAttr.line.view._glyphLineView._glyphColor != self.selectionColor):
+				thisLineMethAttr.setColor(self.selectionColor)
+				thisLineMethAttr.setGlyphs(self.glyphSet)
 
 		self.footerOptions()
 
