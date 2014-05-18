@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>addToMenu</key>
+	<array>
+		<dict>
+			<key>path</key>
+			<string>Ground_Control.py</string>
+			<key>preferredName</key>
+			<string>Ground Control</string>
+			<key>shortKey</key>
+			<string></string>
+		</dict>
+	</array>
+	<key>developer</key>
+	<string>Loic Sander</string>
+	<key>developerURL</key>
+	<string>http://www.akalollip.com</string>
+	<key>html</key>
+	<false/>
+	<key>launchAtStartUp</key>
+	<integer>0</integer>
+	<key>mainScript</key>
+	<string></string>
+	<key>name</key>
+	<string>Ground Control</string>
+	<key>timeStamp</key>
+	<real>1320233007.075783</real>
+	<key>version</key>
+	<string>1.4</string>
+	<key>repository</key>
+	<string>loicsander/Robofont-scripts</string>
+	<key>extensionPath</key>
+	<string>Ground Control/Ground-Control.roboFontExt</string>
+</dict>
+</plist>
