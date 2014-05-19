@@ -129,11 +129,14 @@ class BenchLine:
 	# about Glyphs
 
 	def setGlyphs(self, glyphSet):
-		if isinstance(glyphSet[0], str) == True:
-			self.getGlyphsByName(glyphSet)
+		if glyphSet != []:
+			if isinstance(glyphSet[0], str) == True:
+				self.getGlyphsByName(glyphSet)
+			else:
+				self.glyphSet = glyphSet
+			self.line.view.set(self.glyphSet)
 		else:
-			self.glyphSet = glyphSet
-		self.line.view.set(self.glyphSet)
+			self.line.view.set([])
 
 	def getGlyphsByName(self, glyphSet):
 		# converts a set of glyph names to a set of glyphs of the local font
@@ -231,7 +234,18 @@ class GroundControl:
 		self.w.allLines = Group((0, self.w.header.getPosSize()[3], -0, self.allLinesHeight))
 		self.w.footer = Group((0, -self.yDimensions[4], -0, self.yDimensions[4]))
 
-		self.w.header.inputText = EditText((10, 10, -320, 22), callback=self.inputCallback)
+		import os
+		if os.path.isfile("GroundControlPrefList.txt"):
+			with open("GroundControlPrefList.txt") as myfile:
+				prefList = myfile.read().split("\n")
+		else:
+			prefList = ["ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz", "HHH0HHH00HHH000HHH", "nnnonnnoonnnooonnn"]
+
+		self.w.header.inputText = ComboBox((10, 10, -320, 22), 
+			prefList,
+			continuous = True,
+			completes = True,
+			callback = self.inputCallback)
 		self.w.header.pointSizePopUp = PopUpButton((-305, 10, 60, 22), self.pointSizeList, callback=self.pointSizePopUpCallback)
 		self.w.header.pointSizePopUp.setTitle("128")
 		self.w.header.globalTrackingPopUp = PopUpButton((-175, 10, 60, 22), self.trackingValuesList, callback=self.trackingPopUpCallback)
@@ -503,7 +517,7 @@ class GroundControl:
 				self.w.footer.options.inverse.setPosSize((fontNameWidth + 110, 0, 60, 18))
 				self.w.footer.options.upsideDown.setPosSize((fontNameWidth + 180, 0, 90, 18))
 				
-				self.w.footer.options.fontName.set(u"\u25B6" + " " + str(self.selectedLine + 1) + ": " + fontName)
+				self.w.footer.options.fontName.set(str(self.selectedLine + 1) + ": " + fontName)
 				str(self.selectedLine + 1)
 
 			else:
@@ -556,24 +570,15 @@ class GroundControl:
 
 		inputString = sender.get()
 
-		if inputString == "":
-			self.glyphSet = []
-		elif len(inputString) < len(self.glyphSet):
-			self.glyphSet = []
+		self.glyphSet = []
+
+		if inputString != "":
 			for char in inputString:
 				uni = ord(char)
 				glyphName = self.charMap.get(uni)
 				if glyphName:
 					glyphName = glyphName[0]
 				self.glyphSet.append(glyphName)
-		else:
-			char = inputString[-1]
-			charMap = CurrentFont().getCharacterMapping()
-			uni = ord(char)
-			glyphName = charMap.get(uni)
-			if glyphName:
-				glyphName = glyphName[0]
-			self.glyphSet.append(glyphName)
 
 		for i in range(len(self.fontsOnBench)):
 			thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")	
