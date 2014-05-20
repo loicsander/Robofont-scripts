@@ -28,7 +28,10 @@ class BenchToolBox:
 
 	def getFontName(self, font):
 		if font is not None:
-			return font.info.familyName + " " + font.info.styleName
+		    if (font.info.familyName != None) and (font.info.styleName != None):
+		        return font.info.familyName + " " + font.info.styleName
+		    else:
+		        return "* Unamed Font"
 		else:
 			return ""
 			print "toolBox.getFontName: No Font provided"
