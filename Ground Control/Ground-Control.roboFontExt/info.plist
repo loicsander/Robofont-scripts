@@ -32,6 +32,6 @@
 	<key>repository</key>
 	<string>loicsander/Robofont-scripts</string>
 	<key>extensionPath</key>
-	<string>GroundControl/Ground-Control.roboFontExt</string>
+	<string>Ground Control/Ground-Control.roboFontExt</string>
 </dict>
 </plist>
