@@ -73,7 +73,8 @@ baseGlyphList = {
 		["bottom", 	"baseline", 	"center"] ],
 
 	"O": [
-		["top", 	"capHeight", 	"center"] ],
+		["top", 	"capHeight", 	"center"],
+		["bottom", 	"baseline", 	"center"] ],
 
 	"R": [
 		["top", 	"capHeight", 	"center"], 
