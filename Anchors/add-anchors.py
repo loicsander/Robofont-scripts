@@ -1,6 +1,6 @@
 """
 june 2014 — Loïc Sander
-– Adds anchors to any glyph in the baseGlyphList, if present in font.keys() and no specific glyph is selectedGlyphs,
+– Adds anchors to any glyph in the baseGlyphList, if present in font.keys() and no specific glyph is selected,
 otherwise, adds anchors only to the selected glyphs
 – If a glyph already has the named anchor, the script skips this anchor
 – Any glyph that received new anchors is colored in a weird blue
