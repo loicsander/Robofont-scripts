@@ -4,6 +4,7 @@ june 2014 — Loïc Sander
 otherwise, adds anchors only to the selected glyphs
 – If a glyph already has the named anchor, the script skips this anchor
 – Any glyph that received new anchors is colored in a weird blue
+– Takes italic angle into consideration when positioning anchors
 
 – baseGlyphList structure:
 {
