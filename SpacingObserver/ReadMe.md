@@ -9,6 +9,8 @@ A metrics group is created through the ‘Group’ function of Robofont. By defa
 
 You can edit this nomenclature quite easily inside the script file (see ‘metricsPrefix’, ‘leftIndicator’ and ‘rightIndicator’ variables).
 
+It doesn’t matter what name you give to the group, the script looks for any group the glyph you modify is into, and applies the sidebearing modification to all others members of this group, no exception.
+
 Group spacing can be turned on and off with a checkbox added at the bottom of the space center window. It is off by default.
 
 ### Disclaimer
