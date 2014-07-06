@@ -1,3 +1,5 @@
+# 2014 — Loïc Sander
+# Group spacing in Robofont
 
 from vanilla import CheckBox
 from mojo.events import addObserver, removeObserver
