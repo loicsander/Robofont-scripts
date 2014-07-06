@@ -12,4 +12,4 @@ You can edit this nomenclature quite easily inside the script file (see ‘metri
 Group spacing can be turned on and off with a checkbox added at the bottom of the space center window. It is off by default.
 
 ### Disclaimer
-I post this without having tried it extensively, let’s say it’s an alpha version. You can have components in spacing groups, it works ok (even keeps diacritics in place) but trying to modify a group’s metrics by changing sidebearings on a composite glyph that belongs to a metrics group (why would you) will wreak havoc!
+I post this without having tried it extensively yet, let’s say it’s an alpha version. You can have composite glyphs in spacing groups, it works ok (even keeps diacritics in place) but trying to modify a group’s metrics by changing sidebearings on a composite glyph that belongs to a metrics group (why would you) will wreak havoc!
