@@ -19,6 +19,7 @@ GCVersion = "1.0"
 from mojo.UI import *
 from mojo.events import addObserver, removeObserver
 from vanilla import *
+from defconAppKit.tools.textSplitter import splitText
 from AppKit import NSColor
 
 class BenchToolBox:
@@ -42,19 +43,20 @@ class BenchToolBox:
 			if self.getFontName(font) == fontName:
 				return font
 
-	def modifyTracking(self, font, trackingValue):
+	def modifyTracking(self, font, trackingValue, glyphSet=None):
 
 		if font != myTypeBench.lastModifiedFont:
 
 			font.prepareUndo("modifyTracking")
 
-			for glyph in font:
-				glyph.leftMargin += trackingValue / 2
-				glyph.rightMargin += trackingValue / 2
+			if glyphSet == None:
+				for glyph in font:
+					glyph.leftMargin += trackingValue / 2
+					glyph.rightMargin += trackingValue / 2
 
-				if len(glyph.components) > 0:
-					for component in glyph.components:
-						component.move(((-trackingValue / 2), 0))
+					if len(glyph.components) > 0:
+						for component in glyph.components:
+							component.move(((-trackingValue / 2), 0))
 
 			font.performUndo()
 
@@ -133,7 +135,7 @@ class BenchLine:
 
 	def setGlyphs(self, glyphSet):
 		if glyphSet != []:
-			if isinstance(glyphSet[0], str) == True:
+			if isinstance(glyphSet[0], str) or isinstance(glyphSet[0], unicode):
 				self.getGlyphsByName(glyphSet)
 			else:
 				self.glyphSet = glyphSet
@@ -142,8 +144,17 @@ class BenchLine:
 			self.line.view.set([])
 
 	def getGlyphsByName(self, glyphSet):
+		# check if name is a valid glyphName
 		# converts a set of glyph names to a set of glyphs of the local font
-		self.glyphSet = [self.font[glyphSet[i]].naked() for i in range(len(glyphSet))]
+		self.glyphSet = []
+		glyph = None
+		for glyphName in glyphSet:
+			if (glyphName == u'?') and (CurrentGlyph() is not None):
+				glyphName = CurrentGlyph().name
+			if glyphName in self.font.keys():
+				glyph = self.font[glyphName].naked()
+			if glyph is not None:
+				self.glyphSet.append(glyph)
 
 	# Local Tracking
 
@@ -284,7 +295,7 @@ class GroundControl:
 		self.getFontsOnBench()
 		self.setBench()
 
-		addObserver(self, "_currentGlyphChanged", "draw")
+		addObserver(self, "_currentGlyphChanged", "currentGlyphChanged")
 		addObserver(self, "updateFontsCallback", "fontDidOpen")
 		addObserver(self, "updateFontsCallback", "fontDidClose")
 		self.w.bind("resize", self.resizeWindowCallback)
@@ -544,8 +555,9 @@ class GroundControl:
 				thisLineVanillas.view.setDisplayMode(mode)
 				self.displaySettings[mode][i][1] = self.displaySettings[mode][i][0]
 
-	def updateDisplaySettingCallback(self, mode, boolean):
+	def updateDisplaySettingCallback(self, mode, boolValue):
 
+		boolean = bool(boolValue)
 		self.onSelectionUpdate()
 
 		for i in range(self.maxNumberOfLines):
@@ -556,32 +568,39 @@ class GroundControl:
 		self.updateDisplaySetting(mode)
 
 	def showMetricsCallback(self, sender):
-		boolean = bool(sender.get())
-		self.updateDisplaySettingCallback("Show Metrics", boolean)
+		self.updateDisplaySettingCallback("Show Metrics", sender.get())
 
 	def inverseCallback(self, sender):
-		boolean = bool(sender.get())
-		self.updateDisplaySettingCallback("Inverse", boolean)
+		self.updateDisplaySettingCallback("Inverse", sender.get())
 
 	def flipCallback(self, sender):
-		boolean = bool(sender.get())
-		self.updateDisplaySettingCallback("Upside Down", boolean)
+		self.updateDisplaySettingCallback("Upside Down", sender.get())
 
 	# Text input & parsing
 
+	# def inputCallback(self, sender):
+
+	# 	inputString = sender.get()
+
+	# 	self.glyphSet = []
+
+	# 	if inputString != "":
+	# 		for char in inputString:
+	# 			uni = ord(char)
+	# 			glyphName = self.charMap.get(uni)
+	# 			if glyphName:
+	# 				glyphName = glyphName[0]
+	# 			self.glyphSet.append(glyphName)
+
+	# 	for i in range(len(self.fontsOnBench)):
+	# 		thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")	
+	# 		thisLineMethAttr.setGlyphs(self.glyphSet)
+
 	def inputCallback(self, sender):
 
-		inputString = sender.get()
+		typedString = sender.get()
 
-		self.glyphSet = []
-
-		if inputString != "":
-			for char in inputString:
-				uni = ord(char)
-				glyphName = self.charMap.get(uni)
-				if glyphName:
-					glyphName = glyphName[0]
-				self.glyphSet.append(glyphName)
+		self.glyphSet = splitText(typedString, self.charMap)
 
 		for i in range(len(self.fontsOnBench)):
 			thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")	
@@ -590,15 +609,15 @@ class GroundControl:
 	# Observer callbacks
 
 	def windowClose(self, sender):
-		removeObserver(self, "_currentGlyphChanged")
-		removeObserver(self, "updateFontList")
+		removeObserver(self, "fontDidOpen")
+		removeObserver(self, "fontDidClose")
+		removeObserver(self, "currentGlyphChanged")
 
 	def _currentGlyphChanged(self, info):
-		if (CurrentGlyph() is not None) and (CurrentGlyph().name in self.glyphSet):
+		if (CurrentGlyph() is not None) and (u"?" in self.glyphSet):
 			for i in range(len(self.fontsOnBench)):
 				thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
-				if benchToolBox.getFontName(CurrentFont()) == benchToolBox.getFontName(thisLineMethAttr.font):
-					thisLineMethAttr.setGlyphs(self.glyphSet)
+				thisLineMethAttr.setGlyphs(self.glyphSet)
 
 	def updateFontsCallback(self, info):
 
