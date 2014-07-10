@@ -1,7 +1,9 @@
 # -*- coding: utf8 -*-
-GCVersion = "1.0"
+GCVersion = "1.1"
 
 # Script written by Loïc Sander — may 2014
+# update 10 july 2014
+
 # Based on mojo.UI’s MultiLineView
 
 # Opens a window displaying all open fonts up to 6
