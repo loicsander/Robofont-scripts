@@ -1,7 +1,7 @@
 # 2014 — Loïc Sander
 # Group spacing in Robofont
 
-from vanilla import CheckBox
+from vanilla import FloatingWindow, CheckBox
 from mojo.events import addObserver, removeObserver
 from mojo.UI import CurrentSpaceCenter
 
@@ -13,6 +13,7 @@ class spacingObserver(object):
     
     def __init__(self):
         self.enableGroupSpacing = False
+        self.popupOpen = False
         addObserver(self, 'glyphEditCallback', 'spaceCenterKeyDown')
         addObserver(self, 'glyphEditedCallback', 'spaceCenterKeyUp')
         addObserver(self, 'spaceCenterOpenCallback', 'spaceCenterDidOpen')
@@ -97,15 +98,20 @@ class spacingObserver(object):
         
 
     def spaceCenterOpenCallback(self, notification):
-        spaceCenter = CurrentSpaceCenter()
-        x, y, w, h = spaceCenter.inputScrollView.getPosSize()
-        spaceCenter.inputScrollView.setPosSize((x, y-24, w, h))
-        spaceCenter.activateGroups = CheckBox((10, -21, 150, 18), "Group spacing", value=self.enableGroupSpacing, callback=self.enableGroupSpacingCallback, sizeStyle="small")
-        
+        if not self.popupOpen:
+            self.w = FloatingWindow((160, 36), 'Group Spacing')
+            self.w.activateGroups = CheckBox((9, -27, 151, 18), "Activate Group spacing", value=self.enableGroupSpacing, callback=self.enableGroupSpacingCallback, sizeStyle="small")
+            self.w.bind('close', self.windowCloseCallback)
+            self.w.open()
+            self.popupOpen = True
+
+    def windowCloseCallback(self, notification):
+        self.popupOpen = False
 
     def fontOpenCallback(self, notification):
         font = notification['font']
         font.groups.addObserver(self, 'getMetricsGroups', 'Groups.Changed')
         self.getMetricsGroups(notification)
+
         
 spacingObserver()
