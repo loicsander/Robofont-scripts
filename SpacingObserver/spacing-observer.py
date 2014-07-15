@@ -72,7 +72,7 @@ class spacingObserver(object):
     def getMetricsGroups(self, notification=None):
         self.font = CurrentFont()            
         if self.font is not None:
-            self.metricsGroups = [group for group in self.font.groups.keys() if metricsPrefix in group]         
+            self.metricsGroups = [group for group in self.font.groups.keys() if metricsPrefix in group and leftIndicator in group or rightIndicator in group]         
             if (notification is not None) and (self.enableGroupSpacing == True):
                 self.processMetricsGroups()
          
@@ -98,7 +98,7 @@ class spacingObserver(object):
         
 
     def spaceCenterOpenCallback(self, notification):
-        if not self.popupOpen:
+        if (not self.popupOpen) and (len(self.metricsGroups) > 0):
             self.w = FloatingWindow((160, 36), 'Group Spacing')
             self.w.activateGroups = CheckBox((9, -27, 151, 18), "Activate Group spacing", value=self.enableGroupSpacing, callback=self.enableGroupSpacingCallback, sizeStyle="small")
             self.w.bind('close', self.windowCloseCallback)
