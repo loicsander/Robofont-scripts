@@ -1,7 +1,7 @@
 ## Interpolation preview matrix
 ================
 
-Script requiring at least two open master fonts open in Robofont and interpolable glyphs which allows you to preview interpolation and extrapolation based on master position in the 3x3 matrix.
+Script requiring at least two master fonts open in Robofont and interpolable glyphs which allows you to preview interpolation and extrapolation based on master position in a 3x3 matrix.
 
 ![alt tag](http://www.akalollip.com/images/github/interpolation-preview-matrix.png)
 
