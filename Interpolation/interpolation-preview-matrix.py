@@ -5,23 +5,32 @@ from mojo.glyphPreview import GlyphPreview
 from mojo.events import addObserver, removeObserver
 from AppKit import NSColor
 
-def flatGlyph(glyph):
+# def rawGlyph(glyph):
+#     components = glyph.components
+#     font = glyph.getParent()
+#     decomposedGlyph = RGlyph()
+    
+#     if font is not None:
+#         for component in components:
+#             decomponent = RGlyph()
+#             decomponent.appendGlyph(font[component.baseGlyph])
+#             decomponent.scale((component.scale[0], component.scale[1]))
+#             decomponent.move((component.offset[0], component.offset[1]))
+#             decomposedGlyph.appendGlyph(decomponent)
+#         for contour in glyph.contours:
+#             decomposedGlyph.appendContour(contour)
+#         decomposedGlyph.width = glyph.width
+        
+#     return decomposedGlyph
+
+def decomposeGlyph(glyph):
     components = glyph.components
     font = glyph.getParent()
-    decomposedGlyph = RGlyph()
     
     if font is not None:
-        for component in components:
-            decomponent = RGlyph()
-            decomponent.appendGlyph(font[component.baseGlyph])
-            decomponent.scale((component.scale[0], component.scale[1]))
-            decomponent.move((component.offset[0], component.offset[1]))
-            decomposedGlyph.appendGlyph(decomponent)
-        for contour in glyph.contours:
-            decomposedGlyph.appendContour(contour)
-        decomposedGlyph.width = glyph.width
-        
-    return decomposedGlyph
+        for component in reversed(components):
+            component.decompose()
+    return glyph
 
 class SingleFontList(List):
     
@@ -141,14 +150,14 @@ class interpolationMatrixController(object):
         spotButton = getattr(self.w.matrixModel, k+l)
         matrixView = getattr(self.w.matrixView, k+l)
         
-        if selectedFont is not None:
+        if (selectedFont is not None) and (g in selectedFont.keys()):
             
             for spotKey, spotGlyph in [spot for line in self.master_matrix for spot in line]:
                 if (spotGlyph == selectedFont[g]) and (spotKey != k+l):
                     spotGlyph = None
                     break
             
-            glyph = flatGlyph(selectedFont[g])
+            glyph = decomposeGlyph(selectedFont[g])
             glyph.setParent(selectedFont)
 
             matrixView.show(True)
@@ -270,6 +279,8 @@ class interpolationMatrixController(object):
         self.updateMasters()
 
     def resetMatrix(self, sender):
+        self.master_matrix = []
+        self.instance_matrix = []
         for i, k in enumerate(['a','b','c']):
             self.master_matrix.append([])
             self.instance_matrix.append([])
@@ -277,7 +288,7 @@ class interpolationMatrixController(object):
                 self.master_matrix[i].append([k+l, None])
                 self.instance_matrix[i].append([k+l, None])
                 glyphCell = getattr(self.w.matrixView, k+l)
-                glyphCell.setGlyph(RGlyph())
+                glyphCell.setGlyph(None)
                 spot = getattr(self.w.matrixModel, k+l)
                 spot.setTitle('')
 
