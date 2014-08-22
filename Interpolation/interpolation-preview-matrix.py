@@ -86,8 +86,8 @@ class interpolationMatrixController(object):
         self.w.extrapolation.slider = Slider((5, 27, -5, 15), minValue=0, maxValue=2, value=self.xpf, callback=self.sliderInput, tickMarkCount=5)
         self.w.extrapolation.slider.name = 'xpf'
         self.spotFocus = getattr(self.w.matrixModel, 'bb')
-        self.w.updateMatrixButton = Button((10, -60, 280, 20), 'Update', callback=self.updateMasters)
-        self.w.resetMatrixButton = Button((10, -30, 280, 20), 'Reset', callback=self.resetMatrix)
+        self.w.updateMatrixButton = Button((10, 727, 280, 20), 'Update', callback=self.updateMasters)
+        self.w.resetMatrixButton = Button((10, 755, 280, 20), 'Reset', callback=self.resetMatrix)
         self.newFont = []
         addObserver(self, 'updateMasters', 'currentGlyphChanged')
         addObserver(self, 'updateMasters', 'draw')
