@@ -4,33 +4,59 @@ from vanilla import *
 from mojo.glyphPreview import GlyphPreview
 from mojo.events import addObserver, removeObserver
 from AppKit import NSColor
+from math import cos, sin, pi
 
-# def rawGlyph(glyph):
-#     components = glyph.components
-#     font = glyph.getParent()
-#     decomposedGlyph = RGlyph()
-    
-#     if font is not None:
-#         for component in components:
-#             decomponent = RGlyph()
-#             decomponent.appendGlyph(font[component.baseGlyph])
-#             decomponent.scale((component.scale[0], component.scale[1]))
-#             decomponent.move((component.offset[0], component.offset[1]))
-#             decomposedGlyph.appendGlyph(decomponent)
-#         for contour in glyph.contours:
-#             decomposedGlyph.appendContour(contour)
-#         decomposedGlyph.width = glyph.width
-        
-#     return decomposedGlyph
+def errorGlyph():
+    glyph = RGlyph()
+    glyph.width = 500
+    pen = glyph.getPen()
 
-def decomposeGlyph(glyph):
+    l = 50
+    p = (220, 200)
+    a = pi/4
+    pen.moveTo(p)
+    px, py = p
+    for i in range(12):
+        x = px+(l*cos(a))
+        y = py+(l*sin(a))
+        pen.lineTo((x, y))
+        px = x
+        py = y
+        if i%3 == 0:
+            a -= pi/2
+        elif i%3 != 0:
+            a += pi/2
+    pen.closePath()
+
+    return glyph
+
+def rawGlyph(glyph):
     components = glyph.components
     font = glyph.getParent()
+    decomposedGlyph = RGlyph()
     
     if font is not None:
-        for component in reversed(components):
-            component.decompose()
-    return glyph
+        for component in components:
+            decomponent = RGlyph()
+            decomponent.appendGlyph(font[component.baseGlyph])
+            decomponent.scale((component.scale[0], component.scale[1]))
+            decomponent.move((component.offset[0], component.offset[1]))
+            decomposedGlyph.appendGlyph(decomponent)
+        for contour in glyph.contours:
+            decomposedGlyph.appendContour(contour)
+        decomposedGlyph.width = glyph.width
+        
+    return decomposedGlyph
+
+# def rawGlyph(glyph):
+#     decompGlyph = 
+#     components = glyph.components
+#     font = glyph.getParent()
+    
+#     if font is not None:
+#         for component in reversed(components):
+#             component.decompose()
+#     return decompGlyph
 
 class SingleFontList(List):
     
@@ -124,13 +150,15 @@ class interpolationMatrixController(object):
         spotFocus = self.spotFocus
         key = spotFocus.key
         self.setMaster(key)
-        self.updateInstances()
+        self.clearMatrix(True)
+        self.updateMasters()
 
     def pickSpot(self, notifier):
         self.spotFocus = notifier
         key = notifier.key
         self.setMaster(key)
-        self.updateInstances()
+        self.clearMatrix(True)
+        self.updateMasters()
                        
     def setMaster(self,key):
         i, j, k, l = key
@@ -157,7 +185,7 @@ class interpolationMatrixController(object):
                     spotGlyph = None
                     break
             
-            glyph = decomposeGlyph(selectedFont[g])
+            glyph = rawGlyph(selectedFont[g])
             glyph.setParent(selectedFont)
 
             matrixView.show(True)
@@ -255,6 +283,8 @@ class interpolationMatrixController(object):
         if previousInstance is not None:
             instance.interpolate(ipf, instance, previousInstance)
 
+        # if instance.isEmpty():
+        #     instance = errorGlyph()
         return instance
 
     def triangularInterpolation(self, master1, master2, master3, previousInstance=None):
@@ -269,7 +299,9 @@ class interpolationMatrixController(object):
 
         if previousInstance is not None:
             instance.interpolate(ipf, instance, previousInstance)
-
+        
+        # if instance.isEmpty():
+        #     instance = errorGlyph()
         return instance
 
     def sliderInput(self, sender):
@@ -279,13 +311,21 @@ class interpolationMatrixController(object):
         self.updateMasters()
 
     def resetMatrix(self, sender):
+        self.clearMatrix()
+
+    def clearMatrix(self, keepMasters=False):
+        saveMasters = list(self.master_matrix)
         self.master_matrix = []
         self.instance_matrix = []
         for i, k in enumerate(['a','b','c']):
             self.master_matrix.append([])
             self.instance_matrix.append([])
             for j, l in enumerate(['a','b','c']):
-                self.master_matrix[i].append([k+l, None])
+                if keepMasters and (saveMasters[i][j][1] is not None):
+                    master = saveMasters[i][j][1]
+                    self.master_matrix[i].append([k+l, master])
+                else:
+                    self.master_matrix[i].append([k+l, None])
                 self.instance_matrix[i].append([k+l, None])
                 glyphCell = getattr(self.w.matrixView, k+l)
                 glyphCell.setGlyph(None)
