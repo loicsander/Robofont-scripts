@@ -37,26 +37,18 @@ def rawGlyph(glyph):
     
     if font is not None:
         for component in components:
+            base = font[component.baseGlyph]
+            if len(base.components) > 0:
+                base = rawGlyph(base)
             decomponent = RGlyph()
-            decomponent.appendGlyph(font[component.baseGlyph])
+            decomponent.appendGlyph(base)
             decomponent.scale((component.scale[0], component.scale[1]))
             decomponent.move((component.offset[0], component.offset[1]))
             decomposedGlyph.appendGlyph(decomponent)
         for contour in glyph.contours:
             decomposedGlyph.appendContour(contour)
-        decomposedGlyph.width = glyph.width
-        
-    return decomposedGlyph
 
-# def rawGlyph(glyph):
-#     decompGlyph = 
-#     components = glyph.components
-#     font = glyph.getParent()
-    
-#     if font is not None:
-#         for component in reversed(components):
-#             component.decompose()
-#     return decompGlyph
+    return decomposedGlyph
 
 class SingleFontList(List):
     
@@ -92,7 +84,7 @@ class interpolationMatrixController(object):
         self.w.getNSWindow().setBackgroundColor_(bgColor)
         self.w.fontList = SingleFontList(self, AllFonts(), (0, 0, 300, 250))
         self.w.matrixModel = Group((15, 265, 270, 270))
-        self.w.matrixView = Group((300, 0, -0, -0))
+        self.w.matrixView = Group((300, 0, 0, -0))
         self.master_matrix = []
         self.instance_matrix = []
         self.ipf = .5
@@ -101,8 +93,11 @@ class interpolationMatrixController(object):
             self.master_matrix.append([])
             self.instance_matrix.append([])
             for j, l in enumerate(['a','b','c']):
-                setattr(self.w.matrixView, 'back'+k+l, Box((300*i, 300*j, 300, 300)))
-                setattr(self.w.matrixView, k+l, GlyphPreview((300*i, 300*j, 300, 300)))
+                x, y, wi, he = self.w.getPosSize()
+                wi = (wi-300)/3
+                he /= 3
+                setattr(self.w.matrixView, 'back'+k+l, Box((wi*i, he*j, wi, he)))
+                setattr(self.w.matrixView, k+l, GlyphPreview((wi*i, he*j, wi, he)))
                 setattr(self.w.matrixModel, k+l, SquareButton((90*i, 90*j, 90, 90), '', callback=self.pickSpot, sizeStyle='mini'))
                 spotButton = getattr(self.w.matrixModel, k+l)
                 spotButton.key = (i,j,k,l)
@@ -187,6 +182,10 @@ class interpolationMatrixController(object):
             
             glyph = rawGlyph(selectedFont[g])
             glyph.setParent(selectedFont)
+            glyph.width = 1000
+            glyph.leftMargin = glyph.rightMargin = (glyph.leftMargin + glyph.rightMargin)/2
+            glyph.scale((.75, .75), (glyph.width/2, 0))
+            glyph.move((0, -50))
 
             matrixView.show(True)
             matrixView.setGlyph(glyph)
