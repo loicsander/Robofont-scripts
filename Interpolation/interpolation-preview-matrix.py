@@ -4,6 +4,24 @@ from vanilla import *
 from mojo.glyphPreview import GlyphPreview
 from mojo.events import addObserver, removeObserver
 
+def flatGlyph(glyph):
+    components = glyph.components
+    font = glyph.getParent()
+    decomposedGlyph = RGlyph()
+    
+    if font is not None:
+        for component in components:
+            decomponent = RGlyph()
+            decomponent.appendGlyph(font[component.baseGlyph])
+            decomponent.scale((component.scale[0], component.scale[1]))
+            decomponent.move((component.offset[0], component.offset[1]))
+            decomposedGlyph.appendGlyph(decomponent)
+        for contour in glyph.contours:
+            decomposedGlyph.appendContour(contour)
+        decomposedGlyph.width = glyph.width
+        
+    return decomposedGlyph
+
 class SingleFontList(List):
     
     def __init__(self, parent, fontList, posSize):
@@ -33,12 +51,14 @@ class SingleFontList(List):
 class interpolationMatrixController(object):
     
     def __init__(self):
-        self.w = Window((1100, 900))
+        self.w = Window((1100, 900), minSize=(800, 600))
         self.w.fontList = SingleFontList(self, AllFonts(), (0, 0, 200, 250))
         self.w.matrixModel = Group((10, 270, 180, 180))
         self.w.matrixView = Group((200, 0, -0, -0))
         self.master_matrix = []
         self.instance_matrix = []
+        self.ipf = .5
+        self.xpf = 1
         for i, k in enumerate(['a','b','c']):
             self.master_matrix.append([])
             self.instance_matrix.append([])
@@ -50,12 +70,25 @@ class interpolationMatrixController(object):
                 spotButton.key = (i,j,k,l)
                 self.master_matrix[i].append([k+l, None])
                 self.instance_matrix[i].append([k+l, None])
+        self.w.updateMatrixButton = Button((10, -30, 180, 20), 'Update', callback=self.updateMasters)
+        self.w.interpolation = Group((10, 470, 180, 42))
+        self.w.interpolation.start = TextBox((0, 2, 20, 12), '0', sizeStyle='mini')
+        self.w.interpolation.end = TextBox((-20, 2, 20, 12), '1', sizeStyle='mini')
+        self.w.interpolation.title = TextBox((20, 0, -20, 17), 'Interpolation factor', sizeStyle='small', alignment='center')
+        self.w.interpolation.slider = Slider((0, 22, -0, 15), minValue=0, maxValue=1, value=self.ipf, callback=self.sliderInput, tickMarkCount=5)
+        self.w.interpolation.slider.name = 'ipf'
+        self.w.extrapolation = Group((10, 522, 180, 42))
+        self.w.extrapolation.start = TextBox((0, 2, 20, 12), '1', sizeStyle='mini')
+        self.w.extrapolation.end = TextBox((-20, 2, 20, 12), '3', sizeStyle='mini')
+        self.w.extrapolation.title = TextBox((20, 0, -20, 17), 'extrapolation factor', sizeStyle='small', alignment='center')
+        self.w.extrapolation.slider = Slider((0, 22, -0, 15), minValue=0, maxValue=2, value=self.xpf, callback=self.sliderInput, tickMarkCount=5)
+        self.w.extrapolation.slider.name = 'xpf'
         self.spotFocus = getattr(self.w.matrixModel, 'bb')
         self.newFont = []
         addObserver(self, 'updateMasters', 'currentGlyphChanged')
         addObserver(self, 'updateMasters', 'draw')
-        addObserver(self, 'windowClose', 'glyphWindowWillClose')
         self.w.bind('close', self.windowClose)
+        self.w.bind('resize', self.windowResize)
         self.w.open()
         
     def updateInstances(self):
@@ -64,7 +97,7 @@ class interpolationMatrixController(object):
                 if self.master_matrix[i][j][1] is None:
                     self.makeInstance(i,j,k,l)
                         
-    def updateMasters(self, notification):
+    def updateMasters(self, notification=None):
         for i, line in enumerate(self.master_matrix):
             for j, spot in enumerate(line):
                 if spot[1] is not None:
@@ -79,7 +112,7 @@ class interpolationMatrixController(object):
         key = spotFocus.key
         self.setMaster(key)
         self.updateInstances()
-        
+
     def pickSpot(self, notifier):
         self.spotFocus = notifier
         key = notifier.key
@@ -111,7 +144,9 @@ class interpolationMatrixController(object):
                     spotGlyph = None
                     break
             
-            glyph = selectedFont[g]
+            glyph = flatGlyph(selectedFont[g])
+            glyph.setParent(selectedFont)
+
             matrixView.show(True)
             matrixView.setGlyph(glyph)
             self.master_matrix[i][j][1] = glyph
@@ -192,35 +227,57 @@ class interpolationMatrixController(object):
     def linearInterpolation(self, i, master1, master2, previousInstance=None):
 
         instance = RGlyph()
+        ipf = self.ipf
+        xpf = self.xpf
 
         if ((i-1)%3 < i) and ((i+1)%3 < i):
-            instance.interpolate(-1, master1, master2)
+            instance.interpolate(-xpf, master1, master2)
         elif ((i-1)%3 > i) and ((i+1)%3 > i):
-            instance.interpolate(2, master1, master2)
+            instance.interpolate(1+xpf, master1, master2)
             
         elif ((((i-1)%3 < i) and ((i+1)%3 > i)) or (((i-1)%3 > i) and (i+1)%3 < i)):
-            instance.interpolate(.5, master1, master2)
+            instance.interpolate(ipf, master1, master2)
 
         if previousInstance is not None:
-            instance.interpolate(.5, instance, previousInstance)
+            instance.interpolate(ipf, instance, previousInstance)
 
         return instance
 
     def triangularInterpolation(self, master1, master2, master3, previousInstance=None):
 
+        ipf = self.ipf
+        xpf = self.xpf
+
         instance = RGlyph()
         midInstance = RGlyph()
-        midInstance.interpolate(.5, master1, master2)
-        instance.interpolate(2, master3, midInstance)
+        midInstance.interpolate(ipf, master1, master2)
+        instance.interpolate(1+xpf, master3, midInstance)
 
         if previousInstance is not None:
-            instance.interpolate(.5, instance, previousInstance)
+            instance.interpolate(ipf, instance, previousInstance)
 
         return instance
+
+    def sliderInput(self, sender):
+        mode = sender.name
+        value = sender.get()
+        setattr(self, mode, value)
+        self.updateMasters()
+
+    def windowResize(self, info):
+        x, y, w, h = info.getPosSize()
+        w -= 200
+        cW = w / 3
+        cH = h / 3
+        for i, k in enumerate(['a', 'b', 'c']):
+            for j, l in enumerate(['a', 'b', 'c']):
+                background = getattr(self.w.matrixView, 'back'+k+l)
+                glyphView = getattr(self.w.matrixView, k+l)
+                background.setPosSize((i*cW, j*cH, cW, cH))
+                glyphView.setPosSize((i*cW, j*cH, cW, cH))
 
     def windowClose(self, notification):
         removeObserver(self, "currentGlyphChanged")
         removeObserver(self, "draw")
-        removeObserver(self, "glyphWindowWillClose")
 
 interpolationMatrixController()
