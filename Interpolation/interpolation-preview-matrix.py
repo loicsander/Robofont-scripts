@@ -3,6 +3,7 @@
 from vanilla import *
 from mojo.glyphPreview import GlyphPreview
 from mojo.events import addObserver, removeObserver
+from AppKit import NSColor
 
 def flatGlyph(glyph):
     components = glyph.components
@@ -51,10 +52,12 @@ class SingleFontList(List):
 class interpolationMatrixController(object):
     
     def __init__(self):
-        self.w = Window((1100, 900), minSize=(800, 600))
-        self.w.fontList = SingleFontList(self, AllFonts(), (0, 0, 200, 250))
-        self.w.matrixModel = Group((10, 270, 180, 180))
-        self.w.matrixView = Group((200, 0, -0, -0))
+        bgColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(255, 255, 255, 255)
+        self.w = Window((1200, 900), minSize=(900, 600))
+        self.w.getNSWindow().setBackgroundColor_(bgColor)
+        self.w.fontList = SingleFontList(self, AllFonts(), (0, 0, 300, 250))
+        self.w.matrixModel = Group((15, 265, 270, 270))
+        self.w.matrixView = Group((300, 0, -0, -0))
         self.master_matrix = []
         self.instance_matrix = []
         self.ipf = .5
@@ -65,25 +68,26 @@ class interpolationMatrixController(object):
             for j, l in enumerate(['a','b','c']):
                 setattr(self.w.matrixView, 'back'+k+l, Box((300*i, 300*j, 300, 300)))
                 setattr(self.w.matrixView, k+l, GlyphPreview((300*i, 300*j, 300, 300)))
-                setattr(self.w.matrixModel, k+l, SquareButton((60*i, 60*j, 60, 60), '', callback=self.pickSpot, sizeStyle='mini'))
+                setattr(self.w.matrixModel, k+l, SquareButton((90*i, 90*j, 90, 90), '', callback=self.pickSpot, sizeStyle='mini'))
                 spotButton = getattr(self.w.matrixModel, k+l)
                 spotButton.key = (i,j,k,l)
                 self.master_matrix[i].append([k+l, None])
                 self.instance_matrix[i].append([k+l, None])
-        self.w.updateMatrixButton = Button((10, -30, 180, 20), 'Update', callback=self.updateMasters)
-        self.w.interpolation = Group((10, 470, 180, 42))
-        self.w.interpolation.start = TextBox((0, 2, 20, 12), '0', sizeStyle='mini')
+        self.w.interpolation = Group((10, 565, 280, 50))
+        self.w.interpolation.start = TextBox((7, 2, 20, 12), '0', sizeStyle='mini')
         self.w.interpolation.end = TextBox((-20, 2, 20, 12), '1', sizeStyle='mini')
         self.w.interpolation.title = TextBox((20, 0, -20, 17), 'Interpolation factor', sizeStyle='small', alignment='center')
-        self.w.interpolation.slider = Slider((0, 22, -0, 15), minValue=0, maxValue=1, value=self.ipf, callback=self.sliderInput, tickMarkCount=5)
+        self.w.interpolation.slider = Slider((5, 27, -5, 15), minValue=0, maxValue=1, value=self.ipf, callback=self.sliderInput, tickMarkCount=5)
         self.w.interpolation.slider.name = 'ipf'
-        self.w.extrapolation = Group((10, 522, 180, 42))
-        self.w.extrapolation.start = TextBox((0, 2, 20, 12), '1', sizeStyle='mini')
+        self.w.extrapolation = Group((10, 632, 280, 50))
+        self.w.extrapolation.start = TextBox((7, 2, 20, 12), '1', sizeStyle='mini')
         self.w.extrapolation.end = TextBox((-20, 2, 20, 12), '3', sizeStyle='mini')
-        self.w.extrapolation.title = TextBox((20, 0, -20, 17), 'extrapolation factor', sizeStyle='small', alignment='center')
-        self.w.extrapolation.slider = Slider((0, 22, -0, 15), minValue=0, maxValue=2, value=self.xpf, callback=self.sliderInput, tickMarkCount=5)
+        self.w.extrapolation.title = TextBox((20, 0, -20, 17), 'Extrapolation factor', sizeStyle='small', alignment='center')
+        self.w.extrapolation.slider = Slider((5, 27, -5, 15), minValue=0, maxValue=2, value=self.xpf, callback=self.sliderInput, tickMarkCount=5)
         self.w.extrapolation.slider.name = 'xpf'
         self.spotFocus = getattr(self.w.matrixModel, 'bb')
+        self.w.updateMatrixButton = Button((10, -60, 280, 20), 'Update', callback=self.updateMasters)
+        self.w.resetMatrixButton = Button((10, -30, 280, 20), 'Reset', callback=self.resetMatrix)
         self.newFont = []
         addObserver(self, 'updateMasters', 'currentGlyphChanged')
         addObserver(self, 'updateMasters', 'draw')
@@ -132,7 +136,7 @@ class interpolationMatrixController(object):
                 selectedFont = self.master_matrix[i][j][1].getParent()
             elif len(self.newFont) > 0:
                 selectedFont = self.newFont[0]
-                self.w.fontList.select(selectedFont)   
+                self.w.fontList.select(selectedFont)
         
         spotButton = getattr(self.w.matrixModel, k+l)
         matrixView = getattr(self.w.matrixView, k+l)
@@ -151,13 +155,14 @@ class interpolationMatrixController(object):
             matrixView.setGlyph(glyph)
             self.master_matrix[i][j][1] = glyph
             self.instance_matrix[i][j][1] = glyph
-            styleName = glyph.getParent().info.styleName
-            spotButton.setTitle(styleName)        
+            familyName = selectedFont.info.familyName
+            styleName = selectedFont.info.styleName
+            spotButton.setTitle('\n'.join([familyName,styleName]))  
                         
         elif selectedFont is None:
             self.master_matrix[i][j][1] = None
             self.instance_matrix[i][j][1] = None
-            spotButton.setTitle('x')
+            spotButton.setTitle('')
             
         self.newFont = []
             
@@ -264,9 +269,21 @@ class interpolationMatrixController(object):
         setattr(self, mode, value)
         self.updateMasters()
 
+    def resetMatrix(self, sender):
+        for i, k in enumerate(['a','b','c']):
+            self.master_matrix.append([])
+            self.instance_matrix.append([])
+            for j, l in enumerate(['a','b','c']):
+                self.master_matrix[i].append([k+l, None])
+                self.instance_matrix[i].append([k+l, None])
+                glyphCell = getattr(self.w.matrixView, k+l)
+                glyphCell.setGlyph(RGlyph())
+                spot = getattr(self.w.matrixModel, k+l)
+                spot.setTitle('')
+
     def windowResize(self, info):
         x, y, w, h = info.getPosSize()
-        w -= 200
+        w -= 300
         cW = w / 3
         cH = h / 3
         for i, k in enumerate(['a', 'b', 'c']):
