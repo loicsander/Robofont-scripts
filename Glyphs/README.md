@@ -9,4 +9,6 @@ At some point, you might wonder why the script isn’t doing anything, if so, do
 + 1. you do have glyphs selected 
 + 2. you do have (a) font(s)  selected.
 
+NB: [replace layer data] only replaces data for checked boxes, it doesn’t clear a layer’s content. 
+
 ![alt tag](transfer-glyphs.png)
