@@ -59,8 +59,12 @@ class SingleFontList(List):
         self.selection = fontList[0]
         self.parent = parent
         
+    def update(self):
+        self.fonts = AllFonts()
+        self.set([' '.join([font.info.familyName, font.info.styleName]) for font in AllFonts()])
+        
     def selectedFont(self, info):
-        if len(info.getSelection()) > 0:
+        if len(info.getSelection()) == 1:
             index = info.getSelection()[0]
             self.selection = self.fonts[index]
             self.parent.updateFont(self.selection)
@@ -72,9 +76,11 @@ class SingleFontList(List):
         return self.selection
         
     def select(self, thisFont):
+        selection = []
         for i, font in enumerate(self.fonts):
             if thisFont == font:
-                self.setSelection([i])
+                selection.append(i)
+        self.setSelection(selection)
 
 class interpolationMatrixController(object):
     
@@ -89,18 +95,23 @@ class interpolationMatrixController(object):
         self.instance_matrix = []
         self.ipf = .5
         self.xpf = 1
+        x, y, wi, he = self.w.getPosSize()
+        wi = (wi-300)/3
+        he /= 3
         for i, k in enumerate(['a','b','c']):
             self.master_matrix.append([])
             self.instance_matrix.append([])
             for j, l in enumerate(['a','b','c']):
-                x, y, wi, he = self.w.getPosSize()
-                wi = (wi-300)/3
-                he /= 3
                 setattr(self.w.matrixView, 'back'+k+l, Box((wi*i, he*j, wi, he)))
                 setattr(self.w.matrixView, k+l, GlyphPreview((wi*i, he*j, wi, he)))
-                setattr(self.w.matrixModel, k+l, SquareButton((90*i, 90*j, 90, 90), '', callback=self.pickSpot, sizeStyle='mini'))
+                setattr(self.w.matrixModel, 'back'+k+l, Box((90*i, 90*j, 90, 90)))
+                setattr(self.w.matrixModel, k+l, SquareButton((5+(90*i), 5+(90*j), 80, 80), '', callback=self.pickSpot, sizeStyle='mini'))
+                setattr(self.w.matrixModel, 'reset'+k+l, SquareButton((1+(90*i), 1+(90*j), 20, 20), 'x', callback=self.clearSpot, sizeStyle='mini'))
                 spotButton = getattr(self.w.matrixModel, k+l)
-                spotButton.key = (i,j,k,l)
+                resetpot = getattr(self.w.matrixModel, 'reset'+k+l)
+                resetpot.key = spotButton.key = (i,j,k,l)
+                spotButton.getNSButton().setBordered_(False)
+                resetpot.getNSButton().setBezelStyle_(7)
                 self.master_matrix[i].append([k+l, None])
                 self.instance_matrix[i].append([k+l, None])
         self.w.interpolation = Group((10, 565, 280, 50))
@@ -121,9 +132,14 @@ class interpolationMatrixController(object):
         self.newFont = []
         addObserver(self, 'updateMasters', 'currentGlyphChanged')
         addObserver(self, 'updateMasters', 'draw')
+        addObserver(self, 'updateFontList', 'fontDidOpen')
+        addObserver(self, 'updateFontList', 'fontDidClose')
         self.w.bind('close', self.windowClose)
         self.w.bind('resize', self.windowResize)
         self.w.open()
+        
+    def updateFontList(self, info):
+        self.w.fontList.update()
         
     def updateInstances(self):
         for i, k in enumerate(['a','b','c']):
@@ -138,6 +154,8 @@ class interpolationMatrixController(object):
                     stringKey = [char for char in spot[0]]
                     key = i, j, stringKey[0], stringKey[1]
                     self.setMaster(key)
+                elif spot[1] is None:
+                    self.master_matrix[i][j][1] = None
         self.updateInstances()
 
     def updateFont(self, font):
@@ -151,24 +169,44 @@ class interpolationMatrixController(object):
     def pickSpot(self, notifier):
         self.spotFocus = notifier
         key = notifier.key
+        # print dir(notifier.getNSButton())
+        notifier.getNSButton().setBezelStyle_(15)
+        notifier.getNSButton().setBordered_(True)
+        self.resetSpotStates()
         self.setMaster(key)
         self.clearMatrix(True)
         self.updateMasters()
+
+    def clearSpot(self, notifier):
+        key = notifier.key
+        i,j,k,l = key
+        self.master_matrix[i][j][1] = None
+        spotButton = getattr(self.w.matrixModel, k+l)
+        spotButton.setTitle('')
+        if self.spotFocus is spotButton:
+            self.w.fontList.select(None)
+        self.clearInstanceMatrix()
+        self.updateMasters()
+
+    def resetSpotStates(self):
+        for k in ['a', 'b', 'c']:
+            for l in ['a', 'b', 'c']:
+                matrixButton = getattr(self.w.matrixModel, k+l)
+                if matrixButton is not self.spotFocus:
+                    matrixButton.getNSButton().setBezelStyle_(10)
+                    matrixButton.getNSButton().setBordered_(False)
+
+    def clearInstanceMatrix(self):
+        for i, k in enumerate(['a','b','c']):
+            for j, l in enumerate(['a','b','c']):
+                self.instance_matrix[i][j][1] = None
                        
-    def setMaster(self,key):
+    def setMaster(self, key):
         i, j, k, l = key
         if CurrentGlyph() is None:
             return
         g = CurrentGlyph().name
-        
-        if self.master_matrix[i][j][1] is None:
-            selectedFont = self.w.fontList.selected()
-        elif self.master_matrix[i][j][1] is not None:
-            if len(self.newFont) == 0:
-                selectedFont = self.master_matrix[i][j][1].getParent()
-            elif len(self.newFont) > 0:
-                selectedFont = self.newFont[0]
-                self.w.fontList.select(selectedFont)
+        selectedFont = self.getFont(i, j)
         
         spotButton = getattr(self.w.matrixModel, k+l)
         matrixView = getattr(self.w.matrixView, k+l)
@@ -183,6 +221,7 @@ class interpolationMatrixController(object):
             glyph = rawGlyph(selectedFont[g])
             glyph.setParent(selectedFont)
             glyph.width = 1000
+            # glyph.angledLeftMargin = glyph.angledRightMargin = (glyph.angledLeftMargin + glyph.angledRightMargin)/2
             glyph.leftMargin = glyph.rightMargin = (glyph.leftMargin + glyph.rightMargin)/2
             glyph.scale((.75, .75), (glyph.width/2, 0))
             glyph.move((0, -50))
@@ -193,7 +232,7 @@ class interpolationMatrixController(object):
             self.instance_matrix[i][j][1] = glyph
             familyName = selectedFont.info.familyName
             styleName = selectedFont.info.styleName
-            spotButton.setTitle('\n'.join([familyName,styleName]))  
+            spotButton.setTitle('\n'.join([familyName,styleName]))
                         
         elif selectedFont is None:
             self.master_matrix[i][j][1] = None
@@ -201,6 +240,18 @@ class interpolationMatrixController(object):
             spotButton.setTitle('')
             
         self.newFont = []
+
+    def getFont(self, i, j):
+        selectedFont = None
+        if self.master_matrix[i][j][1] is None:
+            selectedFont = self.w.fontList.selected()
+        elif self.master_matrix[i][j][1] is not None:
+            if len(self.newFont) == 0:
+                selectedFont = self.master_matrix[i][j][1].getParent()
+            elif len(self.newFont) > 0:
+                selectedFont = self.newFont[0]
+                self.w.fontList.select(selectedFont)
+        return selectedFont
             
     def makeInstance(self, i, j, k, l, instancesAsMasters=False):
         instance = RGlyph()
@@ -346,5 +397,7 @@ class interpolationMatrixController(object):
     def windowClose(self, notification):
         removeObserver(self, "currentGlyphChanged")
         removeObserver(self, "draw")
+        removeObserver(self, "fontDidClose")
+        removeObserver(self, "fontDidOpen")
 
 interpolationMatrixController()
