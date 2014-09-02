@@ -52,7 +52,7 @@ class GlyphMigrationController(BaseWindowController):
             'angledRightMargin': False }
         attributeList = ['contours','components','anchors','width','leftMargin','rightMargin','angledLeftMargin','angledRightMargin']
         m = 20
-        self.w = FloatingWindow((300, 630), 'Glyph migration')
+        self.w = FloatingWindow((300, 630), 'Glyph data migration')
         self.w.source = Group((m, m, -m, 47))
         self.w.source.title = TextBox((0, 0, 0, 14), 'Source font',
         sizeStyle="small")
