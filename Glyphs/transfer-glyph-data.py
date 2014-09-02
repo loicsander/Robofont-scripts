@@ -52,7 +52,7 @@ class GlyphMigrationController(BaseWindowController):
             'angledRightMargin': False }
         attributeList = ['contours','components','anchors','width','leftMargin','rightMargin','angledLeftMargin','angledRightMargin']
         m = 20
-        self.w = FloatingWindow((300, 600), 'Glyph migration')
+        self.w = FloatingWindow((300, 630), 'Glyph migration')
         self.w.source = Group((m, m, -m, 47))
         self.w.source.title = TextBox((0, 0, 0, 14), 'Source font',
         sizeStyle="small")
@@ -67,12 +67,13 @@ class GlyphMigrationController(BaseWindowController):
             j = floor(i/4)
             i = i%4
             setattr(self.w.glyph.attributes, attribute, CheckBox((8+(j*115), 5+(i*23), 0, 23), attribute, value=self.glyphAttributes[attribute], callback=self.selectedAttributes, sizeStyle='small'))
+        self.w.glyph.repositionAnchors = CheckBox((0, 140, -0, 23), 'Reposition anchors proportionally', sizeStyle="small")
         self.w.glyph.layersTitle = TextBox((0, -150, 0, 14), 'Glyph layers', sizeStyle='small')
         columnDescriptions = [
             {'title': '=', 'cell': CheckBoxListCell(), 'width': 25},
             {'title': 'layer', 'cell': None} ]
         self.w.glyph.layers = List((0, -130, 0, 115), [{'=':True, 'layer':'foreground'}, {'=':False, 'layer':'background'}], selectionCallback=None, columnDescriptions=columnDescriptions)
-        self.w.transfer = Button((m, -m-20, -m, 20), 'Transfer selected glyphs', callback=self.transferGlyphData)
+        self.w.transfer = Button((m, -m-20, -m, 20), 'Transfer selected glyph data', callback=self.transferGlyphData)
         self.w.replace = CheckBox((m, -m-60, -m, 18), 'Replace layer data', value=False, sizeStyle='small')
         self.updateTargetFontsList()
         self.buildLayersList()
@@ -147,6 +148,7 @@ class GlyphMigrationController(BaseWindowController):
         glyphAttributes = self.glyphAttributes
         layers = self.getSelectedLayers()
         replaceLayerData = self.w.replace.get()
+        repositionAnchors = self.w.glyph.repositionAnchors.get()
         digest = [
             '\n\n////////////////////\nCopy Agent\n////////////////////\n\n\n',
             '** TARGET FONTS **\n\n',
@@ -174,6 +176,8 @@ class GlyphMigrationController(BaseWindowController):
 
                     sourceLayerGlyph = sourceGlyph.getLayer(layer)
                     targetLayerGlyph = targetGlyph.getLayer(layer)
+                    sourceBox = sourceLayerGlyph.box
+                    targetBox = targetLayerGlyph.box
 
                     for attribute, value in glyphAttributes.items():
 
@@ -188,7 +192,18 @@ class GlyphMigrationController(BaseWindowController):
                                         for anchor in targetLayerGlyph.anchors:
                                             targetLayerGlyph.removeAnchor(anchor)
                                     for anchor in sourceLayerGlyph.anchors:
-                                        targetLayerGlyph.appendAnchor(anchor.name, (anchor.x, anchor.y))
+                                        anchor_x = anchor.x
+                                        anchor_y = anchor.y
+                                        if repositionAnchors and (sourceBox is not None) and (targetBox is not None):
+                                            if (anchor_x > sourceBox[0]) and (anchor_x < sourceBox[2]):
+                                                sourceWidth = sourceBox[2] - sourceBox[0]
+                                                targetWidth = targetBox[2] - targetBox[0]
+                                                anchor_x = targetBox[0] + ((anchor_x-sourceBox[0])/sourceWidth)*targetWidth
+                                            if (anchor_y > sourceBox[1]) and (anchor_y < sourceBox[3]):
+                                                sourceHeight = sourceBox[3] - sourceBox[1]
+                                                targetHeight = targetBox[3] - targetBox[1]
+                                                anchor_y = targetBox[1] + ((anchor_y-sourceBox[1])/sourceHeight)*targetHeight
+                                        targetLayerGlyph.appendAnchor(anchor.name, (anchor_x, anchor_y))
 
                                 if attribute == 'components':
                                     if replaceLayerData:
