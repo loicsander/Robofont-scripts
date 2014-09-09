@@ -1,3 +1,7 @@
+# script for Robofont
+# written by Loïc Sander
+# august 2014
+
 from vanilla import *
 from mojo.events import addObserver, removeObserver
 from defconAppKit.windows.baseWindow import BaseWindowController
