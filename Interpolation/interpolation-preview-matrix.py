@@ -1,3 +1,7 @@
+# script for Robofont
+# written by Loïc Sander
+# august 2014
+
 # Script using glyphPreview to build a 3x3 matrix allowing preview of interpolated and/or extrapolated glyphs
 
 from vanilla import *
