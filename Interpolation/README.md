@@ -5,11 +5,13 @@
 
 Script requiring at least two master fonts open in Robofont and interpolable glyphs which allows you to preview interpolation and extrapolation based on master position in an up to 20x20 matrix.
 
-This version of the script (suffix -mutatormath) is a rewriting of the preview Interpolation Preview Matrix (see below) now using ![Letteror’s MutatorMath](https://github.com/LettError/MutatorMath)
+This version of the script (suffix -mutatormath) is a rewriting of the previous Interpolation Preview Matrix (see below) now using ![Letteror’s MutatorMath](https://github.com/LettError/MutatorMath), whereas previous inter/extrapolations where customly written for this script.
+
+![Demo on vimeo](https://vimeo.com/109734720)
 
 ![alt tag](example-mutatormath.png)
 
-The glyphs are updated almost at draw time (mouseUp, keyUp), so you can modify glyphs and see changes happen in the matrix. Theoretically, you can have a 20x20 matrix of 400 fonts. But I guess it would get rather slow if you wish to monitor changes on so many outlines while drawing…
+The glyphs are updated (almost) at draw time [mouseUp, keyUp], so you can modify glyphs and see changes happen in the matrix. Theoretically, you can have a 20x20 matrix of 400 fonts. But I guess it would get rather slow if you wish to monitor changes on so many outlines while drawing…
 
 
 ## Interpolation preview matrix
