@@ -19,7 +19,6 @@ from vanilla import *
 from robofab.interface.all.dialogs import PutFile, GetFile, GetFolder
 from defconAppKit.controls.fontList import FontList
 from defconAppKit.windows.progressWindow import ProgressWindow
-from defconAppKit.windows.baseWindow import BaseWindowController
 from mojo.glyphPreview import GlyphPreview
 from mojo.events import addObserver, removeObserver
 from AppKit import NSColor, NSThickSquareBezelStyle
@@ -53,24 +52,31 @@ def makePreviewGlyph(glyph, fixedWidth=True):
         return previewGlyph
     return
 
+def getValueForKey(ch):
+    return 'abcdefghijklmnopqrstuvwxyz'.index(ch)
+
+def getKeyForValue(i):
+    A = 'abcdefghijklmnopqrstuvwxyz'
+    return A[i]
+
 def fontName(font):
     return ' '.join([font.info.familyName, font.info.styleName])
 
 MasterColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(0.4, 0.1, 0.2, 1)
-BlackColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(1, 0, 0, 1)
+BlackColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(0, 0, 0, 1)
 Transparent = NSColor.colorWithCalibratedRed_green_blue_alpha_(0, 0, 0, 0)
 
-class InterpolationMatrixController(BaseWindowController):
+class InterpolationMatrixController:
 
     def __init__(self):
         bgColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(255, 255, 255, 255)
         buttonColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(0, 0, 0, 255)
-        self.w = Window((1000, 1000), 'Interpolation Preview Matrix', minSize=(470, 300))
+        self.w = Window((1000, 400), 'Interpolation Preview Matrix', minSize=(470, 300))
         self.w.getNSWindow().setBackgroundColor_(bgColor)
         self.w.glyphTitle = Box((10, 10, 200, 30))
         self.w.glyphName = TextBox((20, 15, 190, 20), 'No current glyph')
         # self.w.fontList = PopUpButton()
-        self.axesGrid = {'horizontal': 3, 'vertical': 3}
+        self.axesGrid = {'horizontal': 3, 'vertical': 1}
         self.masters = []
         self.instanceSpots = []
         self.mutator = None
@@ -101,10 +107,9 @@ class InterpolationMatrixController(BaseWindowController):
         matrix = self.w.matrix
         windowPosSize = self.w.getPosSize()
         cellXSize, cellYSize = self.glyphPreviewCellSize(windowPosSize, axesGrid)
-        AB = 'abcdefghijklmnopqrstuvwxyz'
 
         for i in range(nCellsOnHorizontalAxis):
-            ch = AB[i]
+            ch = getKeyForValue(i)
             for j in range(nCellsOnVerticalAxis):
                 setattr(matrix, '%s%s'%(ch,j), Group(((i*cellXSize), (j*cellYSize), cellXSize, cellYSize)))
                 cell = getattr(matrix, '%s%s'%(ch,j))
@@ -128,21 +133,20 @@ class InterpolationMatrixController(BaseWindowController):
             self.w.glyphName.set(currentGlyph)
         elif currentGlyph is None:
             self.w.glyphName.set('No current glyph')
-        self.placeMasters(currentGlyph, axesGrid)
-        self.makeInstances(axesGrid)
+        self.placeGlyphMasters(currentGlyph, axesGrid)
+        self.makeGlyphInstances(axesGrid)
 
-    def placeMasters(self, glyphName, axesGrid):
+    def placeGlyphMasters(self, glyphName, axesGrid):
         availableFonts = AllFonts()
         masters = []
         nCellsOnHorizontalAxis, nCellsOnVerticalAxis = axesGrid
-        AB = 'abcdefghijklmnopqrstuvwxyz'
         matrix = self.w.matrix
         masterGlyph = None
 
         for matrixLocation in self.masters:
             spot, masterFont = matrixLocation
             ch, j = spot
-            i = AB.index(ch)
+            i = getValueForKey(ch)
 
             if (masterFont in availableFonts) and (glyphName is not None) and (glyphName in masterFont):
                 if i <= nCellsOnHorizontalAxis and j <= nCellsOnVerticalAxis:
@@ -173,16 +177,15 @@ class InterpolationMatrixController(BaseWindowController):
             except:
                 self.mutator = None
 
-    def makeInstances(self, axesGrid):
+    def makeGlyphInstances(self, axesGrid):
         mutator = self.mutator
         masterSpots = [spot for spot, masterFont in self.masters]
         nCellsOnHorizontalAxis, nCellsOnVerticalAxis = axesGrid
-        AB = 'abcdefghijklmnopqrstuvwxyz'
         matrix = self.w.matrix
         instanceGlyph = None
 
         for i in range(nCellsOnHorizontalAxis):
-            ch = AB[i]
+            ch = getKeyForValue(i)
             for j in range(nCellsOnVerticalAxis):
                 if (ch, j) not in masterSpots:
                     instanceLocation = Location(horizontal=i, vertical=j)
@@ -194,7 +197,7 @@ class InterpolationMatrixController(BaseWindowController):
                     cell = getattr(matrix, '%s%s'%(ch, j))
                     cell.glyphView.setGlyph(instanceGlyph)
 
-    def generateInstance(self, sender):
+    def generateInstanceFont(self, sender):
 
         self.w.spotSheet.close()
         delattr(self.w, 'spotSheet')
@@ -204,10 +207,9 @@ class InterpolationMatrixController(BaseWindowController):
         fonts = [font for spot, font in self.masters]
 
         ch, j = sender.spot
-        AB = 'abcdefghijklmnopqrstuvwxyz'
-        i = AB.index(ch)
+        i = getValueForKey(ch)
         instanceLocation = Location(horizontal=i, vertical=j)
-        masterLocations = [(Location(horizontal=AB.index(ch), vertical=j), masterFont) for (ch, j), masterFont in self.masters]
+        masterLocations = [(Location(horizontal=getValueForKey(ch), vertical=j), masterFont) for (ch, j), masterFont in self.masters]
 
         # Build font
         newFont = RFont(showUI=False)
@@ -305,11 +307,10 @@ class InterpolationMatrixController(BaseWindowController):
         masterSpots = [_spot for _spot, masterFont in self.masters]
         matrix = self.w.matrix
         nCellsOnHorizontalAxis, nCellsOnVerticalAxis = self.axesGrid['horizontal'], self.axesGrid['vertical']
-        AB = 'abcdefghijklmnopqrstuvwxyz'
         font = None
 
         for i in range(nCellsOnHorizontalAxis):
-            ch = AB[i]
+            ch = getKeyForValue(i)
             for j in range(nCellsOnVerticalAxis):
                 cell = getattr(matrix, '%s%s'%(ch, j))
                 if (ch,j) == spot:
@@ -323,7 +324,7 @@ class InterpolationMatrixController(BaseWindowController):
         if spot in masterSpots:
             spotSheet.clear = Button((20, -40, 130, 20), 'Remove Master', callback=self.clearSpot)
         elif spot not in masterSpots:
-            spotSheet.generate = Button((20, -40, 150, 20), 'Generate Instance', callback=self.generateInstance)
+            spotSheet.generate = Button((20, -40, 150, 20), 'Generate Instance', callback=self.generateInstanceFont)
         spotSheet.yes = Button((-120, -40, 100, 20), 'Add Master', callback=self.changeSpot)
         spotSheet.no = Button((-230, -40, 100, 20), 'Cancel', callback=self.keepSpot)
         for buttonName in ['clear', 'yes', 'no', 'generate']:
@@ -334,7 +335,6 @@ class InterpolationMatrixController(BaseWindowController):
 
     def changeSpot(self, sender):
         spot = sender.spot
-        AB = 'abcdefghijklmnopqrstuvwxyz'
         ch, j = sender.spot
         fontsList = self.w.spotSheet.fontList.get()
         selectedFontIndex = self.w.spotSheet.fontList.getSelection()[0]
@@ -343,7 +343,7 @@ class InterpolationMatrixController(BaseWindowController):
         delattr(self.w, 'spotSheet')
         pickedCell = getattr(self.w.matrix, '%s%s'%(ch, j))
         pickedCell.selectionMask.show(False)
-        i = AB.index(ch)
+        i = getValueForKey(ch)
         l = (spot, font)
         self.masters.append(l)
         self.updateMatrix()
@@ -355,6 +355,7 @@ class InterpolationMatrixController(BaseWindowController):
         pickedCell = getattr(self.w.matrix, '%s%s'%(ch, j))
         pickedCell.selectionMask.show(False)
         pickedCell.masterMask.show(False)
+        pickedCell.glyphView.getNSView().setContourColor_(BlackColor)
         pickedCell.name.set('')
         for matrixLocation in self.masters:
             masterSpot, masterFont = matrixLocation
@@ -393,7 +394,7 @@ class InterpolationMatrixController(BaseWindowController):
         for matrixLocation in self.masters:
             masterSpot, masterFont = matrixLocation
             ch, j = masterSpot
-            i = 'abcdefghijklmnopqrstuvwxyz'.index(ch)
+            i = getValueForKey(ch)
             if i >= nCellsOnHorizontalAxis:
                 mastersToRemove.append(matrixLocation)
         for matrixLocation in mastersToRemove:
@@ -435,13 +436,13 @@ class InterpolationMatrixController(BaseWindowController):
         self.mutator = None
         matrix = self.w.matrix
         nCellsOnHorizontalAxis, nCellsOnVerticalAxis = self.axesGrid['horizontal'], self.axesGrid['vertical']
-        AB = 'abcdefghijklmnopqrstuvwxyz'
 
         for i in range(nCellsOnHorizontalAxis):
-            ch = AB[i]
+            ch = getKeyForValue(i)
             for j in range(nCellsOnVerticalAxis):
                 cell = getattr(matrix, '%s%s'%(ch, j))
                 cell.glyphView.setGlyph(None)
+                cell.glyphView.getNSView().setContourColor_(BlackColor)
                 cell.selectionMask.show(False)
                 cell.masterMask.show(False)
                 cell.name.set('')
