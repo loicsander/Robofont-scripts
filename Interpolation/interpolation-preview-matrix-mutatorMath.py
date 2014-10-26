@@ -77,7 +77,7 @@ class InterpolationMatrixController:
     def __init__(self):
         bgColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(255, 255, 255, 255)
         buttonColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(0, 0, 0, 255)
-        self.w = Window((1000, 400), 'Interpolation Preview Matrix', minSize=(470, 300))
+        self.w = Window((1000, 400), 'Interpolation Matrix', minSize=(470, 300))
         self.w.getNSWindow().setBackgroundColor_(bgColor)
         self.w.glyphTitle = Box((10, 10, 200, 30))
         self.w.glyphName = TextBox((20, 15, 190, 20), 'No current glyph')
