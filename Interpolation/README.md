@@ -7,9 +7,11 @@ Script requiring at least two master fonts open in Robofont and interpolable gly
 
 This version of the script (suffix -mutatormath) is a rewriting of the previous Interpolation Preview Matrix (see below) now using ![Letteror’s MutatorMath](https://github.com/LettError/MutatorMath) <3, whereas previous inter/extrapolations where  especially written for this script.
 
-![alt tag](example-mutatormath.png)
+![alt tag](example-mutatormath-2.png)
 
 The glyphs are updated (almost) at draw time [mouseUp, keyUp], so you can modify glyphs and see changes happen in the matrix. Theoretically, you can have a 20x20 matrix of 400 fonts. But I guess it would get rather slow if you wish to monitor changes on so many outlines while drawing…
+
+![alt tag](example-mutatormath-1.png)
 
 You can also generate instances, Font info (hinting and such) and kerning included. You can generate single instances by naming their ‘coordinates’ (A1, B4, C3, etc.), or you can generate instances by rows and lines (A, 1, etc.), or all at once (*).
 
