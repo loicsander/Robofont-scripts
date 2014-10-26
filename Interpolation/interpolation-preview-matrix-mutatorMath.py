@@ -228,6 +228,8 @@ class InterpolationMatrixController:
             generateSheet.kerning = CheckBox((-270, 140, -20, 22), 'Kerning', value=True, sizeStyle='small')
             generateSheet.fontInfos = CheckBox((-270, 160, -20, 22), 'Font infos', value=True, sizeStyle='small')
 
+            generateSheet.report = CheckBox((20, -38, -20, 22), 'Compatibility report', value=False, sizeStyle='small')
+
             generateSheet.yes = Button((-180, -40, 160, 20), 'Generate Instance(s)', self.getGenerationInfo)
             generateSheet.no = Button((-270, -40, 80, 20), 'Cancel', callback=self.cancelGeneration)
             generateSheet.open()
@@ -249,7 +251,8 @@ class InterpolationMatrixController:
             generationInfos = {
                 'sourceFont': sourceFont,
                 'interpolateKerning': generateSheet.kerning.get(),
-                'interpolateFontInfos': generateSheet.fontInfos.get()
+                'interpolateFontInfos': generateSheet.fontInfos.get(),
+                'printReport': generateSheet.report.get()
             }
 
             # print ['%s%s'%(getKeyForValue(i).upper(), j+1) for i, j in spotsList]
@@ -319,12 +322,13 @@ class InterpolationMatrixController:
         # self.w.spotSheet.close()
         # delattr(self.w, 'spotSheet')
 
-        # progress = ProgressWindow('Generating instance', parentWindow=self.w)
-
         if generationInfos['sourceFont']:
             baseFont = generationInfos['sourceFont'][0]
             doKerning = generationInfos['interpolateKerning']
             doFontInfos = generationInfos['interpolateFontInfos']
+            doReport = generationInfos['printReport']
+
+            progress = ProgressWindow('Generating instance', parentWindow=self.w)
 
             fonts = [font for _, font in self.masters]
 
@@ -408,14 +412,15 @@ class InterpolationMatrixController:
             for name, iGlyph in interpolatedGlyphs:
                 newFont.insertGlyph(iGlyph, name)
 
-            # progress.close()
+            progress.close()
             digest = []
 
-            for fontNames, report in interpolationReports:
-                digest.append(fontNames)
-                digest += [u'– %s'%(reportLine) for reportLine in report]
-                digest.append('\n')
-            print '\n'.join(digest)
+            if doReport:
+                for fontNames, report in interpolationReports:
+                    digest.append(fontNames)
+                    digest += [u'– %s'%(reportLine) for reportLine in report]
+                    digest.append('\n')
+                print '\n'.join(digest)
 
             newFont.showUI()
 

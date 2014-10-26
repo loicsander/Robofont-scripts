@@ -11,8 +11,7 @@ This version of the script (suffix -mutatormath) is a rewriting of the previous 
 
 The glyphs are updated (almost) at draw time [mouseUp, keyUp], so you can modify glyphs and see changes happen in the matrix. Theoretically, you can have a 20x20 matrix of 400 fonts. But I guess it would get rather slow if you wish to monitor changes on so many outlines while drawing…
 
-You can also generate instances, Font info (hinting and such) and kerning included. The script systematically provides a report of incompatibilities encountered during interpolation.
-You can generate single instances by naming their ‘coordinates’ (A1, B4, C3, etc.), or you can generate instances by rows and lines (A, 1, etc.), or all at once (*).
+You can also generate instances, Font info (hinting and such) and kerning included. You can generate single instances by naming their ‘coordinates’ (A1, B4, C3, etc.), or you can generate instances by rows and lines (A, 1, etc.), or all at once (*).
 
 ![Demo on vimeo](https://vimeo.com/109734720)
 
