@@ -331,7 +331,7 @@ class InterpolationMatrixController:
             i, j = spot
             ch = getKeyForValue(i)
             instanceLocation = Location(horizontal=i, vertical=j)
-            masterLocations = [(Location(horizontal=getValueForKey(_ch), vertical=j), masterFont) for (_ch, j), masterFont in self.masters]
+            masterLocations = [(Location(horizontal=getValueForKey(_ch), vertical=_j), masterFont) for (_ch, _j), masterFont in self.masters]
 
             # Build font
             newFont = RFont(showUI=False)
