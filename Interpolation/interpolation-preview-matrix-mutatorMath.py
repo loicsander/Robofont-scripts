@@ -11,9 +11,15 @@ although you don’t have as fine a coordinate system with this matrix (that can
 
 from mutatorMath.objects.location import Location
 from mutatorMath.objects.mutator import buildMutator
+from fontMath.mathGlyph import MathGlyph
+from fontMath.mathInfo import MathInfo
+from fontMath.mathKerning import MathKerning
 
 from vanilla import *
+from robofab.interface.all.dialogs import PutFile, GetFile, GetFolder
 from defconAppKit.controls.fontList import FontList
+from defconAppKit.windows.progressWindow import ProgressWindow
+from defconAppKit.windows.baseWindow import BaseWindowController
 from mojo.glyphPreview import GlyphPreview
 from mojo.events import addObserver, removeObserver
 from AppKit import NSColor, NSThickSquareBezelStyle
@@ -47,8 +53,14 @@ def makePreviewGlyph(glyph, fixedWidth=True):
         return previewGlyph
     return
 
+def fontName(font):
+    return ' '.join([font.info.familyName, font.info.styleName])
 
-class InterpolationMatrixController(object):
+MasterColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(0.4, 0.1, 0.2, 1)
+BlackColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(1, 0, 0, 1)
+Transparent = NSColor.colorWithCalibratedRed_green_blue_alpha_(0, 0, 0, 0)
+
+class InterpolationMatrixController(BaseWindowController):
 
     def __init__(self):
         bgColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(255, 255, 255, 255)
@@ -70,7 +82,9 @@ class InterpolationMatrixController(object):
         self.w.removeLine = SquareButton((-40, -70, 30, 30), u'-', callback=self.removeLine)
         for button in [self.w.addColumn, self.w.removeColumn, self.w.addLine, self.w.removeLine]:
             button.getNSButton().setBezelStyle_(10)
-        self.w.clearMatrix = Button((220, 15, 120, 20), 'Clear matrix', callback=self.clearMatrix)
+        self.w.clearMatrix = Button((220, 15, 70, 20), 'Clear', callback=self.clearMatrix)
+        # self.w.saveMatrix = Button((300, 15, 70, 20), 'Save', callback=self.saveMatrix)
+        # self.w.loadMatrix = Button((380, 15, 70, 20), 'Load', callback=self.loadMatrix)
         addObserver(self, 'updateMatrix', 'currentGlyphChanged')
         addObserver(self, 'updateMatrix', 'fontDidClose')
         addObserver(self, 'updateMatrix', 'mouseUp')
@@ -143,16 +157,16 @@ class InterpolationMatrixController(object):
                 cell = getattr(matrix, '%s%s'%(ch, j))
                 cell.glyphView.setGlyph(masterGlyph)
                 if masterGlyph is not None:
+                    cell.glyphView.getNSView().setContourColor_(MasterColor)
                     cell.masterMask.show(True)
                     fontName = ' '.join([masterFont.info.familyName, masterFont.info.styleName])
                     cell.name.set(fontName)
                 elif masterGlyph is None:
+                    cell.glyphView.getNSView().setContourColor_(BlackColor)
                     cell.masterMask.show(False)
                     cell.name.set('')
 
         if len(masters) > 1:
-            # print '\n'.join([str(masterSpot) for masterSpot in masters])
-            # print '\n'
             try:
                 bias, mutator = buildMutator(masters)
                 self.mutator = mutator
@@ -180,6 +194,103 @@ class InterpolationMatrixController(object):
                     cell = getattr(matrix, '%s%s'%(ch, j))
                     cell.glyphView.setGlyph(instanceGlyph)
 
+    def generateInstance(self, sender):
+
+        self.w.spotSheet.close()
+        delattr(self.w, 'spotSheet')
+
+        # progress = ProgressWindow('Generating instance', parentWindow=self.w)
+
+        fonts = [font for spot, font in self.masters]
+
+        ch, j = sender.spot
+        AB = 'abcdefghijklmnopqrstuvwxyz'
+        i = AB.index(ch)
+        instanceLocation = Location(horizontal=i, vertical=j)
+        masterLocations = [(Location(horizontal=AB.index(ch), vertical=j), masterFont) for (ch, j), masterFont in self.masters]
+
+        # Build font
+        newFont = RFont(showUI=False)
+        interpolatedGlyphs = []
+        interpolatedInfo = None
+        interpolatedKerning = None
+        interpolationReports = []
+
+        # interpolate font infos
+
+        infoMasters = [(location, MathInfo(font.info)) for location, font in masterLocations]
+        try:
+            bias, iM = buildMutator(infoMasters)
+            instanceInfo = iM.makeInstance(instanceLocation)
+            instanceInfo.extractInfo(newFont.info)
+        except:
+            pass
+
+        # interpolate kerning
+
+        kerningMasters = [(location, MathKerning(font.kerning)) for location, font in masterLocations]
+        try:
+            bias, kM = buildMutator(kerningMasters)
+            instanceKerning = kM.makeInstance(instanceLocation)
+            instanceKerning.extractKerning(newFont)
+            for key, value in fonts[0].groups.items():
+                newFont.groups[key] = value
+        except:
+            pass
+
+        # filter compatible glyphs
+
+        fontKeys = [set(font.keys()) for font in fonts]
+        glyphList = set()
+        for i, item in enumerate(fontKeys):
+            if i == 0:
+                glyphList = item
+            elif i > 0:
+                glyphList = glyphList & item
+
+        compatibleBaseGlyphList = []
+        compatibleCompositeGlyphList = []
+
+        for glyphName in glyphList:
+            glyphs = [font[glyphName] for font in fonts]
+            compatible = True
+            for glyph in glyphs[1:]:
+                comp, report = glyphs[0].isCompatible(glyph)
+                if comp == False:
+                    name = '%s <X> %s'%(fontName(glyphs[0].getParent()), fontName(glyph.getParent()))
+                    reportLine = (name, report)
+                    if reportLine not in interpolationReports:
+                        interpolationReports.append(reportLine)
+                    compatible = False
+            if compatible:
+                compatibleBaseGlyphList.append(glyphName)
+
+        # initiate glyph interpolation
+
+        for glyphName in compatibleBaseGlyphList:
+            glyphMasters = [(location, MathGlyph(font[glyphName])) for location, font in masterLocations]
+            try:
+                bias, gM = buildMutator(glyphMasters)
+                newGlyph = RGlyph()
+                instanceGlyph = gM.makeInstance(instanceLocation)
+                interpolatedGlyphs.append((glyphName, instanceGlyph.extractGlyph(newGlyph)))
+            except:
+                continue
+
+        for name, iGlyph in interpolatedGlyphs:
+            newFont.insertGlyph(iGlyph, name)
+
+        # progress.close()
+        digest = []
+
+        for fontNames, report in interpolationReports:
+            digest.append(fontNames)
+            digest += [u'– %s'%(reportLine) for reportLine in report]
+            digest.append('\n')
+        print '\n'.join(digest)
+
+        newFont.showUI()
+
     def glyphPreviewCellSize(self, posSize, axesGrid):
         x, y, w, h = posSize
         nCellsOnHorizontalAxis, nCellsOnVerticalAxis = axesGrid
@@ -191,6 +302,7 @@ class InterpolationMatrixController(object):
 
     def pickSpot(self, sender):
         spot = sender.spot
+        masterSpots = [_spot for _spot, masterFont in self.masters]
         matrix = self.w.matrix
         nCellsOnHorizontalAxis, nCellsOnVerticalAxis = self.axesGrid['horizontal'], self.axesGrid['vertical']
         AB = 'abcdefghijklmnopqrstuvwxyz'
@@ -208,11 +320,16 @@ class InterpolationMatrixController(object):
         self.w.spotSheet = Sheet((500, 250), self.w)
         spotSheet = self.w.spotSheet
         spotSheet.fontList = FontList((20, 20, -20, 150), AllFonts(), allowsMultipleSelection=False)
-        spotSheet.clear = Button((20, -40, 130, 20), 'Remove Master', callback=self.clearSpot)
+        if spot in masterSpots:
+            spotSheet.clear = Button((20, -40, 130, 20), 'Remove Master', callback=self.clearSpot)
+        elif spot not in masterSpots:
+            spotSheet.generate = Button((20, -40, 150, 20), 'Generate Instance', callback=self.generateInstance)
         spotSheet.yes = Button((-120, -40, 100, 20), 'Add Master', callback=self.changeSpot)
         spotSheet.no = Button((-230, -40, 100, 20), 'Cancel', callback=self.keepSpot)
-        for button in [spotSheet.clear, spotSheet.yes, spotSheet.no]:
-            button.spot = spot
+        for buttonName in ['clear', 'yes', 'no', 'generate']:
+            if hasattr(spotSheet, buttonName):
+                button = getattr(spotSheet, buttonName)
+                button.spot = spot
         spotSheet.open()
 
     def changeSpot(self, sender):
@@ -328,6 +445,12 @@ class InterpolationMatrixController(object):
                 cell.selectionMask.show(False)
                 cell.masterMask.show(False)
                 cell.name.set('')
+
+    def saveMatrix(self, sender):
+        pathToSave = PutFile()
+
+    def loadMatrix(self, sender):
+        pathToLoad = GetFile()
 
     def getCurrentGlyph(self, info=None):
         # if (info is not None) and (info.has_key('glyph')):
