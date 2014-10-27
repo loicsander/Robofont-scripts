@@ -15,7 +15,8 @@ The glyphs are updated (almost) at draw time [mouseUp, keyUp], so you can modify
 
 You can also generate instances, Font info (hinting and such) and kerning included. You can generate single instances by naming their ‘coordinates’ (A1, B4, C3, etc.), or you can generate instances by rows (A, 1, etc.), or all at once (*).
 
-![Demo on vimeo](http://vimeo.com/109734720)
+Demo on Vimeo:
+http://vimeo.com/109734720
 
 
 ## Interpolation preview matrix
