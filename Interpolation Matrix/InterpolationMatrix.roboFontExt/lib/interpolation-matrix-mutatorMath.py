@@ -19,10 +19,11 @@ from fontMath.mathKerning import MathKerning
 from vanilla import *
 from robofab.interface.all.dialogs import PutFile, GetFile, GetFolder
 from defconAppKit.controls.fontList import FontList
+from defconAppKit.tools.textSplitter import splitText
 from defconAppKit.windows.progressWindow import ProgressWindow
 from mojo.glyphPreview import GlyphPreview
 from mojo.events import addObserver, removeObserver
-from AppKit import NSColor, NSThickSquareBezelStyle
+from AppKit import NSColor, NSThickSquareBezelStyle, NSFocusRingTypeNone
 from math import cos, sin, pi
 import re
 
@@ -108,8 +109,11 @@ class InterpolationMatrixController:
         self.w = Window((1000, 400), 'Interpolation Matrix', minSize=(470, 300))
         self.w.getNSWindow().setBackgroundColor_(bgColor)
         self.w.glyphTitle = Box((10, 10, 200, 30))
-        self.w.glyphTitle.name = TextBox((5, 0, 190, 20), 'No current glyph')
-        # self.w.fontList = PopUpButton()
+        self.w.glyphTitle.name = EditText((5, 0, -5, 20), 'No current glyph', self.changeGlyph, continuous=False)
+        glyphEdit = self.w.glyphTitle.name.getNSTextField()
+        glyphEdit.setBordered_(False)
+        glyphEdit.setBackgroundColor_(Transparent)
+        glyphEdit.setFocusRingType_(NSFocusRingTypeNone)
         self.axesGrid = {'horizontal': 3, 'vertical': 1}
         self.masters = []
         self.instanceSpots = []
@@ -164,7 +168,7 @@ class InterpolationMatrixController:
 
     def updateMatrix(self, notification=None):
         axesGrid = self.axesGrid['horizontal'], self.axesGrid['vertical']
-        currentGlyph = self.getCurrentGlyph(notification)
+        self.currentGlyph = currentGlyph = self.getCurrentGlyph(notification)
         if currentGlyph is not None:
             self.w.glyphTitle.name.set(currentGlyph)
         elif currentGlyph is None:
@@ -669,17 +673,30 @@ class InterpolationMatrixController:
     def loadMatrix(self, sender):
         pathToLoad = GetFile()
 
-    def getCurrentGlyph(self, info=None):
+    def changeGlyph(self, sender):
+        inputText = sender.get()
+        try:
+            charMap = CurrentFont().getCharacterMapping()
+            glyphs = splitText(inputText, charMap)
+            if len(glyphs):
+                self.currentGlyph = glyphs[0]
+                self.updateMatrix()
+        except:
+            return
+
+    def getCurrentGlyph(self, notification=None):
         # if (info is not None) and (info.has_key('glyph')):
         #     currentGlyph = info['glyph']
         # elif (info is None) or (info is not None and not info.has_key('glyph')):
-        currentGlyph = CurrentGlyph()
+        if notification is not None:
+            currentGlyph = CurrentGlyph()
 
-        if currentGlyph is None:
-            currentGlyphName = None
-        elif currentGlyph is not None:
-            currentGlyphName = currentGlyph.name
-        return currentGlyphName
+            if currentGlyph is None:
+                currentGlyphName = None
+            elif currentGlyph is not None:
+                currentGlyphName = currentGlyph.name
+            return currentGlyphName
+        return self.currentGlyph
 
     def windowResize(self, info):
         axesGrid = (nCellsOnHorizontalAxis, nCellsOnVerticalAxis) = (self.axesGrid['horizontal'], self.axesGrid['vertical'])
