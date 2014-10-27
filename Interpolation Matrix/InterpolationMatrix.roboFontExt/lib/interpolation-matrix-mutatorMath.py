@@ -6,7 +6,8 @@ in a grid/matrix, allowing for easy preview of inter/extrapolation behavior of l
 As the math are the same to Superpolator’s, the preview is as close as can be to Superpolator output,
 although you don’t have as fine a coordinate system with this matrix (up to 20x20).
 
-(Will work only on Robofont from versions 1.6 onward)
+(The standalone script will work only on Robofont from versions 1.6 onward)
+(For previous versions of Robofont (1.4+) you can use the extension)
 '''
 
 from mutatorMath.objects.location import Location
@@ -23,6 +24,7 @@ from mojo.glyphPreview import GlyphPreview
 from mojo.events import addObserver, removeObserver
 from AppKit import NSColor, NSThickSquareBezelStyle
 from math import cos, sin, pi
+import re
 
 def makePreviewGlyph(glyph, fixedWidth=True):
     if glyph is not None:
@@ -49,8 +51,34 @@ def makePreviewGlyph(glyph, fixedWidth=True):
                 previewGlyph.scale((.75, .75), (previewGlyph.width/2, 0))
                 previewGlyph.move((0, -50))
 
+            previewGlyph.name = glyph.name
+
         return previewGlyph
     return
+
+def errorGlyph():
+    glyph = RGlyph()
+    glyph.width = 500
+    pen = glyph.getPen()
+
+    l = 50
+    p = (220, 200)
+    a = pi/4
+    pen.moveTo(p)
+    px, py = p
+    for i in range(12):
+        x = px+(l*cos(a))
+        y = py+(l*sin(a))
+        pen.lineTo((x, y))
+        px = x
+        py = y
+        if i%3 == 0:
+            a -= pi/2
+        elif i%3 != 0:
+            a += pi/2
+    pen.closePath()
+
+    return glyph
 
 def getValueForKey(ch):
     try:
@@ -80,13 +108,14 @@ class InterpolationMatrixController:
         self.w = Window((1000, 400), 'Interpolation Matrix', minSize=(470, 300))
         self.w.getNSWindow().setBackgroundColor_(bgColor)
         self.w.glyphTitle = Box((10, 10, 200, 30))
-        self.w.glyphName = TextBox((20, 15, 190, 20), 'No current glyph')
+        self.w.glyphTitle.name = TextBox((5, 0, 190, 20), 'No current glyph')
         # self.w.fontList = PopUpButton()
         self.axesGrid = {'horizontal': 3, 'vertical': 1}
         self.masters = []
         self.instanceSpots = []
         self.mutator = None
         self.currentGlyph = None
+        self.errorGlyph = errorGlyph()
         self.buildMatrix((self.axesGrid['horizontal'], self.axesGrid['vertical']))
         self.w.addColumn = SquareButton((-80, 10, 30, 30), u'+', callback=self.addColumn)
         self.w.removeColumn = SquareButton((-115, 10, 30, 30), u'-', callback=self.removeColumn)
@@ -137,9 +166,9 @@ class InterpolationMatrixController:
         axesGrid = self.axesGrid['horizontal'], self.axesGrid['vertical']
         currentGlyph = self.getCurrentGlyph(notification)
         if currentGlyph is not None:
-            self.w.glyphName.set(currentGlyph)
+            self.w.glyphTitle.name.set(currentGlyph)
         elif currentGlyph is None:
-            self.w.glyphName.set('No current glyph')
+            self.w.glyphTitle.name.set('No current glyph')
         self.placeGlyphMasters(currentGlyph, axesGrid)
         self.makeGlyphInstances(axesGrid)
 
@@ -160,7 +189,7 @@ class InterpolationMatrixController:
                     l = Location(horizontal=i, vertical=j)
                     masterGlyph = makePreviewGlyph(masterFont[glyphName])
                     if masterGlyph is not None:
-                        masters.append((l, masterGlyph))
+                        masters.append((l, MathGlyph(masterGlyph)))
             elif (masterFont not in availableFonts):
                 self.masters.remove(matrixLocation)
 
@@ -198,15 +227,26 @@ class InterpolationMatrixController:
                     instanceLocation = Location(horizontal=i, vertical=j)
                     if mutator is not None:
                         try:
-                            instanceGlyph = mutator.makeInstance(instanceLocation)
+                            instanceGlyph = RGlyph()
+                            iGlyph = mutator.makeInstance(instanceLocation)
+                            instanceGlyph = iGlyph.extractGlyph(instanceGlyph)
                         except:
-                            instanceGlyph = None
+                            instanceGlyph = self.errorGlyph
                     cell = getattr(matrix, '%s%s'%(ch, j))
                     cell.glyphView.setGlyph(instanceGlyph)
 
     def instanceGeneration(self, sender):
 
         if len(self.masters) > 1:
+
+            readableCoord = None
+
+            if hasattr(sender, 'spot'):
+                if hasattr(self.w, 'spotSheet'):
+                    self.w.spotSheet.close()
+                spot = sender.spot
+                ch, j = spot
+                readableCoord = '%s%s'%(ch.upper(), j+1)
 
             hAxis, vAxis = self.axesGrid['horizontal'], self.axesGrid['vertical']
             self.w.generateSheet = Sheet((500, 250), self.w)
@@ -218,6 +258,8 @@ class InterpolationMatrixController:
             generateSheet.headerBar = HorizontalLine((20, 40, -20, 1))
             generateSheet.spotsListTitle = TextBox((20, 57, 70, 17), 'Locations')
             generateSheet.spots = EditText((100, 55, -20, 22))
+            if readableCoord is not None:
+                generateSheet.spots.set(readableCoord)
 
             generateSheet.sourceFontTitle = TextBox((20, 110, -290, 17), 'Source font (for naming & groups)', sizeStyle='small')
             generateSheet.sourceFontBar = HorizontalLine((20, 130, -290, 1))
@@ -228,7 +270,7 @@ class InterpolationMatrixController:
             generateSheet.kerning = CheckBox((-270, 140, -20, 22), 'Kerning', value=True, sizeStyle='small')
             generateSheet.fontInfos = CheckBox((-270, 160, -20, 22), 'Font infos', value=True, sizeStyle='small')
 
-            generateSheet.report = CheckBox((20, -38, -20, 22), 'Compatibility report', value=False, sizeStyle='small')
+            generateSheet.report = CheckBox((20, -38, -20, 22), 'Add compatibility report', value=False, sizeStyle='small')
 
             generateSheet.yes = Button((-180, -40, 160, 20), 'Generate Instance(s)', self.getGenerationInfo)
             generateSheet.no = Button((-270, -40, 80, 20), 'Cancel', callback=self.cancelGeneration)
@@ -282,7 +324,6 @@ class InterpolationMatrixController:
             return spotsToGenerate
 
     def parseSpot(self, spotName, axesGrid):
-        import re
         nCellsOnHorizontalAxis, nCellsOnVerticalAxis = axesGrid
         s = re.search('([a-zA-Z](?![0-9]))|([a-zA-Z][0-9][0-9]?)|([0-9][0-9]?)', spotName)
         if s:
@@ -323,106 +364,148 @@ class InterpolationMatrixController:
         # delattr(self.w, 'spotSheet')
 
         if generationInfos['sourceFont']:
-            baseFont = generationInfos['sourceFont'][0]
-            doKerning = generationInfos['interpolateKerning']
-            doFontInfos = generationInfos['interpolateFontInfos']
-            doReport = generationInfos['printReport']
 
-            progress = ProgressWindow('Generating instance', parentWindow=self.w)
+            try:
+                masters = self.masters
+                baseFont = generationInfos['sourceFont'][0]
+                folderPath = None
+                s = re.search('(.*)/(.*)(.ufo)', baseFont.path)
+                if s is not None:
+                    folderPath = s.group(1)
+                doKerning = generationInfos['interpolateKerning']
+                doFontInfos = generationInfos['interpolateFontInfos']
+                doReport = generationInfos['printReport']
+                noUI = True
 
-            fonts = [font for _, font in self.masters]
+                progress = ProgressWindow('Generating instance', parentWindow=self.w)
 
-            i, j = spot
-            ch = getKeyForValue(i)
-            instanceLocation = Location(horizontal=i, vertical=j)
-            masterLocations = [(Location(horizontal=getValueForKey(_ch), vertical=_j), masterFont) for (_ch, _j), masterFont in self.masters]
+                masterFonts = [font for _, font in masters]
 
-            # Build font
-            newFont = RFont(showUI=False)
-            newFont.info.familyName = baseFont.info.familyName
-            newFont.info.styleName = '%s%s'%(ch.upper(), j+1)
-            interpolatedGlyphs = []
-            interpolatedInfo = None
-            interpolatedKerning = None
-            interpolationReports = []
+                i, j = spot
+                ch = getKeyForValue(i)
+                instanceLocation = Location(horizontal=i, vertical=j)
+                masterLocations = [(Location(horizontal=getValueForKey(_ch), vertical=_j), masterFont) for (_ch, _j), masterFont in masters]
 
-            # interpolate font infos
-
-            if doFontInfos:
-                infoMasters = [(location, MathInfo(font.info)) for location, font in masterLocations]
+                # Build font
+                if hasattr(RFont, 'showUI') or (not hasattr(RFont, 'showUI') and (folderPath is not None)):
+                    newFont = RFont(showUI=False)
+                elif not hasattr(RFont, 'showUI') and (folderPath is None):
+                    newFont = RFont()
+                newFont.info.familyName = baseFont.info.familyName
+                newFont.info.styleName = '%s%s'%(ch.upper(), j+1)
                 try:
-                    bias, iM = buildMutator(infoMasters)
-                    instanceInfo = iM.makeInstance(instanceLocation)
-                    instanceInfo.extractInfo(newFont.info)
+                    newFont.glyphOrder = baseFont.glyphOrder
                 except:
-                    pass
+                    try:
+                        newFont.glyphOrder = baseFont.lib['public.glyphOrder']
+                    except:
+                        try:
+                            newFont.lib['public.glyphOrder'] = baseFont.lib['public.glyphOrder']
+                        except:
+                            try:
+                                newFont.lib['public.glyphOrder'] = baseFont.glyphOrder
+                            except:
+                                pass
+                if folderPath is not None:
+                    path = '%s/%s-%s%s'%(folderPath, newFont.info.familyName, newFont.info.styleName, '.ufo')
+                interpolatedGlyphs = []
+                interpolatedInfo = None
+                interpolatedKerning = None
+                interpolationReports = []
 
-            # interpolate kerning
+                # interpolate font infos
 
-            if doKerning:
-                kerningMasters = [(location, MathKerning(font.kerning)) for location, font in masterLocations]
+                if doFontInfos:
+                    infoMasters = [(infoLocation, MathInfo(masterFont.info)) for infoLocation, masterFont in masterLocations]
+                    try:
+                        bias, iM = buildMutator(infoMasters)
+                        instanceInfo = iM.makeInstance(instanceLocation)
+                        instanceInfo.extractInfo(newFont.info)
+                    except:
+                        pass
+
+                # interpolate kerning
+
+                if doKerning:
+                    kerningMasters = [(kerningLocation, MathKerning(masterFont.kerning)) for kerningLocation, masterFont in masterLocations]
+                    try:
+                        bias, kM = buildMutator(kerningMasters)
+                        instanceKerning = kM.makeInstance(instanceLocation)
+                        instanceKerning.extractKerning(newFont)
+                        for key, value in baseFont.groups.items():
+                            newFont.groups[key] = value
+                    except:
+                        pass
+
+                # filter compatible glyphs
+
+                fontKeys = [set(masterFont.keys()) for masterFont in masterFonts]
+                glyphList = set()
+                for i, item in enumerate(fontKeys):
+                    if i == 0:
+                        glyphList = item
+                    elif i > 0:
+                        glyphList = glyphList & item
+
+                incompatibleGlyphs = []
+
+                for glyphName in glyphList:
+                    glyphs = [(MathGlyph(masterFont[glyphName]), masterFont, masterLocation) for masterLocation, masterFont in masterLocations]
+                    allCompatible = True
+                    refMasterGlyph = glyphs[0][0]
+                    refMasterFont = glyphs[0][1]
+                    refMasterLocation = glyphs[0][2]
+                    masterGlyphs = [(refMasterLocation, refMasterGlyph)]
+                    for masterGlyph, _masterFont, _masterLocation in glyphs[1:]:
+                        compatible = refMasterGlyph.isCompatible(masterGlyph)
+                        if compatible == False:
+                            incompatibleGlyphs.append((glyphName, refMasterFont, _masterFont))
+                            allCompatible = False
+                        elif compatible == True:
+                            masterGlyphs.append((_masterLocation, masterGlyph))
+
+                    if allCompatible:
+                        try:
+                            bias, gM = buildMutator(masterGlyphs)
+                            newGlyph = RGlyph()
+                            instanceGlyph = gM.makeInstance(instanceLocation)
+                            interpolatedGlyphs.append((glyphName, instanceGlyph.extractGlyph(newGlyph)))
+                        except:
+                            continue
+
+                for name, interpolatedGlyph in interpolatedGlyphs:
+                    newFont.insertGlyph(interpolatedGlyph, name)
+
+                progress.close()
+                interpolationReports = []
+                digest = []
+
+                if doReport:
+                    for glyphName, firstFont, secondFont in incompatibleGlyphs:
+                        firstGlyph = firstFont[glyphName]
+                        secondGlyph = secondFont[glyphName]
+                        comp, report = firstGlyph.isCompatible(secondGlyph)
+                        names = '%s <X> %s'%(fontName(firstFont), fontName(secondFont))
+                        reportID = (name, report)
+                        if reportID not in interpolationReports:
+                            digest.append(names)
+                            digest += [u'– %s'%(reportLine) for reportLine in report]
+                            digest.append('\n')
+                            interpolationReports.append(reportID)
+                    print '\n'.join(digest)
+
+
+                if hasattr(RFont, 'showUI') and (folderPath is None):
+                    newFont.showUI()
+                elif (folderPath is not None):
+                    newFont.save(path)
+                    f = RFont(path)
+            except:
                 try:
-                    bias, kM = buildMutator(kerningMasters)
-                    instanceKerning = kM.makeInstance(instanceLocation)
-                    instanceKerning.extractKerning(newFont)
-                    for key, value in baseFont.groups.items():
-                        newFont.groups[key] = value
+                    progress.close()
                 except:
-                    pass
-
-            # filter compatible glyphs
-
-            fontKeys = [set(font.keys()) for font in fonts]
-            glyphList = set()
-            for i, item in enumerate(fontKeys):
-                if i == 0:
-                    glyphList = item
-                elif i > 0:
-                    glyphList = glyphList & item
-
-            compatibleBaseGlyphList = []
-            compatibleCompositeGlyphList = []
-
-            for glyphName in glyphList:
-                glyphs = [font[glyphName] for font in fonts]
-                compatible = True
-                for glyph in glyphs[1:]:
-                    comp, report = glyphs[0].isCompatible(glyph)
-                    if comp == False:
-                        name = '%s <X> %s'%(fontName(glyphs[0].getParent()), fontName(glyph.getParent()))
-                        reportLine = (name, report)
-                        if reportLine not in interpolationReports:
-                            interpolationReports.append(reportLine)
-                        compatible = False
-                if compatible:
-                    compatibleBaseGlyphList.append(glyphName)
-
-            # initiate glyph interpolation
-
-            for glyphName in compatibleBaseGlyphList:
-                glyphMasters = [(location, MathGlyph(font[glyphName])) for location, font in masterLocations]
-                try:
-                    bias, gM = buildMutator(glyphMasters)
-                    newGlyph = RGlyph()
-                    instanceGlyph = gM.makeInstance(instanceLocation)
-                    interpolatedGlyphs.append((glyphName, instanceGlyph.extractGlyph(newGlyph)))
-                except:
-                    continue
-
-            for name, iGlyph in interpolatedGlyphs:
-                newFont.insertGlyph(iGlyph, name)
-
-            progress.close()
-            digest = []
-
-            if doReport:
-                for fontNames, report in interpolationReports:
-                    digest.append(fontNames)
-                    digest += [u'– %s'%(reportLine) for reportLine in report]
-                    digest.append('\n')
-                print '\n'.join(digest)
-
-            newFont.showUI()
+                    print u'Couldn’t finish generating, something happened…'
+                    return
 
     def glyphPreviewCellSize(self, posSize, axesGrid):
         x, y, w, h = posSize
@@ -452,11 +535,13 @@ class InterpolationMatrixController:
         self.w.spotSheet = Sheet((500, 250), self.w)
         spotSheet = self.w.spotSheet
         spotSheet.fontList = FontList((20, 20, -20, 150), AllFonts(), allowsMultipleSelection=False)
-        if spot in masterSpots:
+        if spot not in masterSpots:
+            spotSheet.yes = Button((-140, -40, 120, 20), 'Place Master', callback=self.changeSpot)
+            spotSheet.generate = Button((20, -40, 150, 20), 'Generate Instance', callback=self.instanceGeneration)
+            spotSheet.generate.spot = spot
+        elif spot in masterSpots:
             spotSheet.clear = Button((20, -40, 130, 20), 'Remove Master', callback=self.clearSpot)
-        # elif spot not in masterSpots:
-        #     spotSheet.generate = Button((20, -40, 150, 20), 'Generate Instance', callback=self.generateInstanceFont)
-        spotSheet.yes = Button((-140, -40, 120, 20), 'Place Master', callback=self.changeSpot)
+            spotSheet.yes = Button((-140, -40, 120, 20), 'Change Master', callback=self.changeSpot)
         spotSheet.no = Button((-230, -40, 80, 20), 'Cancel', callback=self.keepSpot)
         for buttonName in ['clear', 'yes', 'no', 'generate']:
             if hasattr(spotSheet, buttonName):
