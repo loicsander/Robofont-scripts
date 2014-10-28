@@ -1,7 +1,7 @@
 ## Interpolation Matrix (MutatorMath)
 ================
 
-*Note! this version of the Interpolation Matrix script will work only from ROBOFONT v1.6 onward, for previous versions of Robofont, use either the extension of the previous script [see below].*
+*Note! this version of the Interpolation Matrix script will work only from ROBOFONT v1.6 onward, for previous versions of Robofont, use either the extension or the previous script [see below].*
 
 Script requiring at least two master fonts open in Robofont and interpolable glyphs which allows you to preview interpolation and extrapolation based on master position in an up to 20x20 matrix.
 
