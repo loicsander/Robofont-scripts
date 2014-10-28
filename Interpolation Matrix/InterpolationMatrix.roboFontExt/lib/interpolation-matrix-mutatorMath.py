@@ -1,6 +1,9 @@
 #coding=utf-8
 
+
 '''
+Interpolation Matrix
+v0.5.1
 Interpolation matrix implementing Erik van Blokland’s MutatorMath objects (https://github.com/LettError/MutatorMath)
 in a grid/matrix, allowing for easy preview of inter/extrapolation behavior of letters while drawing in Robofont.
 As the math are the same to Superpolator’s, the preview is as close as can be to Superpolator output,
@@ -8,6 +11,8 @@ although you don’t have as fine a coordinate system with this matrix (up to 20
 
 (The standalone script will work only on Robofont from versions 1.6 onward)
 (For previous versions of Robofont (1.4+) you can use the extension)
+
+Loïc Sander
 '''
 
 from mutatorMath.objects.location import Location
@@ -23,9 +28,16 @@ from defconAppKit.tools.textSplitter import splitText
 from defconAppKit.windows.progressWindow import ProgressWindow
 from mojo.glyphPreview import GlyphPreview
 from mojo.events import addObserver, removeObserver
-from AppKit import NSColor, NSThickSquareBezelStyle, NSFocusRingTypeNone
+from AppKit import NSColor, NSThickSquareBezelStyle, NSFocusRingTypeNone, NSBoxCustom, NSBezelBorder, NSLineBorder
 from math import cos, sin, pi
 import re
+
+MasterColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(0.4, 0.1, 0.2, 1)
+BlackColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(0, 0, 0, 1)
+GlyphBoxFillColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(0.5, 0.4, 0.4, .1)
+GlyphBoxTextColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(0.5, 0.4, 0.4, 1)
+GlyphBoxBorderColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(1, 1, 1, 1)
+Transparent = NSColor.colorWithCalibratedRed_green_blue_alpha_(0, 0, 0, 0)
 
 def makePreviewGlyph(glyph, fixedWidth=True):
     if glyph is not None:
@@ -97,10 +109,6 @@ def getKeyForValue(i):
 def fontName(font):
     return ' '.join([font.info.familyName, font.info.styleName])
 
-MasterColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(0.4, 0.1, 0.2, 1)
-BlackColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(0, 0, 0, 1)
-Transparent = NSColor.colorWithCalibratedRed_green_blue_alpha_(0, 0, 0, 0)
-
 class InterpolationMatrixController:
 
     def __init__(self):
@@ -151,19 +159,32 @@ class InterpolationMatrixController:
         for i in range(nCellsOnHorizontalAxis):
             ch = getKeyForValue(i)
             for j in range(nCellsOnVerticalAxis):
-                setattr(matrix, '%s%s'%(ch,j), Group(((i*cellXSize), (j*cellYSize), cellXSize, cellYSize)))
+                setattr(matrix, '%s%s'%(ch,j), Group(((i*cellXSize)-i, (j*cellYSize), cellXSize, cellYSize)))
+                xEnd = yEnd = -2
+                if i == nCellsOnHorizontalAxis-1:
+                    xEnd = -3
+                if j == nCellsOnVerticalAxis-1:
+                    yEnd = -3
+                bSize = (2, 2, xEnd, yEnd)
                 cell = getattr(matrix, '%s%s'%(ch,j))
-                cell.background = Box((0, 0, -0, -0))
-                cell.selectionMask = Box((0, 0, -0, -0))
+                cell.background = Box(bSize)
+                cell.selectionMask = Box(bSize)
                 cell.selectionMask.show(False)
-                cell.masterMask = Box((0, 0, -0, -0))
+                cell.masterMask = Box(bSize)
                 cell.masterMask.show(False)
-                cell.glyphView = GlyphPreview((0, 0, -0, -0))
+                for box in [cell.background, cell.selectionMask, cell.masterMask]:
+                    box = box.getNSBox()
+                    box.setBoxType_(NSBoxCustom)
+                    box.setFillColor_(GlyphBoxFillColor)
+                    box.setBorderWidth_(2)
+                    box.setBorderColor_(GlyphBoxBorderColor)
+                cell.glyphView = GlyphPreview(bSize)
                 cell.button = SquareButton((0, 0, -0, -0), None, callback=self.pickSpot)
                 cell.button.spot = (ch, j)
                 # cell.button.getNSButton().setBordered_(False)
                 cell.button.getNSButton().setTransparent_(True)
                 cell.coordinate = TextBox((5, -17, 30, 12), '%s%s'%(ch.capitalize(), j+1), sizeStyle='mini')
+                cell.coordinate.getNSTextField().setTextColor_(GlyphBoxTextColor)
                 cell.name = TextBox((40, -17, -10, 12), '', sizeStyle='mini', alignment='right')
 
     def updateMatrix(self, notification=None):
@@ -514,7 +535,7 @@ class InterpolationMatrixController:
     def glyphPreviewCellSize(self, posSize, axesGrid):
         x, y, w, h = posSize
         nCellsOnHorizontalAxis, nCellsOnVerticalAxis = axesGrid
-        w -= 50
+        w -= 50-nCellsOnHorizontalAxis
         h -= 50
         cellWidth = w / nCellsOnHorizontalAxis
         cellHeight = h / nCellsOnVerticalAxis
