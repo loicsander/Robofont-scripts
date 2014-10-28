@@ -521,8 +521,10 @@ class InterpolationMatrixController:
 
 
                 if hasattr(RFont, 'showUI') and (folderPath is None):
+                    newFont.autoUnicodes()
                     newFont.showUI()
                 elif (folderPath is not None):
+                    newFont.autoUnicodes()
                     newFont.save(path)
                     f = RFont(path)
             except:
