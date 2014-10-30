@@ -24,7 +24,7 @@ SingleValueParameter(name, defaultValue, limits=None, numType='float', master=No
 + *master* would be another parameter object
 + *mode* the type of relationship to the master parameter, ‘ratio’ or ‘offset’
 
-Defining a parameters value goes trough the **set()** method:
+Defining a parameter’s value goes trough the **set()** method:
 ```python
 p.set(40)
 ```
