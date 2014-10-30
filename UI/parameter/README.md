@@ -19,10 +19,10 @@ and here’s the whole object:
 SingleValueParameter(name, defaultValue, limits=None, numType='float', master=None, mode=None)
 ```
 
-– *limits* should be a tuple in the form (minValue, maxValue)
-– *numType* can be either ‘int’ or ‘float’ (used to format the output)
-– *master* would be another parameter object
-– *mode* the type of relationship to the master parameter, ‘ratio’ or ‘offset’
++ *limits* should be a tuple in the form (minValue, maxValue)
++ *numType* can be either ‘int’ or ‘float’ (used to format the output)
++ *master* would be another parameter object
++ *mode* the type of relationship to the master parameter, ‘ratio’ or ‘offset’
 
 Defining a parameters value goes trough the **set()** method:
 ```python
