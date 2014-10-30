@@ -40,11 +40,11 @@ Similarly, values of a parameter can be set relatively through the **set()** met
 ## VanillaSingleValueParameter
 *(vanillaParameterObjects.py)*
 
-This is the UI linked implementation of the SingleValueParameter object. Specifically, it is made to function with vanilla based UI elements for use inside of Robofont or DrawBot (or any application using vanilla, I guess).
+This is the UI linked implementation of the SingleValueParameter object. Specifically, it is made to function with ![vanilla](https://github.com/typesupply/vanilla) based UI elements for use inside of Robofont or DrawBot (or any application using ![vanilla](https://github.com/typesupply/vanilla), I guess).
 
 ![alt tag](slider-parameters.png)
 
 ## ParameterSliderTextInput
 *(vanillaParameterObjects.py)*
 
-And here’s a bunch of vanilla object grouped together (a slider, text input and checkbox), linking the slider and text input values through the ways of a parameter object.
+And here’s a bunch of ![vanilla](https://github.com/typesupply/vanilla) object grouped together (a slider, text input and checkbox), linking the slider and text input values through the ways of a parameter object.
