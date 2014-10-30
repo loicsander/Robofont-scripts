@@ -42,6 +42,8 @@ Similarly, values of a parameter can be set relatively through the **set()** met
 
 This is the UI linked implementation of the SingleValueParameter object. Specifically, it is made to function with vanilla based UI elements for use inside of Robofont or DrawBot (or any application using vanilla, I guess).
 
+[!alt](slider-parameters.png)
+
 ## ParameterSliderTextInput
 *(vanillaParameterObjects.py)*
 
