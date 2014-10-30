@@ -11,12 +11,12 @@ The whole point of this object was primarily to make it easier to have dynamical
 At the least, a parameter object requires a name and a default value.
 
 ```python
-p = SingleValueParameter(‘myParameter’, 40)
+p = SingleValueParameter('myParameter', 40)
 ```
 
 and here’s the whole object:
 ```python
-SingleValueParameter(name, defaultValue, limits=None, numType='float’, master=None, mode=None)
+SingleValueParameter(name, defaultValue, limits=None, numType='float', master=None, mode=None)
 ```
 
 – *limits* should be a tuple in the form (minValue, maxValue)
@@ -33,9 +33,9 @@ If the parameter happens to be the master of other parameters, all the slave par
 
 The relationship can be changed at any time **setMode()**, and a slave parameter can be freed at any time as well with **setMaster(None)**.
 
-Independently from the chosen mode, ‘ratio’ or ‘offset’, the ratio and offset values can be retrieved with **getRatio()** and **getOffset**. Inversely, and still independent of the mode, ratio and offset can be set, **setRatio()**, **setOffset()**.
+Independently from the chosen mode, 'ratio' or 'offset', the ratio and offset values can be retrieved with **getRatio()** and **getOffset**. Inversely, and still independent of the mode, ratio and offset can be set, **setRatio()**, **setOffset()**.
 
-Similarly, values of a parameter can be set relatively through the **set()** method: adding (‘++20’) or substracting (‘--20’). Note that these inputs have to be strings for the ++ and -- operators to be considered.
+Similarly, values of a parameter can be set relatively through the **set()** method: adding ('++20') or substracting ('--20'). Note that these inputs have to be strings for the ++ and -- operators to be considered.
 
 ## VanillaSingleValueParameter
 *(vanillaParameterObjects.py)*
