@@ -47,4 +47,4 @@ This is the UI linked implementation of the SingleValueParameter object. Specifi
 ## ParameterSliderTextInput
 *(vanillaParameterObjects.py)*
 
-And here’s a group of several vanilla object (a slider, text input and checkbox) linking the slider and text input values through the ways of a parameter object.
+And here’s a bunch of vanilla object grouped together (a slider, text input and checkbox), linking the slider and text input values through the ways of a parameter object.
