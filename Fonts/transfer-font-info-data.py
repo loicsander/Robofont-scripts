@@ -51,7 +51,7 @@ def fontName(font):
     return familyName, styleName
 
 class FontList(List):
-    
+
     def __init__(self, posSize, fontList):
         fontNames = listFontNames(fontList)
         super(FontList, self).__init__(posSize, fontNames, selectionCallback=self.updateSelectedFonts)
@@ -62,21 +62,21 @@ class FontList(List):
         if fontList is None: self.fonts = AllFonts()
         elif fontList is not None: self.fonts = fontList
         self.set(listFontNames(self.fonts))
-        
+
     def updateSelectedFonts(self, info):
         indices = info.getSelection()
         self.selection = [self.fonts[i] for i in indices]
 
     def selectedFonts(self):
         return self.selection
-        
+
     def select(self, thisFont):
         for i, font in enumerate(self.fonts):
             if thisFont == font:
                 self.setSelection([i])
 
 class FontInfoTransferController(BaseWindowController):
-    
+
     def __init__(self):
         self.glyphAttributes = {
             'contours': True,
@@ -100,14 +100,15 @@ class FontInfoTransferController(BaseWindowController):
         self.w.target.fonts = FontList((0, 20, 0, 115), [])
         self.w.sep1 = HorizontalLine((m, 170, -m, 1))
         self.w.fontInfo = Group((m, 180, -m, -m-50))
-        self.tables = ['general', 'postscript', 'opentype']
+        # self.tables = ['general', 'postscript', 'opentype']
 
-        for i, tableName in enumerate(self.tables):
-            setattr(self.w.fontInfo, 'show'+tableName.capitalize(), Button((110*i, 0, 100, 20), tableName.capitalize(), self.switchTables))
-            button = getattr(self.w.fontInfo, 'show'+tableName.capitalize())
-            button.table = tableName
+        self.tables = [
+            {'width':100, 'title':'General'},
+            {'width':100, 'title':'Postscript'},
+            {'width':100, 'title':'Opentype'}
+            ]
 
-        self.w.fontInfo.showGeneral.enable(False)
+        self.w.fontInfo.showTables = SegmentedButton((150, 0, 310, 20), self.tables, callback=self.switchTables)
 
         # establishing lists to order attributes
         self.attributeOrders = {
@@ -259,7 +260,7 @@ class FontInfoTransferController(BaseWindowController):
             table = getattr(self.w.fontInfo, tableName)
             tableList = table.get()
             fontInfos += tableList
-        
+
         attributesToTransfer = {}
         sourceFont = self.getSourceFont()
         targetFonts = self.w.target.fonts.selectedFonts()
@@ -294,7 +295,8 @@ class FontInfoTransferController(BaseWindowController):
         tableFontInfo = splitFontInfo(sourceFont.info.asDict(), selectAll)
 
         # building tables
-        for tableName in self.tables:
+        for table in self.tables:
+            tableName = table['title'].lower()
             if not hasattr(self.w.fontInfo, tableName):
                 setattr(self.w.fontInfo, tableName, List((0, 32, 0, -18), [], selectionCallback=None, columnDescriptions=self.columnDescriptions))
             order = self.attributeOrders[tableName]
@@ -302,14 +304,13 @@ class FontInfoTransferController(BaseWindowController):
             table.set([tableFontInfo[key] for key in order])
 
     def switchTables(self, sender):
-        thisTableName = sender.table
-        sender.enable(False)
+        tableIndex = sender.get()
+        thisTableName = self.tables[tableIndex]['title'].lower()
         thisTable = getattr(self.w.fontInfo, thisTableName)
-        for otherTableName in self.tables:
+        for otherTableRef in self.tables:
+            otherTableName = otherTableRef['title'].lower()
             if otherTableName != thisTableName:
-                otherButton = getattr(self.w.fontInfo, 'show'+otherTableName.capitalize())
                 otherTable = getattr(self.w.fontInfo, otherTableName)
-                otherButton.enable(True)
                 otherTable.show(False)
         thisTable.show(True)
 
