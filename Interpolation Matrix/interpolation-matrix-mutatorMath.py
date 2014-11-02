@@ -111,6 +111,43 @@ def getKeyForValue(i):
 def fontName(font):
     return ' '.join([font.info.familyName, font.info.styleName])
 
+class MatrixMaster(object):
+
+    def __init__(self, spot, font):
+        self.font = font
+        self.spot = spot
+        self.i = getValueForKey(spot[0])
+        self.j = spot[1]
+
+    def __getitem__(self, index):
+        if index == 0:
+            return self.spot
+        elif index == 1:
+            return self.font
+        else:
+            raise IndexError
+
+    def shift(self, iAdd, jAdd):
+        self.i += iAdd
+        self.j += jAdd
+        self.spot = (getKeyForValue(self.i), j)
+
+    def set(self, i, j):
+        self.i, self.j = i, j
+        self.spot = (getKeyForValue(i), j)
+
+    def getLocation(self):
+        return Location(horizontal=self.i, vertical=self.j)
+
+    def getFont(self):
+        return self.font
+
+    def getSpot(self):
+        return self.spot
+
+    def getCoord(self):
+        return self.i, self.j
+
 class InterpolationMatrixController:
 
     def __init__(self):
@@ -136,11 +173,11 @@ class InterpolationMatrixController:
         self.w.addColumn = SquareButton((-80, 10, 30, 30), u'+', callback=self.addColumn)
         self.w.removeColumn = SquareButton((-115, 10, 30, 30), u'-', callback=self.removeColumn)
         self.w.addLine = SquareButton((-40, -40, 30, 30), u'+', callback=self.addLine)
-        self.w.removeLine = SquareButton((-40, -70, 30, 30), u'-', callback=self.removeLine)
+        self.w.removeLine = SquareButton((-40, -72, 30, 30), u'-', callback=self.removeLine)
         for button in [self.w.addColumn, self.w.removeColumn, self.w.addLine, self.w.removeLine]:
             button.getNSButton().setBezelStyle_(10)
-        self.w.clearMatrix = Button((220, 15, 70, 20), 'Clear', callback=self.clearMatrix)
-        self.w.generate = Button((300, 15, 100, 20), 'Generate', callback=self.instanceGeneration)
+        self.w.clearMatrix = GradientButton((225, 10, 70, 30), title='Clear', callback=self.clearMatrix)
+        self.w.generate = GradientButton((300, 10, 100, 30), title='Generate', callback=self.instanceGeneration)
         # self.w.saveMatrix = Button((300, 15, 70, 20), 'Save', callback=self.saveMatrix)
         # self.w.loadMatrix = Button((380, 15, 70, 20), 'Load', callback=self.loadMatrix)
         addObserver(self, 'updateMatrix', 'currentGlyphChanged')
@@ -192,6 +229,7 @@ class InterpolationMatrixController:
                 cell.name = TextBox((40, -17, -10, 12), '', sizeStyle='mini', alignment='right')
 
     def updateMatrix(self, notification=None):
+        print 'update'
         axesGrid = self.axesGrid['horizontal'], self.axesGrid['vertical']
         self.currentGlyph = currentGlyph = self.getCurrentGlyph(notification)
         if currentGlyph is not None:
@@ -209,8 +247,8 @@ class InterpolationMatrixController:
         matrix = self.w.matrix
         masterGlyph = None
 
-        for matrixLocation in masters:
-            spot, masterFont = matrixLocation
+        for matrixMaster in masters:
+            spot, masterFont = matrixMaster
             ch, j = spot
             i = getValueForKey(ch)
 
@@ -221,7 +259,7 @@ class InterpolationMatrixController:
                     if masterGlyph is not None:
                         mutatorMasters.append((l, MathGlyph(masterGlyph)))
             elif (masterFont not in availableFonts):
-                masters.remove(matrixLocation)
+                masters.remove(matrixMaster)
 
             if i < nCellsOnHorizontalAxis and j < nCellsOnVerticalAxis:
                 cell = getattr(matrix, '%s%s'%(ch, j))
@@ -354,6 +392,10 @@ class InterpolationMatrixController:
         delattr(self.w, 'generateSheet')
 
         for spot in spotsList:
+            i, j = spot
+            ch = getKeyForValue(i)
+            pickedCell = getattr(self.w.matrix, '%s%s'%(ch, j))
+            pickedCell.selectionMask.show(False)
             self.generateInstanceFont(spot, generationInfos)
 
     def parseSpotsList(self, inputSpots):
@@ -435,7 +477,7 @@ class InterpolationMatrixController:
                 i, j = spot
                 ch = getKeyForValue(i)
                 instanceLocation = Location(horizontal=i, vertical=j)
-                masterLocations = [(Location(horizontal=getValueForKey(_ch), vertical=_j), masterFont) for (_ch, _j), masterFont in masters]
+                masterLocations = [(matrixMaster.getLocation(), matrixMaster.getFont()) for matrixMaster in masters]
 
                 # Build font
                 if hasattr(RFont, 'showUI') or (not hasattr(RFont, 'showUI') and (folderPath is not None)):
@@ -620,7 +662,7 @@ class InterpolationMatrixController:
         pickedCell = getattr(self.w.matrix, '%s%s'%(ch, j))
         pickedCell.selectionMask.show(False)
         i = getValueForKey(ch)
-        l = (spot, font)
+        l = MatrixMaster(spot, font)
         self.masters.append(l)
         self.updateMatrix()
 
@@ -633,10 +675,10 @@ class InterpolationMatrixController:
         pickedCell.masterMask.show(False)
         pickedCell.glyphView.getNSView().setContourColor_(BlackColor)
         pickedCell.name.set('')
-        for matrixLocation in self.masters:
-            masterSpot, masterFont = matrixLocation
+        for matrixMaster in self.masters:
+            masterSpot, masterFont = matrixMaster
             if spot == masterSpot:
-                self.masters.remove(matrixLocation)
+                self.masters.remove(matrixMaster)
                 break
         self.mutator = None
         self.updateMatrix()
@@ -668,14 +710,14 @@ class InterpolationMatrixController:
 
         self.buildMatrix((nCellsOnHorizontalAxis, nCellsOnVerticalAxis))
         self.axesGrid['horizontal'] = nCellsOnHorizontalAxis
-        for matrixLocation in self.masters:
-            masterSpot, masterFont = matrixLocation
+        for matrixMaster in self.masters:
+            masterSpot, masterFont = matrixMaster
             ch, j = masterSpot
             i = getValueForKey(ch)
             if i >= nCellsOnHorizontalAxis:
-                mastersToRemove.append(matrixLocation)
-        for matrixLocation in mastersToRemove:
-            self.masters.remove(matrixLocation)
+                mastersToRemove.append(matrixMaster)
+        for matrixMaster in mastersToRemove:
+            self.masters.remove(matrixMaster)
         self.mutator = None
         self.updateMatrix()
 
@@ -699,13 +741,13 @@ class InterpolationMatrixController:
 
         self.buildMatrix((nCellsOnHorizontalAxis, nCellsOnVerticalAxis))
         self.axesGrid['vertical'] = nCellsOnVerticalAxis
-        for matrixLocation in self.masters:
-            masterSpot, masterFont = matrixLocation
+        for matrixMaster in self.masters:
+            masterSpot, masterFont = matrixMaster
             ch, j = masterSpot
             if j >= nCellsOnVerticalAxis:
-                mastersToRemove.append(matrixLocation)
-        for matrixLocation in mastersToRemove:
-            self.masters.remove(matrixLocation)
+                mastersToRemove.append(matrixMaster)
+        for matrixMaster in mastersToRemove:
+            self.masters.remove(matrixMaster)
         self.mutator = None
         self.updateMatrix()
 
@@ -750,7 +792,7 @@ class InterpolationMatrixController:
             currentGlyph = CurrentGlyph()
 
             if currentGlyph is None:
-                currentGlyphName = None
+                currentGlyphName = self.currentGlyph
             elif currentGlyph is not None:
                 currentGlyphName = currentGlyph.name
             return currentGlyphName
