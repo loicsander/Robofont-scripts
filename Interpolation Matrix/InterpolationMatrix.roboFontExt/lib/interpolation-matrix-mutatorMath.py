@@ -6,11 +6,11 @@ Interpolation Matrix
 v0.5.1
 Interpolation matrix implementing Erik van Blokland’s MutatorMath objects (https://github.com/LettError/MutatorMath)
 in a grid/matrix, allowing for easy preview of inter/extrapolation behavior of letters while drawing in Robofont.
-As the math are the same to Superpolator’s, the preview is as close as can be to Superpolator output,
-although you don’t have as fine a coordinate system with this matrix (up to 20x20).
+As the math is the same to Superpolator’s, the preview is as close as can be to Superpolator output,
+although you don’t have as fine a coordinate system with this matrix (up to 15x15).
 
 (The standalone script will work only on Robofont from versions 1.6 onward)
-(For previous versions of Robofont (1.4+) you can use the extension)
+(For previous versions of Robofont (tested on 1.5 only) you can use the extension)
 
 Loïc Sander
 '''
@@ -31,6 +31,7 @@ from mojo.events import addObserver, removeObserver
 from AppKit import NSColor, NSThickSquareBezelStyle, NSFocusRingTypeNone, NSBoxCustom, NSBezelBorder, NSLineBorder
 from math import cos, sin, pi
 from time import time
+import os
 import re
 
 MasterColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(0.4, 0.1, 0.2, 1)
@@ -247,6 +248,8 @@ class InterpolationMatrixController:
         matrix = self.w.matrix
         instanceGlyphs = None
 
+        # start = time()
+
         if mutatorMasters:
 
             for i in range(nCellsOnHorizontalAxis):
@@ -257,10 +260,12 @@ class InterpolationMatrixController:
                 except:
                     mutator = None
 
-                for j in range(nCellsOnVerticalAxis):
+                if mutator is not None:
 
-                    if mutator is not None:
+                    for j in range(nCellsOnVerticalAxis):
+
                         if (ch, j) not in masterSpots:
+
                             instanceLocation = Location(horizontal=i, vertical=j)
                             try:
                                 instanceStart = time()
@@ -273,6 +278,11 @@ class InterpolationMatrixController:
                                 instanceGlyph = self.errorGlyph
                             cell = getattr(matrix, '%s%s'%(ch, j))
                             cell.glyphView.setGlyph(instanceGlyph)
+
+        # stop = time()
+        # if count:
+        #     wholeTime = (stop-start)*1000
+        #     print 'made %s instances in %0.3fms, average: %0.3fms' % (count, wholeTime, wholeTime/count)
 
     def instanceGeneration(self, sender):
 
@@ -288,7 +298,7 @@ class InterpolationMatrixController:
                 readableCoord = '%s%s'%(ch.upper(), j+1)
 
             hAxis, vAxis = self.axesGrid['horizontal'], self.axesGrid['vertical']
-            self.w.generateSheet = Sheet((500, 250), self.w)
+            self.w.generateSheet = Sheet((500, 275), self.w)
             generateSheet = self.w.generateSheet
             generateSheet.guide = TextBox((20, 20, -20, 22),
                 u'A1, B2, C4 — A, C (whole columns) — 1, 5 (whole lines) — * (everything)',
@@ -304,11 +314,12 @@ class InterpolationMatrixController:
             generateSheet.sourceFontBar = HorizontalLine((20, 130, -290, 1))
             generateSheet.sourceFont = PopUpButton((20, 140, -290, 22), [fontName(masterFont) for spot, masterFont in self.masters], sizeStyle='small')
 
-            generateSheet.options = TextBox((-270, 110, -20, 17), 'Interpolate', sizeStyle='small')
+            generateSheet.interpolationOptions = TextBox((-270, 110, -20, 17), 'Interpolate', sizeStyle='small')
             generateSheet.optionsBar = HorizontalLine((-270, 130, -20, 1))
             generateSheet.kerning = CheckBox((-270, 140, -20, 22), 'Kerning', value=True, sizeStyle='small')
             generateSheet.fontInfos = CheckBox((-270, 160, -20, 22), 'Font infos', value=True, sizeStyle='small')
 
+            generateSheet.openUI = CheckBox((20, -58, -20, 22), 'Open generated fonts', value=True, sizeStyle='small')
             generateSheet.report = CheckBox((20, -38, -20, 22), 'Add compatibility report', value=False, sizeStyle='small')
 
             generateSheet.yes = Button((-180, -40, 160, 20), 'Generate Instance(s)', self.getGenerationInfo)
@@ -333,7 +344,8 @@ class InterpolationMatrixController:
                 'sourceFont': sourceFont,
                 'interpolateKerning': generateSheet.kerning.get(),
                 'interpolateFontInfos': generateSheet.fontInfos.get(),
-                'printReport': generateSheet.report.get()
+                'printReport': generateSheet.report.get(),
+                'openFonts': generateSheet.openUI.get()
             }
 
             # print ['%s%s'%(getKeyForValue(i).upper(), j+1) for i, j in spotsList]
@@ -414,7 +426,7 @@ class InterpolationMatrixController:
                 doKerning = generationInfos['interpolateKerning']
                 doFontInfos = generationInfos['interpolateFontInfos']
                 doReport = generationInfos['printReport']
-                noUI = True
+                UI = generationInfos['openFonts']
 
                 progress = ProgressWindow('Generating instance', parentWindow=self.w)
 
@@ -446,6 +458,10 @@ class InterpolationMatrixController:
                             except:
                                 pass
                 if folderPath is not None:
+                    instancesFolder = u'%s%s'%(folderPath, '/matrix-instances')
+                    if not os.path.isdir(instancesFolder):
+                        os.makedirs(instancesFolder)
+                    folderPath = instancesFolder
                     path = '%s/%s-%s%s'%(folderPath, newFont.info.familyName, newFont.info.styleName, '.ufo')
                 interpolatedGlyphs = []
                 interpolatedInfo = None
@@ -534,13 +550,16 @@ class InterpolationMatrixController:
                     print '\n'.join(digest)
 
 
-                if hasattr(RFont, 'showUI') and (folderPath is None):
+                if hasattr(RFont, 'showUI') and (folderPath is None) and UI:
                     newFont.autoUnicodes()
                     newFont.showUI()
                 elif (folderPath is not None):
                     newFont.autoUnicodes()
                     newFont.save(path)
-                    f = RFont(path)
+                    if UI:
+                        f = RFont(path)
+                else:
+                    print 'Couldn’t save font to UFO.'
             except:
                 try:
                     progress.close()
