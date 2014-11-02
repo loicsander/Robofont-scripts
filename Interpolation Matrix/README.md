@@ -9,7 +9,7 @@ This version of the script (suffix -mutatormath) is a rewriting of the previous 
 
 ![alt tag](images/example-mutatormath-2.png)
 
-The glyphs are updated (almost) at draw time [mouseUp, keyUp], so you can modify glyphs and see changes happen in the matrix. Theoretically, you can have a 20x20 matrix of 400 fonts. But I guess it would get rather slow if you wish to monitor changes on so many outlines while drawing…
+The glyphs are updated (almost) at draw time [mouseUp, keyUp], so you can modify glyphs and see changes happen in the matrix. Theoretically, you can have a 15x15 matrix of 225 fonts, beyond, it would get to slow to use… Testing indicates that 7x7 is the ‘maximal-optimum’ use case.
 
 ![alt tag](images/example-mutatormath-1.png)
 

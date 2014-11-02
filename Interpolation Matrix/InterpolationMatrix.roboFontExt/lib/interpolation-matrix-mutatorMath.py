@@ -30,6 +30,7 @@ from mojo.glyphPreview import GlyphPreview
 from mojo.events import addObserver, removeObserver
 from AppKit import NSColor, NSThickSquareBezelStyle, NSFocusRingTypeNone, NSBoxCustom, NSBezelBorder, NSLineBorder
 from math import cos, sin, pi
+from time import time
 import re
 
 MasterColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(0.4, 0.1, 0.2, 1)
@@ -123,8 +124,10 @@ class InterpolationMatrixController:
         glyphEdit.setBackgroundColor_(Transparent)
         glyphEdit.setFocusRingType_(NSFocusRingTypeNone)
         self.axesGrid = {'horizontal': 3, 'vertical': 1}
+        self.gridMax = 15
         self.masters = []
         self.instanceSpots = []
+        self.mutatorMasters = None
         self.mutator = None
         self.currentGlyph = None
         self.errorGlyph = errorGlyph()
@@ -199,12 +202,13 @@ class InterpolationMatrixController:
 
     def placeGlyphMasters(self, glyphName, axesGrid):
         availableFonts = AllFonts()
-        masters = []
+        masters = self.masters
+        mutatorMasters = []
         nCellsOnHorizontalAxis, nCellsOnVerticalAxis = axesGrid
         matrix = self.w.matrix
         masterGlyph = None
 
-        for matrixLocation in self.masters:
+        for matrixLocation in masters:
             spot, masterFont = matrixLocation
             ch, j = spot
             i = getValueForKey(ch)
@@ -214,9 +218,9 @@ class InterpolationMatrixController:
                     l = Location(horizontal=i, vertical=j)
                     masterGlyph = makePreviewGlyph(masterFont[glyphName])
                     if masterGlyph is not None:
-                        masters.append((l, MathGlyph(masterGlyph)))
+                        mutatorMasters.append((l, MathGlyph(masterGlyph)))
             elif (masterFont not in availableFonts):
-                self.masters.remove(matrixLocation)
+                masters.remove(matrixLocation)
 
             if i < nCellsOnHorizontalAxis and j < nCellsOnVerticalAxis:
                 cell = getattr(matrix, '%s%s'%(ch, j))
@@ -231,34 +235,44 @@ class InterpolationMatrixController:
                     cell.masterMask.show(False)
                     cell.name.set('')
 
-        if len(masters) > 1:
-            try:
-                bias, mutator = buildMutator(masters)
-                self.mutator = mutator
-            except:
-                self.mutator = None
+        self.mutatorMasters = mutatorMasters
 
     def makeGlyphInstances(self, axesGrid):
-        mutator = self.mutator
+
+        instanceTime = []
+
+        mutatorMasters = self.mutatorMasters
         masterSpots = [spot for spot, masterFont in self.masters]
         nCellsOnHorizontalAxis, nCellsOnVerticalAxis = axesGrid
         matrix = self.w.matrix
-        instanceGlyph = None
+        instanceGlyphs = None
 
-        for i in range(nCellsOnHorizontalAxis):
-            ch = getKeyForValue(i)
-            for j in range(nCellsOnVerticalAxis):
-                if (ch, j) not in masterSpots:
-                    instanceLocation = Location(horizontal=i, vertical=j)
+        if mutatorMasters:
+
+            for i in range(nCellsOnHorizontalAxis):
+                ch = getKeyForValue(i)
+
+                try:
+                    bias, mutator = buildMutator(mutatorMasters)
+                except:
+                    mutator = None
+
+                for j in range(nCellsOnVerticalAxis):
+
                     if mutator is not None:
-                        try:
-                            instanceGlyph = RGlyph()
-                            iGlyph = mutator.makeInstance(instanceLocation)
-                            instanceGlyph = iGlyph.extractGlyph(instanceGlyph)
-                        except:
-                            instanceGlyph = self.errorGlyph
-                    cell = getattr(matrix, '%s%s'%(ch, j))
-                    cell.glyphView.setGlyph(instanceGlyph)
+                        if (ch, j) not in masterSpots:
+                            instanceLocation = Location(horizontal=i, vertical=j)
+                            try:
+                                instanceStart = time()
+                                instanceGlyph = RGlyph()
+                                iGlyph = mutator.makeInstance(instanceLocation)
+                                instanceGlyph = iGlyph.extractGlyph(RGlyph())
+                                instanceStop = time()
+                                instanceTime.append((instanceStop-instanceStart)*1000)
+                            except:
+                                instanceGlyph = self.errorGlyph
+                            cell = getattr(matrix, '%s%s'%(ch, j))
+                            cell.glyphView.setGlyph(instanceGlyph)
 
     def instanceGeneration(self, sender):
 
@@ -616,10 +630,11 @@ class InterpolationMatrixController:
         pickedCell.selectionMask.show(False)
 
     def addColumn(self, sender):
+        gridMax = self.gridMax
         nCellsOnHorizontalAxis, nCellsOnVerticalAxis = self.axesGrid['horizontal'], self.axesGrid['vertical']
         nCellsOnHorizontalAxis += 1
-        if nCellsOnHorizontalAxis > 20:
-            nCellsOnHorizontalAxis = 20
+        if nCellsOnHorizontalAxis > gridMax:
+            nCellsOnHorizontalAxis = gridMax
         self.buildMatrix((nCellsOnHorizontalAxis, nCellsOnVerticalAxis))
         self.axesGrid['horizontal'] = nCellsOnHorizontalAxis
         self.updateMatrix()
@@ -646,10 +661,11 @@ class InterpolationMatrixController:
         self.updateMatrix()
 
     def addLine(self, sender):
+        gridMax = self.gridMax
         nCellsOnHorizontalAxis, nCellsOnVerticalAxis = self.axesGrid['horizontal'], self.axesGrid['vertical']
         nCellsOnVerticalAxis += 1
-        if nCellsOnVerticalAxis > 20:
-            nCellsOnVerticalAxis = 20
+        if nCellsOnVerticalAxis > gridMax:
+            nCellsOnVerticalAxis = gridMax
         self.buildMatrix((nCellsOnHorizontalAxis, nCellsOnVerticalAxis))
         self.axesGrid['vertical'] = nCellsOnVerticalAxis
         self.updateMatrix()
