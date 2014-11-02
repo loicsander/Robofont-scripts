@@ -3,7 +3,7 @@
 
 '''
 Interpolation Matrix
-v0.5.1
+v0.5.2
 Interpolation matrix implementing Erik van Blokland’s MutatorMath objects (https://github.com/LettError/MutatorMath)
 in a grid/matrix, allowing for easy preview of inter/extrapolation behavior of letters while drawing in Robofont.
 As the math is the same to Superpolator’s, the preview is as close as can be to Superpolator output,
@@ -323,45 +323,43 @@ class InterpolationMatrixController:
 
     def instanceGeneration(self, sender):
 
-        if len(self.masters) > 1:
+        readableCoord = None
 
-            readableCoord = None
+        if hasattr(sender, 'spot'):
+            if hasattr(self.w, 'spotSheet'):
+                self.w.spotSheet.close()
+            spot = sender.spot
+            ch, j = spot
+            readableCoord = '%s%s'%(ch.upper(), j+1)
 
-            if hasattr(sender, 'spot'):
-                if hasattr(self.w, 'spotSheet'):
-                    self.w.spotSheet.close()
-                spot = sender.spot
-                ch, j = spot
-                readableCoord = '%s%s'%(ch.upper(), j+1)
+        hAxis, vAxis = self.axesGrid['horizontal'], self.axesGrid['vertical']
+        self.w.generateSheet = Sheet((500, 275), self.w)
+        generateSheet = self.w.generateSheet
+        generateSheet.guide = TextBox((20, 20, -20, 22),
+            u'A1, B2, C4 — A, C (whole columns) — 1, 5 (whole lines) — * (everything)',
+            sizeStyle='small'
+            )
+        generateSheet.headerBar = HorizontalLine((20, 40, -20, 1))
+        generateSheet.spotsListTitle = TextBox((20, 57, 70, 17), 'Locations')
+        generateSheet.spots = EditText((100, 55, -20, 22))
+        if readableCoord is not None:
+            generateSheet.spots.set(readableCoord)
 
-            hAxis, vAxis = self.axesGrid['horizontal'], self.axesGrid['vertical']
-            self.w.generateSheet = Sheet((500, 275), self.w)
-            generateSheet = self.w.generateSheet
-            generateSheet.guide = TextBox((20, 20, -20, 22),
-                u'A1, B2, C4 — A, C (whole columns) — 1, 5 (whole lines) — * (everything)',
-                sizeStyle='small'
-                )
-            generateSheet.headerBar = HorizontalLine((20, 40, -20, 1))
-            generateSheet.spotsListTitle = TextBox((20, 57, 70, 17), 'Locations')
-            generateSheet.spots = EditText((100, 55, -20, 22))
-            if readableCoord is not None:
-                generateSheet.spots.set(readableCoord)
+        generateSheet.sourceFontTitle = TextBox((20, 110, -290, 17), 'Source font (for naming & groups)', sizeStyle='small')
+        generateSheet.sourceFontBar = HorizontalLine((20, 130, -290, 1))
+        generateSheet.sourceFont = PopUpButton((20, 140, -290, 22), [fontName(masterFont) for spot, masterFont in self.masters], sizeStyle='small')
 
-            generateSheet.sourceFontTitle = TextBox((20, 110, -290, 17), 'Source font (for naming & groups)', sizeStyle='small')
-            generateSheet.sourceFontBar = HorizontalLine((20, 130, -290, 1))
-            generateSheet.sourceFont = PopUpButton((20, 140, -290, 22), [fontName(masterFont) for spot, masterFont in self.masters], sizeStyle='small')
+        generateSheet.interpolationOptions = TextBox((-270, 110, -20, 17), 'Interpolate', sizeStyle='small')
+        generateSheet.optionsBar = HorizontalLine((-270, 130, -20, 1))
+        generateSheet.kerning = CheckBox((-270, 140, -20, 22), 'Kerning', value=True, sizeStyle='small')
+        generateSheet.fontInfos = CheckBox((-270, 160, -20, 22), 'Font infos', value=True, sizeStyle='small')
 
-            generateSheet.interpolationOptions = TextBox((-270, 110, -20, 17), 'Interpolate', sizeStyle='small')
-            generateSheet.optionsBar = HorizontalLine((-270, 130, -20, 1))
-            generateSheet.kerning = CheckBox((-270, 140, -20, 22), 'Kerning', value=True, sizeStyle='small')
-            generateSheet.fontInfos = CheckBox((-270, 160, -20, 22), 'Font infos', value=True, sizeStyle='small')
+        generateSheet.openUI = CheckBox((20, -58, -20, 22), 'Open generated fonts', value=True, sizeStyle='small')
+        generateSheet.report = CheckBox((20, -38, -20, 22), 'Add compatibility report', value=False, sizeStyle='small')
 
-            generateSheet.openUI = CheckBox((20, -58, -20, 22), 'Open generated fonts', value=True, sizeStyle='small')
-            generateSheet.report = CheckBox((20, -38, -20, 22), 'Add compatibility report', value=False, sizeStyle='small')
-
-            generateSheet.yes = Button((-180, -40, 160, 20), 'Generate Instance(s)', self.getGenerationInfo)
-            generateSheet.no = Button((-270, -40, 80, 20), 'Cancel', callback=self.cancelGeneration)
-            generateSheet.open()
+        generateSheet.yes = Button((-180, -40, 160, 20), 'Generate Instance(s)', self.getGenerationInfo)
+        generateSheet.no = Button((-270, -40, 80, 20), 'Cancel', callback=self.cancelGeneration)
+        generateSheet.open()
 
     def getGenerationInfo(self, sender):
 
@@ -469,14 +467,14 @@ class InterpolationMatrixController:
                 doReport = generationInfos['printReport']
                 UI = generationInfos['openFonts']
 
-                progress = ProgressWindow('Generating instance', parentWindow=self.w)
-
                 masterFonts = [font for _, font in masters]
 
                 i, j = spot
                 ch = getKeyForValue(i)
                 instanceLocation = Location(horizontal=i, vertical=j)
                 masterLocations = [(matrixMaster.getLocation(), matrixMaster.getFont()) for matrixMaster in masters]
+
+                progress = ProgressWindow('Generating instance %s%s'%(ch.upper(), j+1), parentWindow=self.w)
 
                 # Build font
                 if hasattr(RFont, 'showUI') or (not hasattr(RFont, 'showUI') and (folderPath is not None)):
@@ -619,7 +617,8 @@ class InterpolationMatrixController:
 
     def pickSpot(self, sender):
         spot = sender.spot
-        masterSpots = [_spot for _spot, masterFont in self.masters]
+        masters = self.masters
+        masterSpots = [_spot for _spot, masterFont in masters]
         matrix = self.w.matrix
         nCellsOnHorizontalAxis, nCellsOnVerticalAxis = self.axesGrid['horizontal'], self.axesGrid['vertical']
         font = None
@@ -640,6 +639,10 @@ class InterpolationMatrixController:
             spotSheet.yes = Button((-140, -40, 120, 20), 'Place Master', callback=self.changeSpot)
             spotSheet.generate = Button((20, -40, 150, 20), 'Generate Instance', callback=self.instanceGeneration)
             spotSheet.generate.spot = spot
+            if len(masters) <= 1:
+                spotSheet.generate.enable(False)
+            elif len(masters) > 1:
+                spotSheet.generate.enable(True)
         elif spot in masterSpots:
             spotSheet.clear = Button((20, -40, 130, 20), 'Remove Master', callback=self.clearSpot)
             spotSheet.yes = Button((-140, -40, 120, 20), 'Change Master', callback=self.changeSpot)
