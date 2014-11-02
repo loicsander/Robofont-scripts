@@ -229,7 +229,6 @@ class InterpolationMatrixController:
                 cell.name = TextBox((40, -17, -10, 12), '', sizeStyle='mini', alignment='right')
 
     def updateMatrix(self, notification=None):
-        print 'update'
         axesGrid = self.axesGrid['horizontal'], self.axesGrid['vertical']
         self.currentGlyph = currentGlyph = self.getCurrentGlyph(notification)
         if currentGlyph is not None:
