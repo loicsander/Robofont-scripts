@@ -13,9 +13,9 @@ The glyphs are updated (almost) at draw time [mouseUp, keyUp], so you can modify
 
 ![alt tag](images/example-mutatormath-1.png)
 
-You can also generate font instances, with font info and kerning included (or not, your choice). You can generate single instances by naming their ‘coordinates’ (A1, B4, C3, etc.), or you can generate instances by rows/columns (A, 1, etc.), or all at once (*).
+You can use the matrix to generate font instances, with font info and kerning included (or not, your choice). You choose which instance(s) to generate by naming their ‘coordinates’ (A1, B4, C3, etc.), or you can generate instances by whole rows/columns (A, 1, etc.), or all at once (*).
 
-Last but not least, you can save matrices, grid size, window size and master fonts are stored and can be reaccessed quickly. The matrix stores a simple .txt file. It’s not ideal but does the trick for now.
+Last but not least, you can save matrices: grid size, window size and master fonts are stored and can be reaccessed quickly. The matrix stores a simple .txt file. It’s not ideal but does the trick for now.
 
 Demo on Vimeo:
 http://vimeo.com/109734720
