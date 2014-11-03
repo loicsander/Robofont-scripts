@@ -7,11 +7,12 @@ The interpolation matrix is a tool requiring at least two master fonts open in R
 
 This version of the script (suffix -mutatormath) & the extension are a rewriting of the previous Interpolation Preview Matrix (see below) now using ![Letteror’s MutatorMath](https://github.com/LettError/MutatorMath) <3, whereas previous inter/extrapolations where written by my simple self.
 
-![alt tag](images/example-mutatormath-2.png)
+![alt tag](images/example-matrix-1.png)
 
 The glyphs are updated (almost) at draw time [mouseUp, keyUp], so you can modify glyphs and see changes happen in the matrix. Theoretically, you can have a 15x15 matrix of 225 fonts, beyond, it would get to slow to use… Testing indicates that 7x7 is the ‘maximal-optimum’ use case.
 
-![alt tag](images/example-mutatormath-1.png)
+![alt tag](images/example-matrix-2.png)
+![alt tag](images/example-matrix-3.png)
 
 You can use the matrix to generate font instances or compatibility check reports. You choose which instance(s) to generate by naming their ‘coordinates’ (A1, B4, C3, etc.), or you can generate instances by whole rows/columns (A, 1, etc.), or all at once (*). Generated instances are issued in a folder next to the source master font (which you indicate before generating).
 
