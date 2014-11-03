@@ -16,7 +16,7 @@
 	<key>developer</key>
 	<string>Loic Sander</string>
 	<key>developerURL</key>
-	<string>http://www.akalollip.com</string>
+	<string>https://github.com/loicsander</string>
 	<key>html</key>
 	<false/>
 	<key>launchAtStartUp</key>
@@ -25,13 +25,9 @@
 	<string></string>
 	<key>name</key>
 	<string>Interpolation Matrix</string>
-	<key>requiresVersionMajor</key>
-	<string>1</string>
-	<key>requiresVersionMinor</key>
-	<string>4</string>
 	<key>timeStamp</key>
-	<real>1414398719.001111</real>
+	<real>1414966626.365052</real>
 	<key>version</key>
-	<string>0.5</string>
+	<string>0.5.3</string>
 </dict>
 </plist>

@@ -3,7 +3,7 @@
 
 '''
 Interpolation Matrix
-v0.5.2
+v0.5.3
 Interpolation matrix implementing Erik van Blokland’s MutatorMath objects (https://github.com/LettError/MutatorMath)
 in a grid/matrix, allowing for easy preview of inter/extrapolation behavior of letters while drawing in Robofont.
 As the math is the same to Superpolator’s, the preview is as close as can be to Superpolator output,
@@ -15,14 +15,14 @@ although you don’t have as fine a coordinate system with this matrix (up to 15
 Loïc Sander
 '''
 
-from mutatorMath.objects.location import Location
-from mutatorMath.objects.mutator import buildMutator
+from _mutatorMath.objects.location import Location
+from _mutatorMath.objects.mutator import buildMutator
 from fontMath.mathGlyph import MathGlyph
 from fontMath.mathInfo import MathInfo
 from fontMath.mathKerning import MathKerning
 
 from vanilla import *
-from robofab.interface.all.dialogs import PutFile, GetFile, GetFolder
+from vanilla.dialogs import putFile, getFile
 from defconAppKit.controls.fontList import FontList
 from defconAppKit.tools.textSplitter import splitText
 from defconAppKit.windows.progressWindow import ProgressWindow
@@ -108,16 +108,31 @@ def getKeyForValue(i):
     except:
         return
 
+def splitFlatSpot(flatSpot):
+    try:
+        ch = flatSpot[0]
+        j = int(flatSpot[1:])
+        return ch, j
+    except:
+        return None
+
+
+
 def fontName(font):
     return ' '.join([font.info.familyName, font.info.styleName])
 
 class MatrixMaster(object):
 
-    def __init__(self, spot, font):
+    def __init__(self, spot=None, font=None):
         self.font = font
-        self.spot = spot
-        self.i = getValueForKey(spot[0])
-        self.j = spot[1]
+        a, b = spot
+        if isinstance(a, int):
+            self.spot = (getKeyForValue(a), b)
+            self.i = a
+        else:
+            self.spot = (a, b)
+            self.i = getValueForKey(a)
+        self.j = b
 
     def __getitem__(self, index):
         if index == 0:
@@ -132,9 +147,12 @@ class MatrixMaster(object):
         self.j += jAdd
         self.spot = (getKeyForValue(self.i), j)
 
-    def set(self, i, j):
+    def setCoord(self, i, j):
         self.i, self.j = i, j
         self.spot = (getKeyForValue(i), j)
+
+    def setFont(self, font):
+        self.font = font
 
     def getLocation(self):
         return Location(horizontal=self.i, vertical=self.j)
@@ -145,8 +163,15 @@ class MatrixMaster(object):
     def getSpot(self):
         return self.spot
 
+    def getFlatSpot(self):
+        return self.spot[0] + str(self.spot[1])
+
     def getCoord(self):
         return self.i, self.j
+
+    def getPath(self):
+        if hasattr(self.font, 'path'):
+            return self.font.path
 
 class InterpolationMatrixController:
 
@@ -176,10 +201,10 @@ class InterpolationMatrixController:
         self.w.removeLine = SquareButton((-40, -72, 30, 30), u'-', callback=self.removeLine)
         for button in [self.w.addColumn, self.w.removeColumn, self.w.addLine, self.w.removeLine]:
             button.getNSButton().setBezelStyle_(10)
-        self.w.clearMatrix = GradientButton((225, 10, 70, 30), title='Clear', callback=self.clearMatrix)
-        self.w.generate = GradientButton((300, 10, 100, 30), title='Generate', callback=self.instanceGeneration)
-        # self.w.saveMatrix = Button((300, 15, 70, 20), 'Save', callback=self.saveMatrix)
-        # self.w.loadMatrix = Button((380, 15, 70, 20), 'Load', callback=self.loadMatrix)
+        self.w.generate = GradientButton((225, 10, 100, 30), title=u'Generate…', callback=self.instanceGeneration)
+        self.w.loadMatrix = GradientButton((380, 10, 70, 30), title='Load', callback=self.loadMatrixFile)
+        self.w.saveMatrix = GradientButton((455, 10, 70, 30), title='Save', callback=self.saveMatrix)
+        self.w.clearMatrix = GradientButton((530, 10, 70, 30), title='Clear', callback=self.clearMatrix)
         addObserver(self, 'updateMatrix', 'currentGlyphChanged')
         addObserver(self, 'updateMatrix', 'fontDidClose')
         addObserver(self, 'updateMatrix', 'mouseUp')
@@ -226,7 +251,8 @@ class InterpolationMatrixController:
                 cell.button.getNSButton().setTransparent_(True)
                 cell.coordinate = TextBox((5, -17, 30, 12), '%s%s'%(ch.capitalize(), j+1), sizeStyle='mini')
                 cell.coordinate.getNSTextField().setTextColor_(GlyphBoxTextColor)
-                cell.name = TextBox((40, -17, -10, 12), '', sizeStyle='mini', alignment='right')
+                cell.name = TextBox((5, 7, -5, 12), '', sizeStyle='mini', alignment='left')
+                cell.name.getNSTextField().setTextColor_(MasterColor)
 
     def updateMatrix(self, notification=None):
         axesGrid = self.axesGrid['horizontal'], self.axesGrid['vertical']
@@ -286,18 +312,19 @@ class InterpolationMatrixController:
         instanceGlyphs = None
 
         # start = time()
+        # count = 0
 
         if mutatorMasters:
 
-            for i in range(nCellsOnHorizontalAxis):
-                ch = getKeyForValue(i)
+            try:
+                bias, mutator = buildMutator(mutatorMasters)
+            except:
+                mutator = None
 
-                try:
-                    bias, mutator = buildMutator(mutatorMasters)
-                except:
-                    mutator = None
+            if mutator is not None:
 
-                if mutator is not None:
+                for i in range(nCellsOnHorizontalAxis):
+                    ch = getKeyForValue(i)
 
                     for j in range(nCellsOnVerticalAxis):
 
@@ -315,6 +342,7 @@ class InterpolationMatrixController:
                                 instanceGlyph = self.errorGlyph
                             cell = getattr(matrix, '%s%s'%(ch, j))
                             cell.glyphView.setGlyph(instanceGlyph)
+        #                     count += 1
 
         # stop = time()
         # if count:
@@ -591,9 +619,11 @@ class InterpolationMatrixController:
 
                 if hasattr(RFont, 'showUI') and (folderPath is None) and UI:
                     newFont.autoUnicodes()
+                    newFont.round()
                     newFont.showUI()
                 elif (folderPath is not None):
                     newFont.autoUnicodes()
+                    newFont.round()
                     newFont.save(path)
                     if UI:
                         f = RFont(path)
@@ -770,10 +800,55 @@ class InterpolationMatrixController:
                 cell.name.set('')
 
     def saveMatrix(self, sender):
-        pathToSave = PutFile()
+        pathToSave = putFile(title='Save interpolation matrix', fileName='matrix.txt', fileTypes=['txt'])
+        if pathToSave is not None:
+            masters = self.masters
+            axesGrid = self.axesGrid
+            matrixTextValues = []
+            for master in masters:
+                matrixTextValues.append(':'.join([master.getFlatSpot(), master.getPath()]))
+            posSize = self.w.getPosSize()
+            matrixTextValues = ['Matrix Interpolation File\n','%s,%s\n'%(axesGrid['horizontal'], axesGrid['vertical']), ','.join([str(value) for value in posSize]),'\n', str(self.currentGlyph),'\n',','.join(matrixTextValues)]
+            matrixTextForm = ''.join(matrixTextValues)
+            f = open(pathToSave, 'w')
+            f.write(matrixTextForm)
 
-    def loadMatrix(self, sender):
-        pathToLoad = GetFile()
+    def loadMatrixFile(self, sender):
+        pathToLoad = getFile(fileTypes=['txt'], allowsMultipleSelection=False, resultCallback=self.loadMatrix, parentWindow=self.w)
+
+    def loadMatrix(self, pathToLoad):
+        if pathToLoad is not None:
+            f = open(pathToLoad[0], 'r')
+            matrixTextForm = f.read()
+            matrixValues = matrixTextForm.split('\n')
+            if matrixValues and matrixValues[0] == 'Matrix Interpolation File':
+                limits = tuple(matrixValues[1].split(','))
+                axesGrid = int(limits[0]), int(limits[1])
+                posSize = tuple([float(value) for value in matrixValues[2].split(',')])
+                self.w.resize(posSize[2], posSize[3])
+                self.axesGrid['horizontal'], self.axesGrid['vertical'] = axesGrid
+                self.buildMatrix(axesGrid)
+                self.currentGlyph = matrixValues[3]
+                masterSpots = [value.split(':') for value in matrixValues[4].split(',')]
+                if len(masterSpots):
+                    masters = []
+                    fontsToOpen = []
+                    for masterSpot in masterSpots:
+                        if len(masterSpot) == 2:
+                            flatSpot, fontPath = masterSpot
+                            spot = splitFlatSpot(flatSpot)
+                            if (spot is not None) and (fontPath is not None):
+                                f = [font for font in AllFonts() if font.path == fontPath]
+                                if not len(f):
+                                    f = RFont(fontPath)
+                                elif len(f):
+                                    f = f[0]
+                                masters.append(MatrixMaster(spot, f))
+                    self.masters = masters
+                self.updateMatrix()
+            else:
+                print 'not a valid matrix file'
+
 
     def changeGlyph(self, sender):
         inputText = sender.get()

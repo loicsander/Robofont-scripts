@@ -1,11 +1,11 @@
 ## Interpolation Matrix (MutatorMath)
 ================
 
-*Note! this version of the Interpolation Matrix script will work only from ROBOFONT v1.6 onward, for previous versions of Robofont, use either the extension or the previous script [see below].*
+*Note! the standalone script version of the Interpolation Matrix (.py file) will work only from ROBOFONT v1.6 onward, because it requires an installation of MutatorMath. For previous versions of Robofont, use either the extension or the previous script [see below].*
 
-Script requiring at least two master fonts open in Robofont and interpolable glyphs which allows you to preview interpolation and extrapolation based on master position in an up to 20x20 matrix.
+Script/Extension requiring at least two master fonts open in Robofont and interpolable glyphs, if the glyphs are incompatible, no instance will show. The tool allows you to preview interpolation and extrapolation based on master position in an grid.
 
-This version of the script (suffix -mutatormath) is a rewriting of the previous Interpolation Preview Matrix (see below) now using ![Letteror’s MutatorMath](https://github.com/LettError/MutatorMath) <3, whereas previous inter/extrapolations where  especially written for this script.
+This version of the script (suffix -mutatormath) & the extension are a rewriting of the previous Interpolation Preview Matrix (see below) now using ![Letteror’s MutatorMath](https://github.com/LettError/MutatorMath) <3, whereas previous inter/extrapolations where written by my simple self.
 
 ![alt tag](images/example-mutatormath-2.png)
 
@@ -13,7 +13,9 @@ The glyphs are updated (almost) at draw time [mouseUp, keyUp], so you can modify
 
 ![alt tag](images/example-mutatormath-1.png)
 
-You can also generate instances, Font info (hinting and such) and kerning included. You can generate single instances by naming their ‘coordinates’ (A1, B4, C3, etc.), or you can generate instances by rows (A, 1, etc.), or all at once (*).
+You can also generate font instances, with font info and kerning included (or not, your choice). You can generate single instances by naming their ‘coordinates’ (A1, B4, C3, etc.), or you can generate instances by rows/columns (A, 1, etc.), or all at once (*).
+
+Last but not least, you can save matrices, grid size, window size and master fonts are stored and can be reaccessed quickly. The matrix stores a simple .txt file. It’s not ideal but does the trick for now.
 
 Demo on Vimeo:
 http://vimeo.com/109734720

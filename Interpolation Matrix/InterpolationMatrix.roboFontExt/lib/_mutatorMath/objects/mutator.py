@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from mutatorMath.objects.error import MutatorError
-from mutatorMath.objects.location import Location, sortLocations, biasFromLocations
+from _mutatorMath.objects.error import MutatorError
+from _mutatorMath.objects.location import Location, sortLocations, biasFromLocations
 
 __all__ = ['Mutator', 'buildMutator']
 
@@ -34,24 +34,24 @@ def buildMutator(items):
     for loc, obj in ofx:
         m.addDelta(loc, obj, punch=True,  axisOnly=True)
     return bias, m
-    
+
 
 class Mutator(dict):
-    
-    """ 
+
+    """
         Calculator for multi dimensional interpolations.
-    
+
     ::
-        
+
         # The mutator needs one neutral object.
         m = Mutator(myNeutralMathObject)
-        
+
         # The mutator needs one or more deltas.
         m.addDelta(Location(pop=1), myMasterMathObject-myNeutralMathObject)
-        
+
         # The mutator calculates instances at other locations. Remember to inflate.
         m.getInstance(Location(pop=0.5)) + myNeutralMathObject
-    
+
     """
 
     def __init__(self, neutral=None):
@@ -59,7 +59,7 @@ class Mutator(dict):
         self._tags = {}
         self._neutral = neutral
         self._bias = Location()
-    
+
     def setBias(self, bias):
         self._bias = bias
 
@@ -70,11 +70,11 @@ class Mutator(dict):
         """Set the neutral object."""
         self._neutral = aMathObject
         self.addDelta(Location(), aMathObject-aMathObject, deltaName, punch=False, axisOnly=True)
-    
+
     def getNeutral(self):
         """Get the neutral object."""
         return self._neutral
-        
+
     def addDelta(self, location, aMathObject, deltaName = None, punch=False,  axisOnly=True):
         """ Add a delta at this location.
             *   location:   a Location object
@@ -92,11 +92,11 @@ class Mutator(dict):
                 raise mutator.error.MutatorError()
         else:
             self[location.asTuple()] = aMathObject, deltaName
-                
+
     #
     # info
-    #       
-    
+    #
+
     def getAxisNames(self):
         """
             Collect a list of axis names from all deltas.
@@ -105,9 +105,9 @@ class Mutator(dict):
         for l, x in self.items():
             s.update(dict.fromkeys([k for k, v in l], None))
         return s.keys()
-        
+
     def _collectAxisPoints(self):
-        """ 
+        """
             Return a dictionary with all on-axis locations.
         """
         for l, (value, deltaName) in self.items():
@@ -116,9 +116,10 @@ class Mutator(dict):
             if name is not None and name is not False:
                 if not self._axes.has_key(name):
                     self._axes[name] = []
-                self._axes[name].append(l)
+                if l not in self._axes[name]:
+                    self._axes[name].append(l)
         return self._axes
-    
+
     def _collectOffAxisPoints(self):
         """
             Return a dictionary with all off-axis locations.
@@ -130,7 +131,7 @@ class Mutator(dict):
             if name is None or name is False:
                 offAxis[l] = 1
         return offAxis.keys()
-    
+
 
     def collectLocations(self):
         """
@@ -140,16 +141,16 @@ class Mutator(dict):
         for l, (value, deltaName) in self.items():
             pts.append(Location(l))
         return pts
-                
+
     def _allLocations(self):
         """
             Return a list of all locations of all objects.
         """
-        l = [] 
+        l = []
         for locationTuple in self.keys():
             l.append(Location(locationTuple))
         return l
-            
+
     #
     #   get instances
     #
@@ -178,8 +179,8 @@ class Mutator(dict):
         return total
 
     def makeInstance(self, aLocation):
-        """ 
-            Calculate an instance with the right bias and add the neutral. 
+        """
+            Calculate an instance with the right bias and add the neutral.
         """
         if not aLocation.isAmbivalent():
             instanceObject = self.getInstance(aLocation-self._bias)
@@ -217,7 +218,9 @@ class Mutator(dict):
             relative.append(1)
         elif deltaAxis:
             deltasOnSameAxis = self._axes.get(deltaAxis, None)
-            deltasOnSameAxis.append(((deltaAxis, 0),))
+            d = ((deltaAxis, 0),)
+            if d not in deltasOnSameAxis:
+                deltasOnSameAxis.append(d)
             if len(deltasOnSameAxis) == 1:
                 relative.append(aLocation[deltaAxis] * deltaLocation[deltaAxis])
             else:
@@ -236,7 +239,7 @@ class Mutator(dict):
         return f
 
     def _calcOnAxisFactor(self, aLocation, deltaAxis, deltasOnSameAxis, deltaLocation):
-        """ 
+        """
             Calculate the on-axis factors.
         """
         if deltaAxis == "origin":
@@ -294,7 +297,7 @@ class Mutator(dict):
         return r
 
     def _calcOffAxisFactor(self, aLocation, deltaLocation, limits):
-        """ 
+        """
             Calculate the off-axis factors.
         """
         relative = []
@@ -337,9 +340,9 @@ class Mutator(dict):
         return f
 
 def getLimits(locations, current, sortResults=True, verbose=False):
-    """ 
+    """
         Find the projections for each delta in the list of locations, relative to the current location.
-        Return only the dimensions that are relevant for current. 
+        Return only the dimensions that are relevant for current.
     """
     limit = {}
     for l in locations:
@@ -413,7 +416,7 @@ def getLimits(locations, current, sortResults=True, verbose=False):
             else:
                 l[name] = (lim_min,  None, lim_max)
     return l
-        
+
 if __name__ == "__main__":
     def test_singleAxis(n):
         """
@@ -504,14 +507,14 @@ if __name__ == "__main__":
         m.addDelta(Location(snap=1), -1*value-neutral, deltaName="test2")
         m.addDelta(Location(pop=1, snap=1), 50, punch=True, deltaName="test2")
         return m.getInstance(Location(pop=l, snap=n)) + neutral
-    
+
     def test_getLimits(a, b, t):
         """Test the getLimits function
-        >>> test_getLimits(0, 1, 0)   
+        >>> test_getLimits(0, 1, 0)
         {'pop': (None, 0, None)}
-        >>> test_getLimits(0, 1, 0.5)   
+        >>> test_getLimits(0, 1, 0.5)
         {'pop': (0, None, 1)}
-        >>> test_getLimits(0, 1, 1)   
+        >>> test_getLimits(0, 1, 1)
         {'pop': (None, {1: [<Location pop:1 >]}, None)}
         """
         la = Location(pop=a)
@@ -519,7 +522,7 @@ if __name__ == "__main__":
         locations = [la, lb]
         test  = Location(pop=t)
         print(getLimits(locations, test))
-    
+
     def test_methods():
         """ Test some of the methods.
         >>> m = test_methods()
@@ -559,7 +562,7 @@ if __name__ == "__main__":
         4.5
         """
 
-        
+
     def _test():
         import doctest
         doctest.testmod()
