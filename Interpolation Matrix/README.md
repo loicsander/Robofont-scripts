@@ -1,7 +1,7 @@
 ## Interpolation Matrix (MutatorMath)
 ================
 
-*Note! the standalone script version of the Interpolation Matrix (.py file) will work only from ROBOFONT v1.6 onward, because it requires an installation of MutatorMath. For previous versions of Robofont, use either the extension or the previous script [see below].*
+*Note! the standalone script version of the Interpolation Matrix (.py file) will work only from ROBOFONT v1.6 onward, because it requires an installation of MutatorMath. For previous versions of Robofont, use either the extension (which has MutatorMath built-in) or the previous script [see below].*
 
 Script/Extension requiring at least two master fonts open in Robofont and interpolable glyphs, if the glyphs are incompatible, no instance will show. The tool allows you to preview interpolation and extrapolation based on master position in an grid.
 
