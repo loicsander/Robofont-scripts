@@ -3,7 +3,7 @@
 
 '''
 Interpolation Matrix
-v0.6
+v0.6.1
 Interpolation matrix implementing Erik van Blokland’s MutatorMath objects (https://github.com/LettError/MutatorMath)
 in a grid/matrix, allowing for easy preview of inter/extrapolation behavior of letters while drawing in Robofont.
 As the math is the same to Superpolator’s, the preview is as close as can be to Superpolator output,
@@ -118,7 +118,13 @@ def splitFlatSpot(flatSpot):
         return None
 
 def fontName(font):
-    return ' '.join([font.info.familyName, font.info.styleName])
+    familyName = font.info.familyName
+    styleName = font.info.styleName
+    if familyName is None:
+        familyName = font.info.familyName = 'Unnamed'
+    if styleName is None:
+        styleName = font.info.styleName = 'Unnamed'
+    return ' > '.join([familyName, styleName])
 
 def colorToTuple(color): # convert NSColor to rgba tuple
     return color.redComponent(), color.greenComponent(), color.blueComponent(), color.alphaComponent(),
@@ -365,63 +371,87 @@ class InterpolationMatrixController:
         hAxis, vAxis = self.axesGrid['horizontal'], self.axesGrid['vertical']
         self.w.generateSheet = Sheet((500, 275), self.w)
         generateSheet = self.w.generateSheet
-        if incomingSpot is None:
-            generateSheet.tabs = Tabs((15, 12, -15, -15), ['Instance(s)','Report'])
-            instance = generateSheet.tabs[0]
-            report = generateSheet.tabs[1]
-        elif incomingSpot is not None:
-            generateSheet.instance = Group((20, 20, -20, -20))
-            instance = generateSheet.instance
 
-        instance.guide = TextBox((10, 7, -10, 22),
+        generateSheet.tabs = Tabs((15, 12, -15, -15), ['Fonts','Glyphs','Report'])
+        font = generateSheet.tabs[0]
+        glyph = generateSheet.tabs[1]
+        report = generateSheet.tabs[2]
+
+        font.guide = TextBox((10, 7, -10, 22),
             u'A1, B2, C4 — A, C (whole columns) — 1, 5 (whole lines) — * (everything)',
-            sizeStyle='small'
-            )
-        instance.headerBar = HorizontalLine((10, 25, -10, 1))
-        instance.spotsListTitle = TextBox((10, 40, 70, 17), 'Locations')
-        instance.spots = EditText((100, 40, -10, 22))
+            sizeStyle='small')
+        font.headerBar = HorizontalLine((10, 25, -10, 1))
+        font.spotsListTitle = TextBox((10, 40, 70, 17), 'Locations')
+        font.spots = EditText((100, 40, -10, 22))
         if readableCoord is not None:
-            instance.spots.set(readableCoord)
+            font.spots.set(readableCoord)
 
-        instance.sourceFontTitle = TextBox((10, 90, -280, 17), 'Source font (naming & groups)', sizeStyle='small')
-        instance.sourceFontBar = HorizontalLine((10, 110, -280, 1))
-        instance.sourceFont = PopUpButton((10, 120, -280, 22), [fontName(masterFont) for spot, masterFont in self.masters], sizeStyle='small')
+        font.sourceFontTitle = TextBox((10, 90, -280, 17), 'Source font (naming & groups)', sizeStyle='small')
+        font.sourceFontBar = HorizontalLine((10, 110, -280, 1))
+        font.sourceFont = PopUpButton((10, 120, -280, 22), [fontName(masterFont) for spot, masterFont in self.masters], sizeStyle='small')
 
-        instance.interpolationOptions = TextBox((-250, 90, -10, 17), 'Interpolate', sizeStyle='small')
-        instance.optionsBar = HorizontalLine((-250, 110, -10, 1))
-        instance.glyphs = CheckBox((-240, 120, -10, 22), 'Glyphs', value=True, sizeStyle='small')
-        instance.fontInfos = CheckBox((-240, 140, -10, 22), 'Font info', value=True, sizeStyle='small')
-        instance.kerning = CheckBox((-120, 120, -10, 22), 'Kerning', value=True, sizeStyle='small')
-        instance.groups = CheckBox((-120, 140, -10, 22), 'Copy Groups', value=True, sizeStyle='small')
+        font.interpolationOptions = TextBox((-250, 90, -10, 17), 'Interpolate', sizeStyle='small')
+        font.optionsBar = HorizontalLine((-250, 110, -10, 1))
+        font.glyphs = CheckBox((-240, 120, -10, 22), 'Glyphs', value=True, sizeStyle='small')
+        font.fontInfos = CheckBox((-240, 140, -10, 22), 'Font info', value=True, sizeStyle='small')
+        font.kerning = CheckBox((-120, 120, -10, 22), 'Kerning', value=True, sizeStyle='small')
+        font.groups = CheckBox((-120, 140, -10, 22), 'Copy Groups', value=True, sizeStyle='small')
 
-        instance.openUI = CheckBox((10, -48, -10, 22), 'Open generated fonts', value=True, sizeStyle='small')
-        instance.report = CheckBox((10, -28, -10, 22), 'Generation report', value=False, sizeStyle='small')
+        font.openUI = CheckBox((10, -48, -10, 22), 'Open generated fonts', value=True, sizeStyle='small')
+        font.report = CheckBox((10, -28, -10, 22), 'Generation report', value=False, sizeStyle='small')
 
-        instance.yes = Button((-170, -30, 160, 20), 'Generate Instance(s)', self.getGenerationInfo)
-        instance.yes.id = 'instance'
-        instance.no = Button((-250, -30, 75, 20), 'Cancel', callback=self.cancelGeneration)
+        font.yes = Button((-170, -30, 160, 20), 'Generate font(s)', self.getGenerationInfo)
+        font.yes.id = 'font'
+        font.no = Button((-250, -30, 75, 20), 'Cancel', callback=self.cancelGeneration)
 
-        if incomingSpot is None:
-            report.options = RadioGroup((10, 5, -10, 40), ['Report only', 'Report and mark glyphs'], isVertical=False)
-            report.options.set(0)
-            report.markColors = Group((10, 60, -10, -40))
-            report.markColors.title = TextBox((0, 5, -10, 20), 'Mark glyphs', sizeStyle='small')
-            report.markColors.bar = HorizontalLine((0, 25, 0, 1))
-            report.markColors.compatibleTitle = TextBox((0, 35, 150, 20), 'Compatible')
-            report.markColors.compatibleColor = ColorWell(
-                (170, 35, -0, 20),
-                color=getExtensionDefaultColor('interpolationMatrix.compatibleColor', fallback=NSColor.colorWithCalibratedRed_green_blue_alpha_(0.3,0.8,0,.9)))
-            report.markColors.incompatibleTitle = TextBox((0, 60, 150, 20), 'Incompatible')
-            report.markColors.incompatibleColor = ColorWell(
-                (170, 60, -0, 20),
-                color=getExtensionDefaultColor('interpolationMatrix.incompatibleColor', fallback=NSColor.colorWithCalibratedRed_green_blue_alpha_(0.9,0.1,0,1)))
-            report.markColors.mixedTitle = TextBox((0, 85, 150, 20), 'Mixed compatibility')
-            report.markColors.mixedColor = ColorWell(
-                (170, 85, -0, 20),
-                color=getExtensionDefaultColor('interpolationMatrix.mixedColor', fallback=NSColor.colorWithCalibratedRed_green_blue_alpha_(.6,.7,.3,.5)))
-            report.yes = Button((-170, -30, 160, 20), 'Generate Report', self.getGenerationInfo)
-            report.yes.id = 'report'
-            report.no = Button((-250, -30, 75, 20), 'Cancel', callback=self.cancelGeneration)
+        glyph.guide = TextBox((10, 7, -10, 22), u'A1, B2, C4, etc.', sizeStyle='small')
+        glyph.headerBar = HorizontalLine((10, 25, -10, 1))
+        glyph.spotsListTitle = TextBox((10, 40, 70, 17), 'Location')
+        nCellsOnHorizontalAxis, nCellsOnVerticalAxis = self.axesGrid['horizontal'], self.axesGrid['vertical']
+        glyph.spot = ComboBox((100, 40, 60, 22), ['%s%s'%(getKeyForValue(i).upper(), j+1) for i in range(nCellsOnHorizontalAxis) for j in range(nCellsOnVerticalAxis)])
+        if readableCoord is not None:
+            glyph.spot.set(readableCoord)
+        glyph.glyphSetTitle = TextBox((10, 72, 70, 17), 'Glyphs')
+        glyph.glyphSet = ComboBox(
+            (100, 72, -10, 22),
+            [
+            'abcdefghijklmnopqrstuvwxyz',
+            'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+            '01234567890'
+            ])
+        glyph.targetFontTitle = TextBox((10, 104, 70, 17), 'To font')
+        fontList = [fontName(font) for font in AllFonts()]
+        fontList.insert(0, 'New font')
+        glyph.targetFont = PopUpButton((100, 104, -10, 22), fontList)
+        glyph.suffixTile = TextBox((10, 140, 50, 20), 'Suffix')
+        glyph.suffix = EditText((100, 136, 100, 22))
+
+        glyph.yes = Button((-170, -30, 160, 20), 'Generate glyph(s)', self.generateGlyphSet)
+        glyph.yes.id = 'glyph'
+        if incomingSpot is not None:
+            glyph.yes.spot = incomingSpot
+        glyph.no = Button((-250, -30, 75, 20), 'Cancel', callback=self.cancelGeneration)
+
+        report.options = RadioGroup((10, 5, -10, 40), ['Report only', 'Report and mark glyphs'], isVertical=False)
+        report.options.set(0)
+        report.markColors = Group((10, 60, -10, -40))
+        report.markColors.title = TextBox((0, 5, -10, 20), 'Mark glyphs', sizeStyle='small')
+        report.markColors.bar = HorizontalLine((0, 25, 0, 1))
+        report.markColors.compatibleTitle = TextBox((0, 35, 150, 20), 'Compatible')
+        report.markColors.compatibleColor = ColorWell(
+            (170, 35, -0, 20),
+            color=getExtensionDefaultColor('interpolationMatrix.compatibleColor', fallback=NSColor.colorWithCalibratedRed_green_blue_alpha_(0.3,0.8,0,.9)))
+        report.markColors.incompatibleTitle = TextBox((0, 60, 150, 20), 'Incompatible')
+        report.markColors.incompatibleColor = ColorWell(
+            (170, 60, -0, 20),
+            color=getExtensionDefaultColor('interpolationMatrix.incompatibleColor', fallback=NSColor.colorWithCalibratedRed_green_blue_alpha_(0.9,0.1,0,1)))
+        report.markColors.mixedTitle = TextBox((0, 85, 150, 20), 'Mixed compatibility')
+        report.markColors.mixedColor = ColorWell(
+            (170, 85, -0, 20),
+            color=getExtensionDefaultColor('interpolationMatrix.mixedColor', fallback=NSColor.colorWithCalibratedRed_green_blue_alpha_(.6,.7,.3,.5)))
+        report.yes = Button((-170, -30, 160, 20), 'Generate Report', self.getGenerationInfo)
+        report.yes.id = 'report'
+        report.no = Button((-250, -30, 75, 20), 'Cancel', callback=self.cancelGeneration)
 
         generateSheet.open()
 
@@ -431,31 +461,31 @@ class InterpolationMatrixController:
         generateSheet = self.w.generateSheet
         generateSheet.close()
 
-        if _ID == 'instance':
+        if _ID == 'font':
             if hasattr(generateSheet, 'tabs'):
-                instanceTab = generateSheet.tabs[0]
-            elif hasattr(generateSheet, 'instance'):
-                instanceTab = generateSheet.instance
+                fontTab = generateSheet.tabs[0]
+            elif hasattr(generateSheet, 'font'):
+                fontTab = generateSheet.font
             spotsList = []
 
             if self.masters:
                 availableFonts = AllFonts()
-                mastersList = instanceTab.sourceFont.getItems()
-                sourceFontIndex = instanceTab.sourceFont.get()
+                mastersList = fontTab.sourceFont.getItems()
+                sourceFontIndex = fontTab.sourceFont.get()
                 sourceFontName = mastersList[sourceFontIndex]
                 sourceFont = [masterFont for spot, masterFont in self.masters if fontName(masterFont) == sourceFontName and masterFont in availableFonts]
 
                 generationInfos = {
                     'sourceFont': sourceFont,
-                    'interpolateGlyphs': instanceTab.glyphs.get(),
-                    'interpolateKerning': instanceTab.kerning.get(),
-                    'interpolateFontInfos': instanceTab.fontInfos.get(),
-                    'addGroups': instanceTab.groups.get(),
-                    'openFonts': instanceTab.openUI.get(),
-                    'report': instanceTab.report.get()
+                    'interpolateGlyphs': fontTab.glyphs.get(),
+                    'interpolateKerning': fontTab.kerning.get(),
+                    'interpolateFontInfos': fontTab.fontInfos.get(),
+                    'addGroups': fontTab.groups.get(),
+                    'openFonts': fontTab.openUI.get(),
+                    'report': fontTab.report.get()
                 }
 
-                spotsInput = instanceTab.spots.get()
+                spotsInput = fontTab.spots.get()
                 spotsList = self.parseSpotsList(spotsInput)
 
                 if (spotsList is None):
@@ -647,20 +677,10 @@ class InterpolationMatrixController:
                 # filter compatible glyphs
 
                 glyphList, strayGlyphs = self.compareGlyphSets(masterFonts)
-                incompatibleGlyphs = []
 
                 if doGlyphs == True:
 
-                    for glyphName in glyphList:
-                        masterGlyphs = [(masterLocation, MathGlyph(masterFont[glyphName])) for masterLocation, masterFont in masterLocations]
-                        try:
-                            bias, gM = buildMutator(masterGlyphs)
-                            newGlyph = RGlyph()
-                            instanceGlyph = gM.makeInstance(instanceLocation)
-                            newFont.insertGlyph(instanceGlyph.extractGlyph(newGlyph), glyphName)
-                        except:
-                            incompatibleGlyphs.append(glyphName)
-                            continue
+                    incompatibleGlyphs = self.interpolateGlyphSet(instanceLocation, glyphList, masterLocations, newFont)
 
                     report.append(u'+ Successfully interpolated %s glyphs'%(len(newFont)))
                     report.append(u'+ Couldn’t interpolate %s glyphs'%(len(incompatibleGlyphs)))
@@ -689,6 +709,66 @@ class InterpolationMatrixController:
 
             # stop = time()
             # print 'generated in %0.3f' % ((stop-start)*1000)
+
+    def generateGlyphSet(self, sender):
+
+        incomingSpot = None
+        if hasattr(sender, 'spot'):
+            incomingSpot = sender.spot
+
+        generateSheet = self.w.generateSheet
+        generateSheet.close()
+        glyphTab = generateSheet.tabs[1]
+        axesGrid = self.axesGrid['horizontal'], self.axesGrid['vertical']
+        masters = self.masters
+
+        targetFontNameIndex = glyphTab.targetFont.get()
+        targetFontName = glyphTab.targetFont.getItems()[targetFontNameIndex]
+
+        cmap = masters[0][1].getCharacterMapping()
+        glyphList = splitText(glyphTab.glyphSet.get(), cmap)
+        spot = self.parseSpot(glyphTab.spot.get(), axesGrid)
+        if spot is not None and len(spot):
+            spot = spot[0]
+
+        suffix = glyphTab.suffix.get()
+
+        if spot is not None:
+            progress = ProgressWindow('Generating glyphs', parentWindow=self.w)
+            i, j = spot
+            instanceLocation = Location(horizontal=i, vertical=j)
+            masterLocations = [(matrixMaster.getLocation(), matrixMaster.getFont()) for matrixMaster in masters]
+            if targetFontName == 'New font':
+                targetFont = RFont(showUI=False)
+            else:
+                targetFont = AllFonts().getFontsByFamilyNameStyleName(*targetFontName.split(' > '))
+            self.interpolateGlyphSet(instanceLocation, glyphList, masterLocations, targetFont, suffix)
+            targetFont.showUI()
+            progress.close()
+
+        if incomingSpot is not None:
+            ch, j = incomingSpot
+            pickedCell = getattr(self.w.matrix, '%s%s'%(ch, j))
+            pickedCell.selectionMask.show(False)
+
+    def interpolateGlyphSet(self, instanceLocation, glyphSet, masters, targetFont, suffix=None):
+
+        incompatibleGlyphs = []
+
+        for glyphName in glyphSet:
+            masterGlyphs = [(masterLocation, MathGlyph(masterFont[glyphName])) for masterLocation, masterFont in masters]
+            try:
+                bias, gM = buildMutator(masterGlyphs)
+                newGlyph = RGlyph()
+                instanceGlyph = gM.makeInstance(instanceLocation)
+                if suffix is not None:
+                    glyphName += suffix
+                targetFont.insertGlyph(instanceGlyph.extractGlyph(newGlyph), glyphName)
+            except:
+                incompatibleGlyphs.append(glyphName)
+                continue
+
+        return incompatibleGlyphs
 
     def compareGlyphSets(self, fonts):
 
