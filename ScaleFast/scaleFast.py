@@ -34,6 +34,29 @@ def fontName(font):
         return ' > '.join([familyName, styleName])
     return ''
 
+def errorGlyph():
+    glyph = RGlyph()
+    glyph.width = 330
+    pen = glyph.getPen()
+
+    l = 50
+    p = (120, 150)
+    a = pi/4
+    pen.moveTo(p)
+    px, py = p
+    for i in range(12):
+        x = px+(l*cos(a))
+        y = py+(l*sin(a))
+        pen.lineTo((x, y))
+        px = x
+        py = y
+        if i%3 == 0:
+            a -= pi/2
+        elif i%3 != 0:
+            a += pi/2
+    pen.closePath()
+    return glyph
+
 def decomposeGlyph(glyph, fixedWidth=False):
     if glyph is not None:
         components = glyph.components
@@ -276,10 +299,13 @@ class ScaleController:
         return
 
     def getInstance(self, location, masters):
-        b, m = buildMutator(masters)
-        if m is not None:
-            glyph = m.makeInstance(location).extractGlyph(RGlyph())
-            return glyph
+        try:
+            b, m = buildMutator(masters)
+            if m is not None:
+                glyph = m.makeInstance(location).extractGlyph(RGlyph())
+                return glyph
+        except:
+            return errorGlyph()
         return
 
     def switchIsotropic(self, sender):
