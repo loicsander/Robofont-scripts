@@ -1,7 +1,7 @@
 ## Corner Tools
 ================
 
-This extension is a set of tools to work on corners of an outline. It comprises a tool available in the glyph editing view that allows you to round/cut corners by dragging to define the radius. And there’s a additional pop up window (accessible via the Extensions menu, under Corner Tools) which provides a more global set of controls.
+This extension is a set of tools to work on corners of an outline. It comprises a tool available in the glyph editing view that allows you to round/cut corners by dragging to define the radius, and a pop-up window (accessible via the Extensions menu, under Corner Tools) which provides a more global set of controls.
 
 ### Glyph view rounding tool
 
