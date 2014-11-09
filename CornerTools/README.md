@@ -6,9 +6,9 @@ This extension is a set of tools to work on corners of an outline. It comprises 
 ### Glyph view rounding tool
 
 #### Hot keys
-+ Shift: radius steps 10 by 10
-+ Option: make a flat corner rather than round
-+ Shift+Command: 0 radius
++ **Shift**: radius steps 10 by 10
++ **Option**: make a flat corner rather than round
++ **Shift**+**Command**: 0 radius
 
 ![alt tag](images/cornerTools-RoundingTool.png)
 
