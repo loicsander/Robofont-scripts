@@ -10,12 +10,12 @@ This extension is a set of tools to work on corners of an outline. It comprises 
 + Option: make a flat corner rather than round
 + Shift+Command: 0 radius
 
-![alt tag](images/cornerTools-roundingTool.png)
+![alt tag](images/cornerTools-RoundingTool.png)
 
 ### Corner Tools controller
 
-### Functions
-+ Rebuild
+### What you can do to corners:
++ Rebuild (from round or flat)
 ![alt tag](images/cornerTools-rebuild.jpg)
 + overlap
 ![alt tag](images/cornerTools-overlap.jpg)
