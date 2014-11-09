@@ -14,7 +14,7 @@ This extension is a set of tools to work on corners of an outline. It comprises 
 
 ### Corner Tools controller
 
-### What you can do to corners:
+#### What you can do to corners:
 + Rebuild (from round or flat)
 ![alt tag](images/cornerTools-rebuild.jpg)
 + overlap
