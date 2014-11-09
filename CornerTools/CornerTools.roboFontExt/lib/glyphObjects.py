@@ -260,9 +260,6 @@ class IntelPoint(object):
     def asRPoint(self):
         return RPoint(self.x, self.y, self.segmentType)
 
-    def getParent(self):
-        return self.parentContour
-
     def coords(self):
         return (self.x, self.y)
 
@@ -291,8 +288,17 @@ class IntelPoint(object):
             if direction is not None:
                 self.x, self.y = self.polarCoord(direction, d*value, anchor)
 
-    def setParent(self, contour):
+    def setParentContour(self, contour):
         self.parentContour = contour
+
+    def getParentContour(self):
+        return self.parentContour
+
+    def setParentPoint(self, point):
+        self.parentPoint = point
+
+    def getParentPoint(self):
+        return self.parentPoint
 
     def overlap(self, point, sensitivity=2):
         s = sensitivity
@@ -524,7 +530,7 @@ class IntelContour(object):
 
         if isinstance(point, IntelPoint):
             iPoint = point
-            iPoint.setParent(self)
+            iPoint.setParentContour(self)
             self.points.append(iPoint)
             # self.updateIndices()
         else:
@@ -539,7 +545,7 @@ class IntelContour(object):
                 except:
                     return
 
-            iPoint.setParent(self)
+            iPoint.setParentContour(self)
             self.points.append(iPoint)
 
     def insert(self, index, point):
@@ -553,7 +559,7 @@ class IntelContour(object):
                     iPoint = IntelPoint((point.x, point.y), point.type, point.smooth, point.name, self.length())
                 except:
                     return
-        iPoint.setParent(self)
+        iPoint.setParentContour(self)
         self.points.insert(index, point)
 
         self.updateIndices(index)
@@ -952,7 +958,7 @@ class IntelContour(object):
 
             if (abs(point.turn()) < (10/180*pi)) or (point.smooth and abs(point.turn()) < (60/180*pi)):
 
-                if (point.segmentType in ['curve', 'line']):
+                if (point.segmentType in ['curve', 'line']) and (not point.isFirst()) and (not point.isLast()):
 
                     if (previousPoint.segmentType is None) and (nextPoint.segmentType is not None):
 
@@ -1279,7 +1285,7 @@ class IntelContour(object):
             if point.previous().segmentType is None:
                 a1.segmentType = 'line'
             if abs(turn) > pi/2 and guess:
-                velocity += 1.45 * ((abs(turn)-(pi/2))/(pi/2))
+                velocity += 1.5 * ((abs(turn)-(pi/2))/(pi/2))
             h1, h2 = self.defineOffcurvesByVelocity(a1, angle1, -velocity, a2, angle2, -velocity)
             h1 = IntelPoint(h1)
             h2 = IntelPoint(h2)
@@ -1298,7 +1304,7 @@ class IntelContour(object):
         for point in self.points:
             if point.labels['cornerRadius']:
                 if not point.labels['cut'] and not point.labels['addOverlap']:
-                    self.breakCorner(point, point.labels['cornerRadius'])
+                    self.breakCorner(point, point.labels['cornerRadius'], guess=True)
                 elif point.labels['cut']:
                     self.breakCorner(point, point.labels['cornerRadius'], velocity=0)
                 elif point.labels['addOverlap']:
@@ -1417,8 +1423,6 @@ class IntelGlyph(object):
             scale = 1
         previewPen = CocoaGlyphPen(4*scale, 3*scale)
         self.draw(previewPen)
-
-
 
         # glyph contour
         if not plain:

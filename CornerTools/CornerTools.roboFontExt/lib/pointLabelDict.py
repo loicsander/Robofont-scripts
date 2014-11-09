@@ -127,7 +127,7 @@ class PointLabelDict(object):
             labelsToRemove = [label for label in allLabels if (re.search('_[a-zA-Z]([a-zA-Z])?_', label) is not None) or (label == '')]
             for label in labelsToRemove:
                 allLabels.remove(label)
-        parameters = [':'.join(['_p_'+str(key), str(round(value, 4))]) for key, value in self.labels.items() if isinstance(value, (float, int))]
+        parameters = [':'.join(['_p_'+str(key), str(round(value, 4))]) for key, value in self.labels.items() if isinstance(value, (float, int)) and not isinstance(value, bool)]
         marks = ['_m_'+str(key) for key, value in self.labels.items() if isinstance(value, bool) and value is True]
         return ','.join(allLabels+parameters+marks)
 

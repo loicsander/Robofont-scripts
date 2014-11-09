@@ -18,7 +18,7 @@ class CornerController:
         self.w.overlapButt = GradientButton((110, 50, 70, 22), title='Overlap', callback=self.wearCorner, sizeStyle='small')
         self.w.overlapButt.name = 'overlap'
         self.w.roundRadiusTitle = TextBox((15, 53, 40, 20), 'Radius', sizeStyle='small')
-        self.w.roundRadius = EditText((60, 50, 40, 21), '20')
+        self.w.roundRadius = EditText((55, 50, 40, 21), '20')
         self.w.open()
 
     def buildCorner(self, sender):

@@ -2,10 +2,15 @@
 
 from glyphObjects import IntelGlyph
 
-from mojo.events import BaseEventTool, installTool
+from mojo.events import BaseEventTool, EditingTool, installTool
 from mojo.drawingTools import *
 from AppKit import NSColor, NSBezierPath, NSImage
+from robofab.misc.arrayTools import pointInRect
 from math import hypot, pi
+
+import os
+dirname = os.path.dirname(__file__)
+toolbarIcon = NSImage.alloc().initWithContentsOfFile_(os.path.join(dirname, "RoundingToolIcon.pdf"))
 
 class RoundingTool(BaseEventTool):
 
@@ -23,10 +28,21 @@ class RoundingTool(BaseEventTool):
         self.snatchedPoint = None
         self.preview = False
         self.updateRoundablePoints()
+        self.draggedRectangle = {'rect':[], 'bounds':[]}
+        self.mouseDownPoint = None
+        self.pointSelection = []
 
     def mouseDown(self, mousePoint, clickCount):
+        self.mouseDownPoint = mousePoint
+        self.pointSelection = []
         if clickCount == 2:
-            self.makeRoundedGlyph()
+            if self.commandDown and self._sourceGlyph is not None:
+                for point in self.roundablePoints:
+                    point.labels['cornerRadius'] = 0
+                    point.labels['cut'] = False
+                    self.writePointLabels(self._sourceGlyph, point)
+            elif not self.commandDown:
+                self.makeRoundedGlyph()
         elif clickCount == 1:
             controlZoneRadius = 8
             roundablePoints = self.roundablePoints
@@ -46,7 +62,7 @@ class RoundingTool(BaseEventTool):
             dy = snatchedPoint[1]-mousePoint[1]
             d = hypot(dx, dy)
             if self.shiftDown:
-                d = round(d/10)*10
+                d = round(d/5)*5
             d = int(d)
             limit = self.getLimit(snatchedPoint)
             if d > limit:
@@ -69,13 +85,27 @@ class RoundingTool(BaseEventTool):
     #     print "rightMouseDragged"
 
     def mouseUp(self, point):
+        # if self.snatchedPoint is None:
+        #     mouseDownPoint = self.mouseDownPoint
+        #     if (self._sourceGlyph is not None) and (mouseDownPoint is not None):
+        #         currentGlyph = self._sourceGlyph
+        #         xMin = min(mouseDownPoint[0], point[0])
+        #         xMax = max(mouseDownPoint[0], point[0])
+        #         yMin = min(mouseDownPoint[1], point[1])
+        #         yMax = max(mouseDownPoint[1], point[1])
+        #         for contour in currentGlyph.contours:
+        #             for point in contour.points:
+        #                 if pointInRect((point.x, point.y), [xMin, yMin, xMax, yMax]):
+        #                     point.selected = True
+        #                     self.pointSelection.append(point)
+        #         currentGlyph.update()
+        #         self.updateRoundablePoints()
         if (self._roundedGlyph is not None) and (self.snatchedPoint is not None):
             snatchedPoint = self.snatchedPoint
-            i1, i2 = self.getRoundedPointIndices(snatchedPoint)
             self._roundedGlyph.breakCornersByLabels()
-            sourcePoint = self._sourceGlyph.contours[i1].points[i2]
-            sourcePoint.name = snatchedPoint.labels.write(sourcePoint.name)
-        self.snatchedPoint = None
+            self.writePointLabels(self._sourceGlyph, snatchedPoint)
+            self.snatchedPoint = None
+        self.mouseDownPoint = None
 
     def updateRoundablePoints(self):
         glyph = self._sourceGlyph = self.getGlyph()
@@ -107,7 +137,7 @@ class RoundingTool(BaseEventTool):
 
     def getRoundedPointIndices(self, point):
         pointIndex = point.index
-        contourIndex = point.getParent().index
+        contourIndex = point.getParentContour().index
         return contourIndex, pointIndex
 
     def getRadius(self, point):
@@ -127,6 +157,11 @@ class RoundingTool(BaseEventTool):
         if d < 0: d = 0
         return d
 
+    def writePointLabels(self, glyph, iPoint):
+        i1, i2 = self.getRoundedPointIndices(iPoint)
+        RPoint = glyph.contours[i1].points[i2]
+        RPoint.name = iPoint.labels.write(RPoint.name)
+
     controlSoftColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(.8, .6, 0, .25)
     controlStrongColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(.8, .6, 0, 0.85)
 
@@ -134,7 +169,7 @@ class RoundingTool(BaseEventTool):
         controlSoftColor = self.controlSoftColor
         controlStrongColor = self.controlStrongColor
         if self._roundedGlyph is not None:
-            self._roundedGlyph.drawPreview(scale, styleFill=False, showNodes=False, strokeWidth=2)
+            self._roundedGlyph.drawPreview(scale, styleFill=False, showNodes=False, strokeWidth=2, strokeColor=controlStrongColor)
         for point in self.roundablePoints:
             x, y = point.x, point.y
             (cx, cy), r = self.getControlPoint(point)
@@ -153,6 +188,12 @@ class RoundingTool(BaseEventTool):
                 fontSize(9*scale)
                 _r = str(r)
                 textBox(_r, (cx-cor, cy-(cor*1.5), cor*2, cor*2), align='center')
+        # if self.isDragging and (self.currentPoint is not None) and (self.mouseDownPoint is not None) and (self.snatchedPoint is None):
+        #     fill(.25, .25, .25, .25)
+        #     mouseDownPoint = self.mouseDownPoint
+        #     currentPoint = self.currentPoint
+        #     rect(mouseDownPoint[0], mouseDownPoint[1], currentPoint[0]-mouseDownPoint[0], currentPoint[1]-mouseDownPoint[1])
+
 
     def makeRoundedGlyph(self):
         if self._roundedGlyph is not None:
@@ -186,9 +227,7 @@ class RoundingTool(BaseEventTool):
     #   return aNSCursor
 
     def getToolbarIcon(self):
-        toolbarIcon = NSImage.alloc().initWithContentsOfFile_("RoundingToolIcon.pdf")
-        if toolbarIcon:
-            return toolbarIcon
+        return toolbarIcon
 
     def getToolbarTip(self):
         return "Rounding Tool"

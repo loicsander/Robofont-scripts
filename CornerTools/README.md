@@ -5,10 +5,14 @@ This extension is a set of tools to work on corners of an outline. It comprises 
 
 ### Glyph view rounding tool
 
+#### Actions
++ **Double-click**: apply rounding
++ **Command+Double-click**: reset all radiuses
+
 #### Holding modifier keys
-+ **Shift**: radius steps 10 by 10
++ **Shift**: radius steps 5 by 5
 + **Option**: make a flat corner rather than round
-+ **Shift**+**Command**: 0 radius
++ **Shift**+**Command**: reset radius
 
 ![alt tag](images/cornerTools-RoundingTool.png)
 

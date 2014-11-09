@@ -30,8 +30,12 @@
 	<key>requiresVersionMinor</key>
 	<string>4</string>
 	<key>timeStamp</key>
-	<real>1415538354.9089179</real>
+	<real>1415566404.026155</real>
 	<key>version</key>
-	<string>0.3</string>
+	<string>0.31</string>
+    <key>repository</key>
+    <string>loicsander/Robofont-scripts</string>
+    <key>extensionPath</key>
+    <string>CornerTools/CornerTools.roboFontExt</string>
 </dict>
 </plist>
