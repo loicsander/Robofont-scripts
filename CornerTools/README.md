@@ -15,12 +15,12 @@ This extension is a set of tools to work on corners of an outline. It comprises 
 ### Corner Tools controller
 
 #### What you can do to corners:
-+ Rebuild (from round or flat)
++ **Rebuild** (from round or flat)
 ![alt tag](images/cornerTools-rebuild.jpg)
-+ overlap
++ **Overlap**
 ![alt tag](images/cornerTools-overlap.jpg)
-+ cut (also available via the Rounding Tool)
++ **Cut** (also available via the Rounding Tool)
 ![alt tag](images/cornerTools-cut.jpg)
-+ round (also available via the Rounding Tool)
++ **Round** (also available via the Rounding Tool)
 ![alt tag](images/cornerTools-round.jpg)
 
