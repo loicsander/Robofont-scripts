@@ -22,15 +22,18 @@ The controller works as a wysiwyg corner editor, working with point selection. T
 
 #### Build
 Needs a selection of one or several segments and will try to grow new corners where it can. Results may vary.
+
 ![alt tag](images/cornerTool-build.png)
 
 #### Break
 This mode allows similar operations to what the rounding tool but with finer control and the ability to apply the same value to several corners at once. The two parameters allow you to do a number of things:
-![alt tag](images/cornerTools-break-round.png)
-![alt tag](images/cornerTools-break-cut.png)
-![alt tag](images/cornerTools-break-overlap.png)
+
+![alt tag](images/cornerTool-break-round.png)
+![alt tag](images/cornerTool-break-cut.png)
+![alt tag](images/cornerTool-break-overlap.png)
 
 #### Break
 This mode implements ‘ink-traps’ or ’light-wells’ or whatever name fits your ideology. Having no opinion on the matter, I decided to take on another term, pits. Something wicked this way comes.
-![alt tag](images/cornerTools-pit.png)
+
+![alt tag](images/cornerTool-pit.png)
 
