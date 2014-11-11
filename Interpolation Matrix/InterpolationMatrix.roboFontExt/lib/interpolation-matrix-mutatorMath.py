@@ -502,7 +502,7 @@ class InterpolationMatrixController:
                 self.generateInstanceFont(spot, generationInfos)
 
         elif _ID == 'report':
-            reportTab = generateSheet.tabs[1]
+            reportTab = generateSheet.tabs[2]
 
             compatibleColor = reportTab.markColors.compatibleColor.get()
             incompatibleColor = reportTab.markColors.incompatibleColor.get()
@@ -862,27 +862,22 @@ class InterpolationMatrixController:
 
     def pickSpot(self, sender):
         spot = sender.spot
+        ch, j = spot
         masters = self.masters
         masterSpots = [_spot for _spot, masterFont in masters]
+        axesGrid = self.axesGrid['horizontal'], self.axesGrid['vertical']
         matrix = self.w.matrix
-        nCellsOnHorizontalAxis, nCellsOnVerticalAxis = self.axesGrid['horizontal'], self.axesGrid['vertical']
         font = None
 
-        for i in range(nCellsOnHorizontalAxis):
-            ch = getKeyForValue(i)
-            for j in range(nCellsOnVerticalAxis):
-                cell = getattr(matrix, '%s%s'%(ch, j))
-                if (ch,j) == spot:
-                    cell.selectionMask.show(True)
-                else:
-                    cell.selectionMask.show(False)
+        self.setSpotSelection(matrix, spot, axesGrid)
 
         self.w.spotSheet = Sheet((500, 250), self.w)
         spotSheet = self.w.spotSheet
-        spotSheet.fontList = FontList((20, 20, -20, 150), AllFonts(), allowsMultipleSelection=False)
+        spotSheet.mastersTitle = TextBox((20, 20, -20, 21), 'Available masters', sizeStyle='small')
+        spotSheet.fontList = FontList((20, 40, -20, 110), AllFonts(), allowsMultipleSelection=False)
         if spot not in masterSpots:
             spotSheet.yes = Button((-140, -40, 120, 20), 'Place Master', callback=self.changeSpot)
-            spotSheet.generate = Button((20, -40, 150, 20), 'Generate Instance', callback=self.generationSheet)
+            spotSheet.generate = Button((20, -40, 180, 20), 'Generate Instance %s%s'%(ch.upper(), j+1), callback=self.generationSheet)
             spotSheet.generate.spot = spot
             if len(masters) <= 1:
                 spotSheet.generate.enable(False)
@@ -929,6 +924,16 @@ class InterpolationMatrixController:
                 break
         self.mutator = None
         self.updateMatrix()
+
+    def setSpotSelection(self, matrix, spot, axesGrid):
+        for i in range(axesGrid[0]):
+            ch = getKeyForValue(i)
+            for j in range(axesGrid[1]):
+                cell = getattr(matrix, '%s%s'%(ch, j))
+                if (ch,j) == spot:
+                    cell.selectionMask.show(True)
+                else:
+                    cell.selectionMask.show(False)
 
     def keepSpot(self, sender):
         ch, j = sender.spot
