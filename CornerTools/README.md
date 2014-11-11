@@ -32,8 +32,10 @@ This mode allows similar operations to what the rounding tool but with finer con
 ![alt tag](images/cornerTool-break-cut.png)
 ![alt tag](images/cornerTool-break-overlap.png)
 
-#### Break
+#### Pit
 This mode implements ‘ink-traps’ or ’light-wells’ or whatever name fits your ideology. Having no opinion on the matter, I decided to take on another term, pits. Something wicked this way comes.
 
 ![alt tag](images/cornerTool-pit.png)
+
+(If you get unexpected results, it may be that your contour direction isn’t right. And beyond that, it may well be that you overstep the capabilities of this code: bear in mind that outline modification is a tricky business, so don’t expect miracles.)
 
