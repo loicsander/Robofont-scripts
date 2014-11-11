@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-GCVersion = "1.1"
+GCVersion = "1.0"
 
 # Script written by Loïc Sander — may 2014
 # update 10 july 2014
@@ -26,613 +26,610 @@ from AppKit import NSColor
 
 class BenchToolBox:
 
-	def __init__(self):
-		self.lastModifiedFont = None
+    def __init__(self):
+        self.lastModifiedFont = None
 
-	def getFontName(self, font):
-		if font is not None:
-		    if (font.info.familyName != None) and (font.info.styleName != None):
-		        return font.info.familyName + " " + font.info.styleName
-		    else:
-		        return "* Unamed Font"
-		else:
-			return ""
-			print "toolBox.getFontName: No Font provided"
+    def getFontName(self, font):
+        if font is not None:
+            if (font.info.familyName != None) and (font.info.styleName != None):
+                return font.info.familyName + " " + font.info.styleName
+            else:
+                return "* Unamed Font"
+        else:
+            return ""
+            print "toolBox.getFontName: No Font provided"
 
-	def getFontByName(self, setOfFonts, fontName):
+    def getFontByName(self, setOfFonts, fontName):
 
-		for font in setOfFonts:
-			if self.getFontName(font) == fontName:
-				return font
+        for font in setOfFonts:
+            if self.getFontName(font) == fontName:
+                return font
 
-	def modifyTracking(self, font, trackingValue, glyphSet=None):
+    def modifyTracking(self, font, trackingValue, glyphSet=None):
 
-		if font != myTypeBench.lastModifiedFont:
+        if (myTypeBench.lastModifiedFont is None) or (self.getFontName(font) != self.getFontName(myTypeBench.lastModifiedFont)):
 
-			font.prepareUndo("modifyTracking")
+            font.prepareUndo("modifyTracking")
 
-			if glyphSet == None:
-				for glyph in font:
-					glyph.leftMargin += trackingValue / 2
-					glyph.rightMargin += trackingValue / 2
+            if glyphSet == None:
+                for glyph in font:
+                    glyph.leftMargin += trackingValue / 2
+                    glyph.rightMargin += trackingValue / 2
 
-					if len(glyph.components) > 0:
-						for component in glyph.components:
-							component.move(((-trackingValue / 2), 0))
+                    if len(glyph.components) > 0:
+                        for component in glyph.components:
+                            component.move(((-trackingValue / 2), 0))
 
-			font.performUndo()
+            font.performUndo()
 
-			myTypeBench.lastModifiedFont = font
+            myTypeBench.lastModifiedFont = font
 
 
 class BenchLine:
 
-	def __init__(self, index):
-		self.index = index
-		self.font = None
-		self.selected = False
-		self.showControls = False
-#		self.selectedGlyph = None
-		self.localTrackingValue = 0
-		self.line = Group((0, 0, 0, 0))
-		self.line.view = MultiLineView(
-				(0, 0, 0, 0),
-			    pointSize = 128, 
-			    lineHeight = 100, 
-			    doubleClickCallbak = None, 
-			    applyKerning = True, 
-			    bordered = False, 
-			    hasHorizontalScroller = False, 
-			    hasVerticalScroller = False, 
-			    displayOptions = {'Waterfall':False}, 
-			    selectionCallback = self.selectionCallback,
-			    menuForEventCallback = None
-				)
-		self.line.view.setCanSelect(True)
+    def __init__(self, index):
+        self.index = index
+        self.font = None
+        self.selected = False
+        self.showControls = False
+#        self.selectedGlyph = None
+        self.localTrackingValue = 0
+        self.line = Group((0, 0, 0, 0))
+        self.line.view = MultiLineView(
+                (0, 0, 0, 0),
+                pointSize = 128,
+                lineHeight = 100,
+                doubleClickCallbak = None,
+                applyKerning = True,
+                bordered = False,
+                hasHorizontalScroller = False,
+                hasVerticalScroller = False,
+                displayOptions = {'Waterfall':False},
+                selectionCallback = self.selectionCallback,
+                menuForEventCallback = None
+                )
+        self.line.view.setCanSelect(True)
 
-		self.line.controlsToggle = Button((-45, 5, 35, 14), "+", callback=self.toggleControlsCallback, sizeStyle="mini")
-		self.line.controls = Group((-310, 41, 300, 50))
-		self.line.controls.fontChoice = PopUpButton((5, 0, 0, 22), [], callback=self.switchFontCallback)
-		self.line.controls.localTracking = PopUpButton((5, 28, 60, 22), [], callback=self.localTrackingCallback)
-		self.line.controls.applyTrackingButton = Button((70, 28, 60, 22), "Apply", callback=self.applyTrackingCallback)
-		self.line.controls.toSpaceCenterButton = Button((-80, -18, 80, 18), "Space Center", sizeStyle="mini", callback=self.toSpacecenter)
+        self.line.controlsToggle = Button((-45, 5, 35, 14), "+", callback=self.toggleControlsCallback, sizeStyle="mini")
+        self.line.controls = Group((-310, 41, 300, 50))
+        self.line.controls.fontChoice = PopUpButton((5, 0, 0, 22), [], callback=self.switchFontCallback)
+        self.line.controls.localTracking = PopUpButton((5, 28, 60, 22), [], callback=self.localTrackingCallback)
+        self.line.controls.applyTrackingButton = Button((70, 28, 60, 22), "Apply", callback=self.applyTrackingCallback)
+        self.line.controls.toSpaceCenterButton = Button((-80, -18, 80, 18), "Space Center", sizeStyle="mini", callback=self.toSpacecenter)
 
-		self.toggleControls(False)
+        self.toggleControls(False)
 
-	# Send back line to be displayed
+    # Send back line to be displayed
 
-	def display(self):
-		return self.line
+    def display(self):
+        return self.line
 
-	# Set/Update ComboBoxes (font list & tracking values)
+    # Set/Update ComboBoxes (font list & tracking values)
 
-	def setFontCombo(self, allFontsList):
-		self.line.controls.fontChoice.setItems(allFontsList)
-		if self.font is not None:
-			self.line.controls.fontChoice.setTitle(toolBox.toolBox.getFontName(self.font))
-			self.line.glyphView._glyphLineView._font = self.font.naked()
-			self.line.glyphView._glyphLineView.setItalicAngle()
+    def setFontCombo(self, allFontsList):
+        self.line.controls.fontChoice.setItems(allFontsList)
+        if self.font is not None:
+            self.line.controls.fontChoice.setTitle(toolBox.toolBox.getFontName(self.font))
+            self.line.glyphView._glyphLineView._font = self.font.naked()
+            self.line.glyphView._glyphLineView.setItalicAngle()
 
-	def setTrackingCombo(self, trackingValuesList):
-		self.line.controls.localTracking.setItems(trackingValuesList)
-		self.line.controls.localTracking.setTitle("+0")
+    def setTrackingCombo(self, trackingValuesList):
+        self.line.controls.localTracking.setItems(trackingValuesList)
+        self.line.controls.localTracking.setTitle("+0")
 
-	# Local Font settings
+    # Local Font settings
 
-	def setFont(self, font):
-		if font is not None:
-			self.font = font
-			self.line.controls.fontChoice.setTitle(benchToolBox.getFontName(font))
-			self.line.view._glyphLineView._font = self.font.naked()
-			self.line.view._glyphLineView.setItalicAngle()
+    def setFont(self, font):
+        if font is not None:
+            self.font = font
+            self.line.controls.fontChoice.setTitle(benchToolBox.getFontName(font))
+            self.line.view._glyphLineView._font = self.font.naked()
+            self.line.view._glyphLineView.setItalicAngle()
 
-	def switchFontCallback(self, sender):
-		fontName = sender.getTitle()
-		self.setFont(benchToolBox.getFontByName(AllFonts(), fontName))
-		self.setGlyphs(myTypeBench.glyphSet)
-		myTypeBench.fontsOnBench[self.index] = benchToolBox.getFontByName(AllFonts(), fontName)
-		myTypeBench.checkSimilarity()
+    def switchFontCallback(self, sender):
+        fontName = sender.getTitle()
+        self.setFont(benchToolBox.getFontByName(AllFonts(), fontName))
+        self.setGlyphs(myTypeBench.glyphSet)
+        myTypeBench.fontsOnBench[self.index] = benchToolBox.getFontByName(AllFonts(), fontName)
+        myTypeBench.checkSimilarity()
 
-	# about Glyphs
+    # about Glyphs
 
-	def setGlyphs(self, glyphSet):
-		if glyphSet != []:
-			if isinstance(glyphSet[0], str) or isinstance(glyphSet[0], unicode):
-				self.getGlyphsByName(glyphSet)
-			else:
-				self.glyphSet = glyphSet
-			self.line.view.set(self.glyphSet)
-		else:
-			self.line.view.set([])
+    def setGlyphs(self, glyphSet):
+        if glyphSet != []:
+            if isinstance(glyphSet[0], str) or isinstance(glyphSet[0], unicode):
+                self.getGlyphsByName(glyphSet)
+            else:
+                self.glyphSet = glyphSet
+            self.line.view.set(self.glyphSet)
+        else:
+            self.line.view.set([])
 
-	def getGlyphsByName(self, glyphSet):
-		# check if name is a valid glyphName
-		# converts a set of glyph names to a set of glyphs of the local font
-		self.glyphSet = []
-		glyph = None
-		for glyphName in glyphSet:
-			if (glyphName == u'?') and (CurrentGlyph() is not None):
-				glyphName = CurrentGlyph().name
-			if glyphName in self.font.keys():
-				glyph = self.font[glyphName].naked()
-			if glyph is not None:
-				self.glyphSet.append(glyph)
+    def getGlyphsByName(self, glyphSet):
+        # check if name is a valid glyphName
+        # converts a set of glyph names to a set of glyphs of the local font
+        self.glyphSet = []
+        glyph = None
+        for glyphName in glyphSet:
+            if (glyphName == u'?') and (CurrentGlyph() is not None):
+                glyphName = CurrentGlyph().name
+            if glyphName in self.font.keys():
+                glyph = self.font[glyphName].naked()
+            if glyph is not None:
+                self.glyphSet.append(glyph)
 
-	# Local Tracking
+    # Local Tracking
 
-	def localTrackingCallback(self, sender):
-		self.localTrackingValue = int(sender.getTitle())
-		myTypeBench.displayTracking()
+    def localTrackingCallback(self, sender):
+        self.localTrackingValue = int(sender.getTitle())
+        myTypeBench.displayTracking()
 
-	def applyTrackingCallback(self, sender):
-		self.applyTracking()
+    def applyTrackingCallback(self, sender):
+        self.applyTracking()
 
-	def applyTracking(self):
-		trackingValue = myTypeBench.globalTrackingValue + self.localTrackingValue
+    def applyTracking(self):
+        trackingValue = myTypeBench.globalTrackingValue + self.localTrackingValue
 
-		benchToolBox.modifyTracking(self.font, trackingValue)
+        benchToolBox.modifyTracking(self.font, trackingValue)
 
-		self.resetLocalTracking()
-		myTypeBench.resetGlobalTracking()
+        self.resetLocalTracking()
+        myTypeBench.resetGlobalTracking()
 
-	def resetLocalTracking(self):
-		self.localTrackingValue = 0
-		self.line.controls.localTracking.setTitle("+0")
-		self.setGlyphs(myTypeBench.glyphSet)
+    def resetLocalTracking(self):
+        self.localTrackingValue = 0
+        self.line.controls.localTracking.setTitle("+0")
+        self.setGlyphs(myTypeBench.glyphSet)
 
-	# Selection callback
+    # Selection callback
 
-	def selectionCallback(self, multiLineView):
+    def selectionCallback(self, multiLineView):
 
-		if (multiLineView._glyphLineView.getSelected() is None):
-			self.selected = not self.selected
+        if (multiLineView._glyphLineView.getSelected() is None):
+            self.selected = not self.selected
 
-		if (self.selected == True) or (multiLineView._glyphLineView.getSelected() is not None):
-			myTypeBench.selectedLine = self.index
-			myTypeBench.onSelectionUpdate()
-		elif self.selected == False:
-			myTypeBench.selectedLine = None
-			myTypeBench.onSelectionUpdate()
+        if (self.selected == True) or (multiLineView._glyphLineView.getSelected() is not None):
+            myTypeBench.selectedLine = self.index
+            myTypeBench.onSelectionUpdate()
+        elif self.selected == False:
+            myTypeBench.selectedLine = None
+            myTypeBench.onSelectionUpdate()
 
-		if (multiLineView._glyphLineView.getSelected() is not None) and (NSEvent.modifierFlags() & NSAlternateKeyMask):
-			OpenGlyphWindow(self.font[multiLineView._glyphLineView.getSelected().name], False)
+        if (multiLineView._glyphLineView.getSelected() is not None) and (NSEvent.modifierFlags() & NSAlternateKeyMask):
+            OpenGlyphWindow(self.font[multiLineView._glyphLineView.getSelected().name], False)
 
-	def setColor(self, color):
-		self.line.view._glyphLineView._glyphColor = color
+    def setColor(self, color):
+        self.line.view._glyphLineView._glyphColor = color
 
-	def toSpacecenter(self, info):
-		OpenSpaceCenter(self.font, False)
-		CurrentSpaceCenter().set(myTypeBench.glyphSet)
+    def toSpacecenter(self, info):
+        OpenSpaceCenter(self.font, False)
+        CurrentSpaceCenter().set(myTypeBench.glyphSet)
 
-	def toggleControlsCallback(self, sender):
-		self.showControls = not self.showControls
-		self.toggleControls(self.showControls)
+    def toggleControlsCallback(self, sender):
+        self.showControls = not self.showControls
+        self.toggleControls(self.showControls)
 
-	def toggleControls(self, boolean):
-		if boolean == False:
-			self.line.controlsToggle.setTitle("+")
-		elif boolean == True:
-			self.line.controlsToggle.setTitle("-")
-		self.line.controls.show(boolean)
+    def toggleControls(self, boolean):
+        if boolean == False:
+            self.line.controlsToggle.setTitle("+")
+        elif boolean == True:
+            self.line.controlsToggle.setTitle("-")
+        self.line.controls.show(boolean)
 
 
 class GroundControl:
 
-	def __init__(self):
-
-		if len(AllFonts()) == 0:
-			print "Please open at least one font before using Ground Control"
-			return
-
-		# [windowWidth, maxWindowWidth, minWindowWidth]
-		self.xDimensions = [1200, 2880, 400]		
-		# [windowHeight, maxWindowHeight, minWindowHeight headerHeight, footerHeight]
-		self.yDimensions = [600, 1800, 400, 50, 28]
-		self.allLinesHeight = self.yDimensions[0] - (self.yDimensions[3] + self.yDimensions[4])
-		self.lineNames = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth"]
-		self.pointSizeList = ["36", "48", "56", "64", "72", "96", "128", "160", "192", "256", "364", "512"]
-		self.trackingValuesList = ["%+d" % i for i in range(-100, -60, 20)] + ["%+d" % i for i in range(-60, -30, 10)] + ["%+d" % i for i in range(-30, -10, 6)] + ["%+d" % i for i in range(-10, 10, 2)] + ["%+d" % i for i in range(10, 30, 6)] + ["%+d" % i for i in range(30, 60, 10)] + ["%+d" % i for i in range(60, 120, 20)]
-		self.fontsOnBench = []
-		self.charMap = CurrentFont().getCharacterMapping()
-		self.glyphSet = ["A", "B", "C"]
-		self.lastModifiedFont = None
-		self.globalTrackingValue = 0
-		self.minNumberOfLines = 2
-		self.maxNumberOfLines = 9
-		self.selectedLine = None
-		self.showAllControls = False
-		self.displaySettings = {"Show Metrics": [[False, False] for i in range(self.maxNumberOfLines)], "Inverse": [[False, False] for i in range(self.maxNumberOfLines)], "Upside Down": [[False, False] for i in range(self.maxNumberOfLines)]}
-		self.baseColor = NSColor.blackColor()
-		self.selectionColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(.3, .1, .1, 0.8)
-
-		self.w = Window((self.xDimensions[0], self.yDimensions[0]), "Ground Control " + GCVersion, maxSize=(self.xDimensions[1], self.yDimensions[1]), minSize=(self.xDimensions[2], self.yDimensions[2]))
-		self.w.header = Group((0, 0, -0, self.yDimensions[3]))
-		self.w.allLines = Group((0, self.w.header.getPosSize()[3], -0, self.allLinesHeight))
-		self.w.footer = Group((0, -self.yDimensions[4], -0, self.yDimensions[4]))
-
-		import os
-		if os.path.isfile("GroundControlPrefList.txt"):
-			with open("GroundControlPrefList.txt") as myfile:
-				prefList = myfile.read().split("\n")
-		else:
-			prefList = ["ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz", "HHH0HHH00HHH000HHH", "nnnonnnoonnnooonnn"]
-
-		self.w.header.inputText = ComboBox((10, 10, -320, 22), 
-			prefList,
-			continuous = True,
-			completes = True,
-			callback = self.inputCallback)
-		self.w.header.pointSizePopUp = PopUpButton((-305, 10, 60, 22), self.pointSizeList, callback=self.pointSizePopUpCallback)
-		self.w.header.pointSizePopUp.setTitle("128")
-		self.w.header.globalTrackingPopUp = PopUpButton((-175, 10, 60, 22), self.trackingValuesList, callback=self.trackingPopUpCallback)
-		self.w.header.globalTrackingPopUp.setTitle("+0")
-		self.w.header.applyAllTrackingButton = Button((-110, 10, 100, 22), "Apply All", callback=self.ApplyAllTracking)
-
-		self.w.footer.toggleAllControlsButton = Button((-260, 7, 100, 14), "All Controls", sizeStyle="mini", callback=self.toggleAllLineControlsCallback)
-		self.w.footer.addLineButton = Button((-135, 7, 60, 14), "Add", sizeStyle="mini", callback=self.addBenchLine)
-		self.w.footer.removeLineButton = Button((-70, 7, 60, 14), "Remove", sizeStyle="mini", callback=self.removeLastBenchLine)
-		self.w.footer.options = Group((10, 5, -260, 18))
-		self.w.footer.options.fontName = TextBox((0, 2, 50, 18), "All", sizeStyle="small")
-		self.w.footer.options.showMetrics = CheckBox((50, 0, 90, 18), "Show Metrics", sizeStyle="small", callback=self.showMetricsCallback)
-		self.w.footer.options.inverse = CheckBox((150, 0, 60, 18), "Inverse", sizeStyle="small", callback=self.inverseCallback)
-		self.w.footer.options.upsideDown = CheckBox((220, 0, 90, 18), "Flip", sizeStyle="small", callback=self.flipCallback)
-
-		index = 0
-
-		for lineName in self.lineNames:
-
-			# One part of the object is Methods & Attributes
-			setattr(self.w.allLines, lineName + "MethAttr", BenchLine(index))
-			thisLineMethAttr = getattr(self.w.allLines, lineName + "MethAttr")
-
-			# The second part of the object corresponds to the Vanilla objects, MultiLineView, buttons and such
-			setattr(self.w.allLines, lineName + "Vanillas", thisLineMethAttr.display())
-			thisLineVanillas = getattr(self.w.allLines, lineName + "Vanillas")
-
-			thisLineVanillas.show(False)
-			thisLineMethAttr.setFontCombo(self.allFontsList())
-			thisLineMethAttr.setTrackingCombo(self.trackingValuesList)
-			index += 1
-
-		self.getFontsOnBench()
-		self.setBench()
-
-		addObserver(self, "_currentGlyphChanged", "currentGlyphChanged")
-		addObserver(self, "updateFontsCallback", "fontDidOpen")
-		addObserver(self, "updateFontsCallback", "fontDidClose")
-		self.w.bind("resize", self.resizeWindowCallback)
-		self.w.open()
-
-	# Main function, setting lines, glyphset and fonts
-
-	def setBench(self):
-
-		self.w.allLines.resize(-0, self.allLinesHeight)
-
-		displayedFonts = len(self.fontsOnBench)
-		if displayedFonts == 0:
-			displayedFonts = self.minNumberOfLines
-		benchLineHeight = self.allLinesHeight / displayedFonts
-
-		for i in range(self.maxNumberOfLines):
-
-			thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
-			thisLineVanillas = getattr(self.w.allLines, self.lineNames[i] + "Vanillas")
-
-			if i < displayedFonts:
-				thisLineVanillas.setPosSize((0, (benchLineHeight * i), -0, benchLineHeight))
-				thisLineVanillas.show(True)
+    def __init__(self):
+
+        if len(AllFonts()) == 0:
+            print "Please open at least one font before using Ground Control"
+            return
+
+        # [windowWidth, maxWindowWidth, minWindowWidth]
+        self.xDimensions = [1200, 2880, 400]
+        # [windowHeight, maxWindowHeight, minWindowHeight headerHeight, footerHeight]
+        self.yDimensions = [600, 1800, 400, 50, 28]
+        self.allLinesHeight = self.yDimensions[0] - (self.yDimensions[3] + self.yDimensions[4])
+        self.lineNames = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth"]
+        self.pointSizeList = ["36", "48", "56", "64", "72", "96", "128", "160", "192", "256", "364", "512"]
+        self.trackingValuesList = ["%+d" % i for i in range(-100, -60, 20)] + ["%+d" % i for i in range(-60, -30, 10)] + ["%+d" % i for i in range(-30, -10, 6)] + ["%+d" % i for i in range(-10, 10, 2)] + ["%+d" % i for i in range(10, 30, 6)] + ["%+d" % i for i in range(30, 60, 10)] + ["%+d" % i for i in range(60, 120, 20)]
+        self.fontsOnBench = []
+        self.charMap = CurrentFont().getCharacterMapping()
+        self.glyphSet = ["A", "B", "C"]
+        self.lastModifiedFont = None
+        self.globalTrackingValue = 0
+        self.minNumberOfLines = 2
+        self.maxNumberOfLines = 9
+        self.selectedLine = None
+        self.showAllControls = False
+        self.displaySettings = {"Show Metrics": [[False, False] for i in range(self.maxNumberOfLines)], "Inverse": [[False, False] for i in range(self.maxNumberOfLines)], "Upside Down": [[False, False] for i in range(self.maxNumberOfLines)]}
+        self.baseColor = NSColor.blackColor()
+        self.selectionColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(.3, .1, .1, 0.8)
+
+        self.w = Window((self.xDimensions[0], self.yDimensions[0]), "Ground Control " + GCVersion, maxSize=(self.xDimensions[1], self.yDimensions[1]), minSize=(self.xDimensions[2], self.yDimensions[2]))
+        self.w.header = Group((0, 0, -0, self.yDimensions[3]))
+        self.w.allLines = Group((0, self.w.header.getPosSize()[3], -0, self.allLinesHeight))
+        self.w.footer = Group((0, -self.yDimensions[4], -0, self.yDimensions[4]))
+
+        import os
+        if os.path.isfile("GroundControlPrefList.txt"):
+            with open("GroundControlPrefList.txt") as myfile:
+                prefList = myfile.read().split("\n")
+        else:
+            prefList = ["ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz", "HHH0HHH00HHH000HHH", "nnnonnnoonnnooonnn"]
+
+        self.w.header.inputText = ComboBox((10, 10, -320, 22),
+            prefList,
+            continuous = True,
+            completes = True,
+            callback = self.inputCallback)
+        self.w.header.pointSizePopUp = PopUpButton((-305, 10, 60, 22), self.pointSizeList, callback=self.pointSizePopUpCallback)
+        self.w.header.pointSizePopUp.setTitle("128")
+        self.w.header.globalTrackingPopUp = PopUpButton((-175, 10, 60, 22), self.trackingValuesList, callback=self.trackingPopUpCallback)
+        self.w.header.globalTrackingPopUp.setTitle("+0")
+        self.w.header.applyAllTrackingButton = Button((-110, 10, 100, 22), "Apply All", callback=self.ApplyAllTracking)
+
+        self.w.footer.toggleAllControlsButton = Button((-260, 7, 100, 14), "All Controls", sizeStyle="mini", callback=self.toggleAllLineControlsCallback)
+        self.w.footer.addLineButton = Button((-135, 7, 60, 14), "Add", sizeStyle="mini", callback=self.addBenchLine)
+        self.w.footer.removeLineButton = Button((-70, 7, 60, 14), "Remove", sizeStyle="mini", callback=self.removeLastBenchLine)
+        self.w.footer.options = Group((10, 5, -260, 18))
+        self.w.footer.options.fontName = TextBox((0, 2, 50, 18), "All", sizeStyle="small")
+        self.w.footer.options.showMetrics = CheckBox((50, 0, 90, 18), "Show Metrics", sizeStyle="small", callback=self.showMetricsCallback)
+        self.w.footer.options.inverse = CheckBox((150, 0, 60, 18), "Inverse", sizeStyle="small", callback=self.inverseCallback)
+        self.w.footer.options.upsideDown = CheckBox((220, 0, 90, 18), "Flip", sizeStyle="small", callback=self.flipCallback)
+
+        index = 0
+
+        for lineName in self.lineNames:
+
+            # One part of the object is Methods & Attributes
+            setattr(self.w.allLines, lineName + "MethAttr", BenchLine(index))
+            thisLineMethAttr = getattr(self.w.allLines, lineName + "MethAttr")
+
+            # The second part of the object corresponds to the Vanilla objects, MultiLineView, buttons and such
+            setattr(self.w.allLines, lineName + "Vanillas", thisLineMethAttr.display())
+            thisLineVanillas = getattr(self.w.allLines, lineName + "Vanillas")
+
+            thisLineVanillas.show(False)
+            thisLineMethAttr.setFontCombo(self.allFontsList())
+            thisLineMethAttr.setTrackingCombo(self.trackingValuesList)
+            index += 1
+
+        self.getFontsOnBench()
+        self.setBench()
+
+        addObserver(self, "_currentGlyphChanged", "currentGlyphChanged")
+        addObserver(self, "updateCurrentGlyphInView", "keyDown")
+        addObserver(self, "updateCurrentGlyphInView", "mouseDown")
+        addObserver(self, "updateCurrentGlyphInView", "mouseDragged")
+        addObserver(self, "updateFontsCallback", "fontDidOpen")
+        addObserver(self, "updateFontsCallback", "fontDidClose")
+        self.w.bind("resize", self.resizeWindowCallback)
+        self.w.open()
+
+    # Main function, setting lines, glyphset and fonts
+
+    def setBench(self):
+
+        self.w.allLines.resize(-0, self.allLinesHeight)
+
+        displayedFonts = len(self.fontsOnBench)
+        if displayedFonts == 0:
+            displayedFonts = self.minNumberOfLines
+        benchLineHeight = self.allLinesHeight / displayedFonts
+
+        for i in range(self.maxNumberOfLines):
+
+            thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
+            thisLineVanillas = getattr(self.w.allLines, self.lineNames[i] + "Vanillas")
 
-				if len(self.fontsOnBench) != 0:
-					thisLineMethAttr.setFont(self.fontsOnBench[i])
-					thisLineMethAttr.setGlyphs(self.glyphSet)
-					thisLineVanillas.controls.fontChoice.setItems(self.allFontsList())
-					thisLineVanillas.controls.fontChoice.setTitle(benchToolBox.getFontName(self.fontsOnBench[i]))
-					thisLineMethAttr.toggleControls(self.showAllControls)
+            if i < displayedFonts:
+                thisLineVanillas.setPosSize((0, (benchLineHeight * i), -0, benchLineHeight))
+                thisLineVanillas.show(True)
 
-			elif i >= displayedFonts:
-				thisLineVanillas.setPosSize((0, 0, 0, 0))
-				thisLineVanillas.show(False)
+                if len(self.fontsOnBench) != 0:
+                    thisLineMethAttr.setFont(self.fontsOnBench[i])
+                    thisLineMethAttr.setGlyphs(self.glyphSet)
+                    thisLineVanillas.controls.fontChoice.setItems(self.allFontsList())
+                    thisLineVanillas.controls.fontChoice.setTitle(benchToolBox.getFontName(self.fontsOnBench[i]))
+                    thisLineMethAttr.toggleControls(self.showAllControls)
 
-		for modes in self.displaySettings.keys():
-			self.updateDisplaySetting(modes)
+            elif i >= displayedFonts:
+                thisLineVanillas.setPosSize((0, 0, 0, 0))
+                thisLineVanillas.show(False)
 
-		if len(self.fontsOnBench) == self.maxNumberOfLines:
-			self.w.footer.addLineButton.enable(False)
-		elif len(self.fontsOnBench) < self.maxNumberOfLines:
-			self.w.footer.addLineButton.enable(True)
+        for modes in self.displaySettings.keys():
+            self.updateDisplaySetting(modes)
 
-		if len(self.fontsOnBench) == self.minNumberOfLines:
-			self.w.footer.removeLineButton.enable(False)
-		elif len(self.fontsOnBench) > self.minNumberOfLines:
-			self.w.footer.removeLineButton.enable(True)
+        if len(self.fontsOnBench) == self.maxNumberOfLines:
+            self.w.footer.addLineButton.enable(False)
+        elif len(self.fontsOnBench) < self.maxNumberOfLines:
+            self.w.footer.addLineButton.enable(True)
 
-		self.checkSimilarity()
+        if len(self.fontsOnBench) == self.minNumberOfLines:
+            self.w.footer.removeLineButton.enable(False)
+        elif len(self.fontsOnBench) > self.minNumberOfLines:
+            self.w.footer.removeLineButton.enable(True)
 
-	# If all fonts on bench are the same, deactivate the [Apply all] (tracking) button
+        self.checkSimilarity()
 
-	def checkSimilarity(self):
+    # If all fonts on bench are the same, deactivate the [Apply all] (tracking) button
 
-		previousFont = None
-		sameFonts = False
+    def checkSimilarity(self):
 
-		for i in range(len(self.fontsOnBench)):
+        previousFont = None
+        sameFonts = False
 
-			if self.fontsOnBench[i] == previousFont:
-				sameFonts = True
-			else:
-				sameFonts = False
+        for i in range(len(self.fontsOnBench)):
 
-			previousFont = self.fontsOnBench[i]
+            if self.fontsOnBench[i] == previousFont:
+                sameFonts = True
+            else:
+                sameFonts = False
 
-		if sameFonts == True:
-			self.w.header.applyAllTrackingButton.enable(False)
-		else:
-			self.w.header.applyAllTrackingButton.enable(True)
+            previousFont = self.fontsOnBench[i]
 
+        if sameFonts == True:
+            self.w.header.applyAllTrackingButton.enable(False)
+        else:
+            self.w.header.applyAllTrackingButton.enable(True)
 
-	# Add/Remove lines
 
-	def addBenchLine(self, sender):
-		if len(self.fontsOnBench) < self.maxNumberOfLines:
-			self.fontsOnBench.append(self.fontsOnBench[-1:][0])
-			self.setBench()
+    # Add/Remove lines
 
-	def removeLastBenchLine(self, sender):
-		if len(self.fontsOnBench) > self.minNumberOfLines:
-			self.fontsOnBench = self.fontsOnBench[:-1]
-			self.setBench()
+    def addBenchLine(self, sender):
+        if len(self.fontsOnBench) < self.maxNumberOfLines:
+            self.fontsOnBench.append(self.fontsOnBench[-1:][0])
+            self.setBench()
 
-	def removeBenchLine(self, index):
-		if len(self.fontsOnBench) > self.minNumberOfLines:
-			del self.fontsOnBench[index]
-			self.setBench()
-		elif len (self.fontsOnBench) == self.minNumberOfLines:
-			del self.fontsOnBench[index]
-			self.fontsOnBench.append(self.fontsOnBench[-1:][0])
-			self.setBench()
+    def removeLastBenchLine(self, sender):
+        if len(self.fontsOnBench) > self.minNumberOfLines:
+            self.fontsOnBench = self.fontsOnBench[:-1]
+            self.setBench()
 
-	# Controls
+    def removeBenchLine(self, index):
+        if len(self.fontsOnBench) > self.minNumberOfLines:
+            del self.fontsOnBench[index]
+            self.setBench()
+        elif len (self.fontsOnBench) == self.minNumberOfLines:
+            del self.fontsOnBench[index]
+            self.fontsOnBench.append(self.fontsOnBench[-1:][0])
+            self.setBench()
 
-	def toggleAllLineControlsCallback(self, sender):
-		self.showAllControls = not self.showAllControls
-		for i in range(len(self.fontsOnBench)):
-			thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
-			thisLineMethAttr.toggleControls(self.showAllControls)
+    # Controls
 
-	# Get names of all available fonts
+    def toggleAllLineControlsCallback(self, sender):
+        self.showAllControls = not self.showAllControls
+        for i in range(len(self.fontsOnBench)):
+            thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
+            thisLineMethAttr.toggleControls(self.showAllControls)
 
-	def allFontsList(self):
-		allAvailableFonts = []
-		for font in AllFonts():
-			allAvailableFonts.append(benchToolBox.getFontName(font))
-		return allAvailableFonts
+    # Get names of all available fonts
 
-	# Define fonts to be displayed by default: first definition of self.fontsOnBench
-	# Afterwards, self.fontsOnBench is modified by the user interacting through the fontChoice comboBoxes
+    def allFontsList(self):
+        allAvailableFonts = []
+        for font in AllFonts():
+            allAvailableFonts.append(benchToolBox.getFontName(font))
+        return allAvailableFonts
 
-	def getFontsOnBench(self):
-		allFonts = AllFonts()
+    # Define fonts to be displayed by default: first definition of self.fontsOnBench
+    # Afterwards, self.fontsOnBench is modified by the user interacting through the fontChoice comboBoxes
 
-		if len(allFonts) == 1:		
-			self.fontsOnBench = [allFonts[0], allFonts[0]]
-		elif len(allFonts) > 1:
-			self.fontsOnBench = [allFonts[i] for i in range(len(allFonts)) if i < self.maxNumberOfLines]
+    def getFontsOnBench(self):
+        allFonts = AllFonts()
 
-	# Point size
+        if len(allFonts) == 1:
+            self.fontsOnBench = [allFonts[0], allFonts[0]]
+        elif len(allFonts) > 1:
+            self.fontsOnBench = [allFonts[i] for i in range(len(allFonts)) if i < self.maxNumberOfLines]
 
-	def pointSizePopUpCallback(self, sender):
-		pointSize = int(sender.getTitle())
+    # Point size
 
-		for i in range(len(self.fontsOnBench)):
-			thisLineVanillas = getattr(self.w.allLines, self.lineNames[i] + "Vanillas")
-			thisLineVanillas.view.setPointSize(pointSize)
+    def pointSizePopUpCallback(self, sender):
+        pointSize = int(sender.getTitle())
 
-	# Tracking…
+        for i in range(len(self.fontsOnBench)):
+            thisLineVanillas = getattr(self.w.allLines, self.lineNames[i] + "Vanillas")
+            thisLineVanillas.view.setPointSize(pointSize)
 
-	def trackingPopUpCallback(self, sender):
-		self.globalTrackingValue = int(sender.getTitle())
-		self.displayTracking()
+    # Tracking…
 
-	def displayTracking(self):
-		localTrackingValues = self.getlocalTracking()
-		globalTrackingValue = self.globalTrackingValue
+    def trackingPopUpCallback(self, sender):
+        self.globalTrackingValue = int(sender.getTitle())
+        self.displayTracking()
 
-		for i in range(len(self.fontsOnBench)):
-			thisLineVanillas = getattr(self.w.allLines, self.lineNames[i] + "Vanillas")
-			thisLineVanillas.view.setTracking(self.globalTrackingValue + localTrackingValues[i])
+    def displayTracking(self):
+        localTrackingValues = self.getlocalTracking()
+        globalTrackingValue = self.globalTrackingValue
 
-	def getlocalTracking(self):
-		return [getattr(getattr(self.w.allLines, self.lineNames[i] + "MethAttr"), "localTrackingValue") for i in range(len(self.fontsOnBench))]
+        for i in range(len(self.fontsOnBench)):
+            thisLineVanillas = getattr(self.w.allLines, self.lineNames[i] + "Vanillas")
+            thisLineVanillas.view.setTracking(self.globalTrackingValue + localTrackingValues[i])
 
-	def resetGlobalTracking(self):
-		self.globalTrackingValue = 0
-		self.displayTracking()
-		self.w.header.globalTrackingPopUp.setTitle("+0")
-		self.lastModifiedFont = None
+    def getlocalTracking(self):
+        return [getattr(getattr(self.w.allLines, self.lineNames[i] + "MethAttr"), "localTrackingValue") for i in range(len(self.fontsOnBench))]
 
-	def ApplyAllTracking(self, sender):
+    def resetGlobalTracking(self):
+        self.globalTrackingValue = 0
+        self.displayTracking()
+        self.w.header.globalTrackingPopUp.setTitle("+0")
+        self.lastModifiedFont = None
 
-		for i in range(len(self.fontsOnBench)):
+    def ApplyAllTracking(self, sender):
 
-			thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
-			trackingValue = self.globalTrackingValue + thisLineMethAttr.localTrackingValue
+        for i in range(len(self.fontsOnBench)):
 
-			benchToolBox.modifyTracking(thisLineMethAttr.font, trackingValue)
+            thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
+            trackingValue = self.globalTrackingValue + thisLineMethAttr.localTrackingValue
 
-			thisLineMethAttr.resetLocalTracking()
+            print self.globalTrackingValue
 
-		self.resetGlobalTracking()
+            benchToolBox.modifyTracking(thisLineMethAttr.font, trackingValue)
 
-	# BenchLine Selection
+            thisLineMethAttr.resetLocalTracking()
 
-	def onSelectionUpdate(self):
-		for i in range(len(self.fontsOnBench)):
-			thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
-			if i != self.selectedLine:
-				thisLineMethAttr.selected = False
-				thisLineMethAttr.setColor(self.baseColor)
-				thisLineMethAttr.setGlyphs(self.glyphSet)
-			elif (i == self.selectedLine) and (thisLineMethAttr.line.view._glyphLineView._glyphColor != self.selectionColor):
-				thisLineMethAttr.setColor(self.selectionColor)
-				thisLineMethAttr.setGlyphs(self.glyphSet)
+        self.resetGlobalTracking()
 
-		self.footerOptions()
+    # BenchLine Selection
 
-	# Responsive stuff
+    def onSelectionUpdate(self):
+        for i in range(len(self.fontsOnBench)):
+            thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
+            if i != self.selectedLine:
+                thisLineMethAttr.selected = False
+                thisLineMethAttr.setColor(self.baseColor)
+                thisLineMethAttr.setGlyphs(self.glyphSet)
+            elif (i == self.selectedLine) and (thisLineMethAttr.line.view._glyphLineView._glyphColor != self.selectionColor):
+                thisLineMethAttr.setColor(self.selectionColor)
+                thisLineMethAttr.setGlyphs(self.glyphSet)
 
-	def resizeWindowCallback(self, sender):
+        self.footerOptions()
 
-		if self.w.getPosSize()[2] < 600:
-			self.footerOptions()
-			self.w.footer.toggleAllControlsButton.show(False)
-			self.w.footer.addLineButton.setTitle("+")
-			self.w.footer.addLineButton.setPosSize((-75, 7, 30, 14))
-			self.w.footer.removeLineButton.setTitle("-")
-			self.w.footer.removeLineButton.setPosSize((-40, 7, 30, 14))
+    # Responsive stuff
 
-			for i in range(len(self.fontsOnBench)):
-				thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
-				thisLineMethAttr.toggleControls(False)
+    def resizeWindowCallback(self, sender):
 
-		elif self.w.getPosSize()[2] >= 600:
-			self.footerOptions()
-			self.w.footer.toggleAllControlsButton.show(True)
-			self.w.footer.addLineButton.setTitle("Add")
-			self.w.footer.addLineButton.setPosSize((-135, 7, 60, 14))
-			self.w.footer.removeLineButton.setTitle("Remove")
-			self.w.footer.removeLineButton.setPosSize((-70, 7, 60, 14))
+        if self.w.getPosSize()[2] < 600:
+            self.footerOptions()
+            self.w.footer.toggleAllControlsButton.show(False)
+            self.w.footer.addLineButton.setTitle("+")
+            self.w.footer.addLineButton.setPosSize((-75, 7, 30, 14))
+            self.w.footer.removeLineButton.setTitle("-")
+            self.w.footer.removeLineButton.setPosSize((-40, 7, 30, 14))
 
-		self.allLinesHeight = self.w.getPosSize()[3] - (self.yDimensions[3] + self.yDimensions[4])
-		self.setBench()
+            for i in range(len(self.fontsOnBench)):
+                thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
+                thisLineMethAttr.toggleControls(False)
 
-	def footerOptions(self):
+        elif self.w.getPosSize()[2] >= 600:
+            self.footerOptions()
+            self.w.footer.toggleAllControlsButton.show(True)
+            self.w.footer.addLineButton.setTitle("Add")
+            self.w.footer.addLineButton.setPosSize((-135, 7, 60, 14))
+            self.w.footer.removeLineButton.setTitle("Remove")
+            self.w.footer.removeLineButton.setPosSize((-70, 7, 60, 14))
 
-		if self.w.getPosSize()[2] < 600:
+        self.allLinesHeight = self.w.getPosSize()[3] - (self.yDimensions[3] + self.yDimensions[4])
+        self.setBench()
 
-			self.w.footer.options.resize(-75, 18)
-			self.w.footer.options.fontName.show(False)
-			self.w.footer.options.showMetrics.setPosSize((0, 0, 90, 18))
-			self.w.footer.options.inverse.setPosSize((100, 0, 60, 18))
-			self.w.footer.options.upsideDown.setPosSize((170, 0, 90, 18))
+    def footerOptions(self):
 
-		elif self.w.getPosSize()[2] >= 600:
+        if self.w.getPosSize()[2] < 600:
 
-			self.w.footer.options.fontName.show(True)
+            self.w.footer.options.resize(-75, 18)
+            self.w.footer.options.fontName.show(False)
+            self.w.footer.options.showMetrics.setPosSize((0, 0, 90, 18))
+            self.w.footer.options.inverse.setPosSize((100, 0, 60, 18))
+            self.w.footer.options.upsideDown.setPosSize((170, 0, 90, 18))
 
-			if self.selectedLine is not None:
-				self.w.footer.options.showMetrics.set(self.displaySettings["Show Metrics"][self.selectedLine][0])
-				self.w.footer.options.inverse.set(self.displaySettings["Inverse"][self.selectedLine][0])
-				self.w.footer.options.upsideDown.set(self.displaySettings["Upside Down"][self.selectedLine][0])
+        elif self.w.getPosSize()[2] >= 600:
 
-				fontName = benchToolBox.getFontName(self.fontsOnBench[self.selectedLine])
-				fontNameWidth = len(fontName) * 8
+            self.w.footer.options.fontName.show(True)
 
-				self.w.footer.options.fontName.resize(fontNameWidth, 18)
-				self.w.footer.options.showMetrics.setPosSize((fontNameWidth + 10, 0, 90, 18))
-				self.w.footer.options.inverse.setPosSize((fontNameWidth + 110, 0, 60, 18))
-				self.w.footer.options.upsideDown.setPosSize((fontNameWidth + 180, 0, 90, 18))
-				
-				self.w.footer.options.fontName.set(str(self.selectedLine + 1) + ": " + fontName)
-				str(self.selectedLine + 1)
+            if self.selectedLine is not None:
+                self.w.footer.options.showMetrics.set(self.displaySettings["Show Metrics"][self.selectedLine][0])
+                self.w.footer.options.inverse.set(self.displaySettings["Inverse"][self.selectedLine][0])
+                self.w.footer.options.upsideDown.set(self.displaySettings["Upside Down"][self.selectedLine][0])
 
-			else:
-				self.w.footer.options.fontName.set("All")
-				self.w.footer.options.showMetrics.setPosSize((50, 0, 90, 18))
-				self.w.footer.options.inverse.setPosSize((150, 0, 60, 18))
-				self.w.footer.options.upsideDown.setPosSize((220, 0, 90, 18))
+                fontName = benchToolBox.getFontName(self.fontsOnBench[self.selectedLine])
+                fontNameWidth = len(fontName) * 8
 
-	# Display Settings, Show Metrics, Inverse (white on black), Flip (upside down)
+                self.w.footer.options.fontName.resize(fontNameWidth, 18)
+                self.w.footer.options.showMetrics.setPosSize((fontNameWidth + 10, 0, 90, 18))
+                self.w.footer.options.inverse.setPosSize((fontNameWidth + 110, 0, 60, 18))
+                self.w.footer.options.upsideDown.setPosSize((fontNameWidth + 180, 0, 90, 18))
 
-	def updateDisplaySetting(self, mode):
+                self.w.footer.options.fontName.set(str(self.selectedLine + 1) + ": " + fontName)
+                str(self.selectedLine + 1)
 
-		for i in range(len(self.fontsOnBench)):
+            else:
+                self.w.footer.options.fontName.set("All")
+                self.w.footer.options.showMetrics.setPosSize((50, 0, 90, 18))
+                self.w.footer.options.inverse.setPosSize((150, 0, 60, 18))
+                self.w.footer.options.upsideDown.setPosSize((220, 0, 90, 18))
 
-			if self.displaySettings[mode][i][0] != self.displaySettings[mode][i][1]:
+    # Display Settings, Show Metrics, Inverse (white on black), Flip (upside down)
 
-				if (self.selectedLine is not None) and (i != self.selectedLine):
-					continue
+    def updateDisplaySetting(self, mode):
 
-				thisLineVanillas = getattr(self.w.allLines, self.lineNames[i] + "Vanillas")
-				thisLineVanillas.view.setDisplayMode(mode)
-				self.displaySettings[mode][i][1] = self.displaySettings[mode][i][0]
+        for i in range(len(self.fontsOnBench)):
 
-	def updateDisplaySettingCallback(self, mode, boolValue):
+            if self.displaySettings[mode][i][0] != self.displaySettings[mode][i][1]:
 
-		boolean = bool(boolValue)
-		self.onSelectionUpdate()
+                if (self.selectedLine is not None) and (i != self.selectedLine):
+                    continue
 
-		for i in range(self.maxNumberOfLines):
-			if (self.selectedLine is not None) and (i != self.selectedLine):
-				continue
-			self.displaySettings[mode][i][0] = boolean
-		self.onSelectionUpdate()
-		self.updateDisplaySetting(mode)
+                thisLineVanillas = getattr(self.w.allLines, self.lineNames[i] + "Vanillas")
+                thisLineVanillas.view.setDisplayMode(mode)
+                self.displaySettings[mode][i][1] = self.displaySettings[mode][i][0]
 
-	def showMetricsCallback(self, sender):
-		self.updateDisplaySettingCallback("Show Metrics", sender.get())
+    def updateDisplaySettingCallback(self, mode, boolValue):
 
-	def inverseCallback(self, sender):
-		self.updateDisplaySettingCallback("Inverse", sender.get())
+        boolean = bool(boolValue)
+        self.onSelectionUpdate()
 
-	def flipCallback(self, sender):
-		self.updateDisplaySettingCallback("Upside Down", sender.get())
+        for i in range(self.maxNumberOfLines):
+            if (self.selectedLine is not None) and (i != self.selectedLine):
+                continue
+            self.displaySettings[mode][i][0] = boolean
+        self.onSelectionUpdate()
+        self.updateDisplaySetting(mode)
 
-	# Text input & parsing
+    def showMetricsCallback(self, sender):
+        self.updateDisplaySettingCallback("Show Metrics", sender.get())
 
-	# def inputCallback(self, sender):
+    def inverseCallback(self, sender):
+        self.updateDisplaySettingCallback("Inverse", sender.get())
 
-	# 	inputString = sender.get()
+    def flipCallback(self, sender):
+        self.updateDisplaySettingCallback("Upside Down", sender.get())
 
-	# 	self.glyphSet = []
+    # Text input & parsing
 
-	# 	if inputString != "":
-	# 		for char in inputString:
-	# 			uni = ord(char)
-	# 			glyphName = self.charMap.get(uni)
-	# 			if glyphName:
-	# 				glyphName = glyphName[0]
-	# 			self.glyphSet.append(glyphName)
+    def inputCallback(self, sender):
 
-	# 	for i in range(len(self.fontsOnBench)):
-	# 		thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")	
-	# 		thisLineMethAttr.setGlyphs(self.glyphSet)
+        typedString = sender.get()
 
-	def inputCallback(self, sender):
+        self.glyphSet = splitText(typedString, self.charMap)
 
-		typedString = sender.get()
+        for i in range(len(self.fontsOnBench)):
+            thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
+            thisLineMethAttr.setGlyphs(self.glyphSet)
 
-		self.glyphSet = splitText(typedString, self.charMap)
+    # Observer callbacks
 
-		for i in range(len(self.fontsOnBench)):
-			thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")	
-			thisLineMethAttr.setGlyphs(self.glyphSet)
+    def windowClose(self, sender):
+        removeObserver(self, "fontDidOpen")
+        removeObserver(self, "fontDidClose")
+        removeObserver(self, "currentGlyphChanged")
+        removeObserver(self, "mouseDown")
+        removeObserver(self, "keyDown")
+        removeObserver(self, "mouseDragged")
 
-	# Observer callbacks
+    def _currentGlyphChanged(self, notification):
+        if ((notification['notificationName'] == 'currentGlyphChanged') and (CurrentGlyph() is not None) and (u"?" in self.glyphSet)) or\
+           (notification['notificationName'] in ['mouseDragged', 'keyDown', 'mouseDown']):
+            for i in range(len(self.fontsOnBench)):
+                thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
+                thisLineMethAttr.setGlyphs(self.glyphSet)
 
-	def windowClose(self, sender):
-		removeObserver(self, "fontDidOpen")
-		removeObserver(self, "fontDidClose")
-		removeObserver(self, "currentGlyphChanged")
+    def updateCurrentGlyphInView(self, notification):
+        glyph = notification['glyph']
+        if (notification['notificationName'] == 'mouseDragged') and (len(glyph.selection) == 0):
+            return
+        self._currentGlyphChanged(notification)
 
-	def _currentGlyphChanged(self, info):
-		if (CurrentGlyph() is not None) and (u"?" in self.glyphSet):
-			for i in range(len(self.fontsOnBench)):
-				thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
-				thisLineMethAttr.setGlyphs(self.glyphSet)
+    def updateFontsCallback(self, info):
 
-	def updateFontsCallback(self, info):
+        for i in range(len(self.fontsOnBench)):
+            thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
+            thisLineVanillas = getattr(self.w.allLines, self.lineNames[i] + "Vanillas")
 
-		for i in range(len(self.fontsOnBench)):
-			thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
-			thisLineVanillas = getattr(self.w.allLines, self.lineNames[i] + "Vanillas")
-			
-			if (info["notificationName"] == "fontDidClose") and (benchToolBox.getFontByName(AllFonts(), benchToolBox.getFontName(thisLineMethAttr.font)) == None):
-				self.removeBenchLine(i)
-				continue
+            if (info["notificationName"] == "fontDidClose") and (benchToolBox.getFontByName(AllFonts(), benchToolBox.getFontName(thisLineMethAttr.font)) == None):
+                self.removeBenchLine(i)
+                continue
 
-			thisLineVanillas.controls.fontChoice.setItems(self.allFontsList())
-			thisLineVanillas.controls.fontChoice.setTitle(benchToolBox.getFontName(thisLineMethAttr.font))
+            thisLineVanillas.controls.fontChoice.setItems(self.allFontsList())
+            thisLineVanillas.controls.fontChoice.setTitle(benchToolBox.getFontName(thisLineMethAttr.font))
 
 benchToolBox = BenchToolBox()
 myTypeBench = GroundControl()

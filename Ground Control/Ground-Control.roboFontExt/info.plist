@@ -28,10 +28,10 @@
 	<key>timeStamp</key>
 	<real>1320233007.075783</real>
 	<key>version</key>
-	<string>1.2</string>
+	<string>1.5</string>
 	<key>repository</key>
-	<string>loicsander/Robofont-scripts</string>
+	<string>loicsander/Robofont-scripts/Ground Control</string>
 	<key>extensionPath</key>
-	<string>Ground Control/Ground-Control.roboFontExt</string>
+	<string>Ground-Control.roboFontExt</string>
 </dict>
 </plist>
