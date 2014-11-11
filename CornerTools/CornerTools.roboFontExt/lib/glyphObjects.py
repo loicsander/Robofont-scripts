@@ -289,7 +289,7 @@ class IntelPoint(object):
         return self.__class__((self.x, self.y), self.segmentType, self.smooth, self.name, self.index)
 
     def round(self):
-        x, y = round(self.x), round(self.y)
+        x, y = int(round(self.x)), int(round(self.y))
         self.x, self.y = x, y
         return x, y
 
@@ -352,7 +352,7 @@ class IntelPoint(object):
         return x + (distance*cos(angle)), y + (distance*sin(angle))
 
     # return a new Point translated by distance + angle
-    def derive(self, angle, distance, direction=None):
+    def derive(self, angle, distance):
         derivedPoint = self.__class__(self.polarCoord(angle, distance), self.segmentType, self.smooth, None)
         derivedPoint.setParentPoint(self)
         derivedPoint.setParentContour(self.parentContour)
@@ -433,6 +433,14 @@ class IntelPoint(object):
                 a = self.incomingDirection()
             return (anchor, d, a)
         return
+
+    # def pivotAngle(self):
+    #     assert self.parentContour is not None
+    #     turn = self.turn()
+    #     direction = self.incomingDirection()
+    #     pivotAngle = direction + (turn/2) + (pi/2)
+
+    #     return
 
     def pivotAngle(self):
         assert self.parentContour is not None
@@ -592,7 +600,9 @@ class IntelContour(object):
 
     def append(self, point):
 
-        if isinstance(point, IntelPoint):
+        PointClass = self._pointClass
+
+        if isinstance(point, PointClass):
             iPoint = point
             iPoint.setParentContour(self)
             iPoint.index = self.length()
@@ -602,10 +612,10 @@ class IntelContour(object):
             if hasattr(point, 'selected'):
                 selected = point.selected
             try:
-                iPoint = IntelPoint(point['pt'], point['segmentType'], point['smooth'], point['name'], index=self.length(), onCurveIndex=self.shortLength(), selected=selected)
+                iPoint = PointClass(point['pt'], point['segmentType'], point['smooth'], point['name'], index=self.length(), onCurveIndex=self.shortLength(), selected=selected)
             except:
                 try:
-                    iPoint = IntelPoint((point.x, point.y), point.type, point.smooth, point.name, index=self.length(), onCurveIndex=self.shortLength(), selected=selected)
+                    iPoint = PointClass((point.x, point.y), point.type, point.smooth, point.name, index=self.length(), onCurveIndex=self.shortLength(), selected=selected)
                 except:
                     return
 
@@ -613,14 +623,17 @@ class IntelContour(object):
             self.points.append(iPoint)
 
     def insert(self, index, point):
-        if isinstance(point, IntelPoint):
+
+        PointClass = self._pointClass
+
+        if isinstance(point, PointClass):
             iPoint = point
         else:
             try:
-                iPoint = IntelPoint(point['pt'], point['segmentType'], point['smooth'], point['name'], self.length())
+                iPoint = PointClass(point['pt'], point['segmentType'], point['smooth'], point['name'], self.length())
             except:
                 try:
-                    iPoint = IntelPoint((point.x, point.y), point.type, point.smooth, point.name, self.length())
+                    iPoint = PointClass((point.x, point.y), point.type, point.smooth, point.name, self.length())
                 except:
                     return
         iPoint.setParentContour(self)
@@ -1021,6 +1034,7 @@ class IntelContour(object):
 
         points = self.points
         length = len(points)
+        closed = self.isClosed()
 
         for i, point in enumerate(points):
 
@@ -1031,7 +1045,7 @@ class IntelContour(object):
 
             if (abs(point.turn()) < (10/180*pi)) or (point.smooth and abs(point.turn()) < (60/180*pi)):
 
-                if (point.segmentType in ['curve', 'line']) and (not point.isFirst()) and (not point.isLast()):
+                if (point.segmentType in ['curve', 'line']) and ((not closed and (not point.isFirst()) and (not point.isLast())) or closed):
 
                     if (previousPoint.segmentType is None) and (nextPoint.segmentType is not None):
 
@@ -1150,30 +1164,9 @@ class IntelContour(object):
         segmentsToAdd = []
 
         for segment in curveSegments:
-            pt0, pt1, pt2, pt3 = segment
-            startPoint, endPoint = pt0, pt3
-            segmentExtrema = self.findSegmentExtrema(pt0, pt1, pt2, pt3)
-            newSegment = [startPoint]
-            startIndex = startPoint.index
-
-            if len(segmentExtrema) > 0:
-                for i, ((x, y), t) in enumerate(segmentExtrema):
-
-                    if i == 0:
-                        newSegment += self.splitSegmentAtT(pt0, pt1, pt2, pt3, (x,y), t)
-
-                    elif i > 0:
-                        segmentExtrema = self.findSegmentExtrema(*previousModifiedSegment)
-                        (x, y), t = segmentExtrema[0]
-
-                        pt0, pt1, pt2, pt3 = previousModifiedSegment
-                        newSegment = newSegment[:-2] + self.splitSegmentAtT(pt0, pt1, pt2, pt3, (x,y), t)
-
-                    previousModifiedSegment = newSegment[-3:] + [endPoint]
-
-                newSegment.pop(0)
-                if len(newSegment):
-                    segmentsToAdd.append((startIndex, newSegment))
+            startIndex, newSegment = self.addExtremaOnSegment(segment)
+            if newSegment is not None:
+                segmentsToAdd.append((startIndex, newSegment))
 
         addedPointsCount = 0
 
@@ -1188,6 +1181,79 @@ class IntelContour(object):
             addedPointsCount -= 2
 
         self.updateIndices()
+
+
+    # def addExtrema(self):
+
+    #     curveSegments = self.collectSegments()['curves']
+    #     segmentsToAdd = []
+
+    #     for segment in curveSegments:
+    #         pt0, pt1, pt2, pt3 = segment
+    #         startPoint, endPoint = pt0, pt3
+    #         segmentExtrema = self.findSegmentExtrema(pt0, pt1, pt2, pt3)
+    #         newSegment = [startPoint]
+    #         startIndex = startPoint.index
+
+    #         if len(segmentExtrema) > 0:
+    #             for i, ((x, y), t) in enumerate(segmentExtrema):
+
+    #                 if i == 0:
+    #                     newSegment += self.splitSegmentAtT(pt0, pt1, pt2, pt3, (x,y), t)
+
+    #                 elif i > 0:
+    #                     segmentExtrema = self.findSegmentExtrema(*previousModifiedSegment)
+    #                     (x, y), t = segmentExtrema[0]
+
+    #                     pt0, pt1, pt2, pt3 = previousModifiedSegment
+    #                     newSegment = newSegment[:-2] + self.splitSegmentAtT(pt0, pt1, pt2, pt3, (x,y), t)
+
+    #                 previousModifiedSegment = newSegment[-3:] + [endPoint]
+
+    #             newSegment.pop(0)
+    #             if len(newSegment):
+    #                 segmentsToAdd.append((startIndex, newSegment))
+
+    #     addedPointsCount = 0
+
+    #     for start, newSegment in segmentsToAdd:
+    #         index = start + 1 + addedPointsCount
+    #         for i in range(2):
+    #             self.pop(index)
+    #         for p in reversed(newSegment):
+    #             p.round()
+    #             self.insert(index, p)
+    #             addedPointsCount += 1
+    #         addedPointsCount -= 2
+
+    #     self.updateIndices()
+
+    def addExtremaOnSegment(self, segment):
+        pt0, pt1, pt2, pt3 = segment
+        startPoint, endPoint = pt0, pt3
+        segmentExtrema = self.findSegmentExtrema(pt0, pt1, pt2, pt3)
+        newSegment = [startPoint]
+        startIndex = startPoint.index
+
+        if len(segmentExtrema) > 0:
+            for i, ((x, y), t) in enumerate(segmentExtrema):
+
+                if i == 0:
+                    newSegment += self.splitSegmentAtT(pt0, pt1, pt2, pt3, (x,y), t)
+
+                elif i > 0:
+                    segmentExtrema = self.findSegmentExtrema(*previousModifiedSegment)
+                    (x, y), t = segmentExtrema[0]
+
+                    pt0, pt1, pt2, pt3 = previousModifiedSegment
+                    newSegment = newSegment[:-2] + self.splitSegmentAtT(pt0, pt1, pt2, pt3, (x,y), t)
+
+                previousModifiedSegment = newSegment[-3:] + [endPoint]
+
+            newSegment.pop(0)
+            if len(newSegment):
+                return startIndex, newSegment
+        return None, None
 
     def splitSegmentAtT(self, pt0, pt1, pt2, pt3, (x, y), t):
         PointClass = self._pointClass
@@ -1342,6 +1408,7 @@ class IntelContour(object):
 
     def buildCorner(self, points, minPoints=2, maxPoints=4):
         if minPoints <= len(points) <= maxPoints:
+            PointClass = self._pointClass
             closed = self.isClosed()
             pointsToRemove = points[1:-1]
             firstPoint, lastPoint = points[0], points[-1]
@@ -1352,7 +1419,7 @@ class IntelContour(object):
                (firstPoint.segmentType is not None) and (lastPoint.segmentType is not None):
                 startIndex = firstPoint.index
                 endIndex = lastPoint.index
-                cornerPoint = IntelPoint((0, 0))
+                cornerPoint = PointClass((0, 0))
                 ix, iy = self.intersectLineLine(beforeFirst, firstPoint, lastPoint, afterLast)
                 if (ix, iy) != (None, None):
                     cornerPoint.x, cornerPoint.y = ix, iy
@@ -1369,12 +1436,9 @@ class IntelContour(object):
                     if lastPoint not in pointsToRemove:
                         lastPoint.segmentType = 'line'
                     self.insert(startIndex+1, cornerPoint)
-                    l = self.length()
                     for point in pointsToRemove:
                         if point in self.points:
                             self.points.remove(point)
-                    # for i in range(length+1):
-                    #     self.points.pop((startIndex+1)%(l-i))
                     self.updateIndices()
 
     '''
@@ -1390,6 +1454,7 @@ class IntelContour(object):
         if (point.segmentType is not None) and (abs(turn) >= (20/180)*pi) and \
         (self.isClosed() or (not self.isClosed() and (not point.isFirst()) and (not point.isLast()))):
             startIndex = point.index
+            PointClass = self._pointClass
             if not insideOut:
                 radius = -radius
             angle1 = point.direction()
@@ -1400,8 +1465,8 @@ class IntelContour(object):
             if abs(turn) > pi/2 and guess:
                 velocity += 1.5 * ((abs(turn)-(pi/2))/(pi/2))
             h1, h2 = self.defineOffcurvesByVelocity(a1, angle1, -velocity, a2, angle2, -velocity)
-            h1 = IntelPoint(h1)
-            h2 = IntelPoint(h2)
+            h1 = PointClass(h1)
+            h2 = PointClass(h2)
             if h1 != a1 and h2 != a2:
                 cornerSegment = [a1, h1, h2, a2]
             elif velocity == 0:
@@ -1414,45 +1479,116 @@ class IntelContour(object):
             self.removeOverlappingPoints()
 
     def pitCorner(self, cornerPoint, depth=40, breadth=40, bottom=5, velocity=1.25):
-        if cornerPoint.segmentType is not None:
-            angle1 = cornerPoint.incomingDirection()
-            angle2 = cornerPoint.direction()
-            a1, a2 = cornerPoint.split(breadth, angle1, angle2)
+
+        previousPoint = cornerPoint.previous()
+        nextPoint = cornerPoint.next()
+        turn = cornerPoint.turn()
+
+        if (cornerPoint.segmentType is not None) and (previousPoint is not None) and (nextPoint is not None) and (abs(turn) > pi/8):
+
             pitAngle = cornerPoint.pivotAngle()
-            turn = cornerPoint.turn()
             if not self.clockwise:
                 pitAngle = pi+pitAngle
-                cornerPoint.x, cornerPoint.y = cornerPoint.polarCoord(pitAngle, -depth)
-                b1, b2 = cornerPoint.split(bottom/2, pitAngle+(pi/2), pitAngle+(pi/2))
             elif self.clockwise:
-                cornerPoint.x, cornerPoint.y = cornerPoint.polarCoord(pitAngle, -depth)
-                b1, b2 = cornerPoint.split(bottom/2, pitAngle-(pi/2), pitAngle-(pi/2))
-            h1, h2 = self.defineOffcurvesByVelocity(a1, angle1, velocity, b1, pitAngle, -velocity)
-            h1, h2 = self.constrainSegmentOffcurves(a1, h1, h2, b1)
-            h3, h4 = self.defineOffcurvesByVelocity(b2, pitAngle, velocity, a2, angle2, velocity)
-            h3, h4 = self.constrainSegmentOffcurves(b2, h3, h4, a2)
-            offcurves = [h1, h2, h3, h4]
-            for i, offcurve in enumerate(offcurves):
-                offcurve = IntelPoint(offcurve)
-                offcurve.setParentContour(self)
-                offcurves[i] = offcurve
-            a2.segmentType = b1.segmentType = 'curve'
-            a1.round()
-            a2.round()
-            b1.round()
-            b2.round()
-            for point in [a2, offcurves[3], offcurves[2], b2, b1]:
+                pitAngle = pitAngle-pi
+
+            incomingSegment = []
+            outGoingSegment = []
+            PointClass = self._pointClass
+
+            deepCornerPoint = cornerPoint.derive(pitAngle, -depth)
+            b1, b2 = deepCornerPoint.split(bottom/2, pitAngle+(pi/2), pitAngle+(pi/2))
+
+            if previousPoint.segmentType is not None:
+                angle1 = cornerPoint.incomingDirection()
+                a1 = cornerPoint.derive(angle1, -breadth)
+
+                if depth >= 0: h1, h2 = self.defineOffcurvesByVelocity(a1, angle1, velocity, b1, pitAngle, -velocity)
+                elif depth < 0: h1, h2 = self.defineOffcurvesByVelocity(a1, angle1, velocity, b1, pi+pitAngle, -velocity)
+                h1, h2 = self.constrainSegmentOffcurves(a1, h1, h2, b1)
+                h1, h2 = PointClass(h1), PointClass(h2)
+                h1.setParentContour(self)
+                h2.setParentContour(self)
+                b1.segmentType = 'curve'
+                incomingSegment += [h2, h1, a1]
+
+            elif previousPoint.segmentType is None:
+                angle1 = b1.angle(previousPoint)
+                d1 = previousPoint.distance(b1)
+                previousPoint.x, previousPoint.y = b1.polarCoord(pitAngle+self.midAngle(pitAngle, angle1), d1)
+
+            if nextPoint.segmentType is not None:
+                angle2 = cornerPoint.direction()
+                a2 = cornerPoint.derive(angle2, breadth)
+
+                if depth >= 0: h3, h4 = self.defineOffcurvesByVelocity(b2, pitAngle, velocity, a2, angle2, velocity)
+                elif depth < 0: h3, h4 = self.defineOffcurvesByVelocity(b2, pi+pitAngle, velocity, a2, angle2, velocity)
+                h3, h4 = self.constrainSegmentOffcurves(b2, h3, h4, a2)
+                h3, h4 = PointClass(h3), PointClass(h4)
+                h3.setParentContour(self)
+                h4.setParentContour(self)
+                a2.segmentType = 'curve'
+                outGoingSegment += [a2, h4, h3, b2, b1]
+
+            elif nextPoint.segmentType is None:
+                angle2 = b2.angle(nextPoint)
+                d2 = nextPoint.distance(b2)
+                nextPoint.x, nextPoint.y = b2.polarCoord(pitAngle+self.midAngle(pitAngle, angle2), d2)
+                outGoingSegment += [b2, b1]
+
+            for point in outGoingSegment:
+                point.round()
                 self.points.insert(cornerPoint.index+1, point)
-            for point in [offcurves[1], offcurves[0], a1]:
+
+            for point in incomingSegment:
+                point.round()
                 self.points.insert(cornerPoint.index, point)
+
             self.points.remove(cornerPoint)
+
             self.checkSanity()
+
+    # def pitCorner(self, cornerPoint, depth=40, breadth=40, bottom=5, velocity=1.25):
+    #     if cornerPoint.segmentType is not None:
+    #         angle1 = cornerPoint.incomingDirection()
+    #         angle2 = cornerPoint.direction()
+    #         a1, a2 = cornerPoint.split(breadth, angle1, angle2)
+    #         pitAngle = cornerPoint.pivotAngle()
+    #         turn = cornerPoint.turn()
+    #         if not self.clockwise:
+    #             pitAngle = pi+pitAngle
+    #         elif self.clockwise:
+    #             pitAngle = pitAngle-pi
+    #         cornerPoint.x, cornerPoint.y = cornerPoint.polarCoord(pitAngle, -depth)
+    #         b1, b2 = cornerPoint.split(bottom/2, pitAngle+(pi/2), pitAngle+(pi/2))
+    #         if depth >= 0: h1, h2 = self.defineOffcurvesByVelocity(a1, angle1, velocity, b1, pitAngle, -velocity)
+    #         elif depth < 0: h1, h2 = self.defineOffcurvesByVelocity(a1, angle1, velocity, b1, pi+pitAngle, -velocity)
+    #         h1, h2 = self.constrainSegmentOffcurves(a1, h1, h2, b1)
+    #         if depth >= 0: h3, h4 = self.defineOffcurvesByVelocity(b2, pitAngle, velocity, a2, angle2, velocity)
+    #         elif depth < 0: h3, h4 = self.defineOffcurvesByVelocity(b2, pi+pitAngle, velocity, a2, angle2, velocity)
+    #         h3, h4 = self.constrainSegmentOffcurves(b2, h3, h4, a2)
+    #         offcurves = [h1, h2, h3, h4]
+    #         for i, offcurve in enumerate(offcurves):
+    #             offcurve = IntelPoint(offcurve)
+    #             offcurve.setParentContour(self)
+    #             offcurves[i] = offcurve
+    #         a2.segmentType = b1.segmentType = 'curve'
+    #         a1.round()
+    #         a2.round()
+    #         b1.round()
+    #         b2.round()
+    #         for point in [a2, offcurves[3], offcurves[2], b2, b1]:
+    #             self.points.insert(cornerPoint.index+1, point)
+    #         for point in [offcurves[1], offcurves[0], a1]:
+    #             self.points.insert(cornerPoint.index, point)
+    #         self.points.remove(cornerPoint)
+    #         self.checkSanity()
 
     '''
     General method that goes over all points and makes corners based on point label values.
     '''
 
-    def breakCornersByLabels(self):
+    def drawCornersByLabels(self):
         for point in self.points:
             if point.labels['cornerRadius']:
                 if not point.labels['cut'] and not point.labels['overlap']:
@@ -1602,9 +1738,9 @@ class IntelGlyph(object):
         for contour in self.contours:
             contour.round()
 
-    def breakCornersByLabels(self):
+    def drawCornersByLabels(self):
         for contour in self.contours:
-            contour.breakCornersByLabels()
+            contour.drawCornersByLabels()
 
     def extractGlyph(self, glyph, replace=True):
         if glyph is not None:

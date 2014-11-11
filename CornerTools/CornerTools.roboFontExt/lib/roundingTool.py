@@ -73,7 +73,7 @@ class RoundingTool(BaseEventTool):
                 cut = True
             self._roundedGlyph[i1][i2].labels['cornerRadius'] = d
             self._roundedGlyph[i1][i2].labels['cut'] = cut
-            self._roundedGlyph.breakCornersByLabels()
+            self._roundedGlyph.drawCornersByLabels()
             snatchedPoint.labels['cornerRadius'] = d
             snatchedPoint.labels['cut'] = cut
             self.snatchedPoint = snatchedPoint
@@ -102,7 +102,7 @@ class RoundingTool(BaseEventTool):
         #         self.updateRoundablePoints()
         if (self._roundedGlyph is not None) and (self.snatchedPoint is not None):
             snatchedPoint = self.snatchedPoint
-            self._roundedGlyph.breakCornersByLabels()
+            self._roundedGlyph.drawCornersByLabels()
             self.writePointLabels(self._sourceGlyph, snatchedPoint)
             self.snatchedPoint = None
         self.mouseDownPoint = None
@@ -112,7 +112,7 @@ class RoundingTool(BaseEventTool):
         if glyph is not None:
             workingGlyph = IntelGlyph(glyph)
             self._roundedGlyph = IntelGlyph(glyph)
-            self._roundedGlyph.breakCornersByLabels()
+            self._roundedGlyph.drawCornersByLabels()
             roundablePoints = []
             for contour in workingGlyph:
                 closed = contour.isClosed()
