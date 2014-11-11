@@ -7,6 +7,7 @@ Custom CocoaPen that displays a glyph with OnCurve & OffCurve points
 
 from fontTools.pens.basePen import BasePen
 from fontTools.pens.cocoaPen import CocoaPen
+from robofab.pens.pointPen import AbstractPointPen
 
 class CocoaGlyphPen(BasePen):
 
@@ -139,6 +140,7 @@ def flattenAngle(a, threshold=3, mode='both'):
             a = 3*pi/2
     return a
 
+# Used mostly for testing purposes
 def highlight(point):
     from mojo.UI import CurrentGlyphWindow
     s = CurrentGlyphWindow().getGlyphViewScale()
@@ -148,6 +150,7 @@ def highlight(point):
     oval(point.x-(10/s), point.y-(10/s), 20/s, 20/s)
     restore()
 
+# Used mostly for testing purposes
 def screenPrint(string, (x, y)):
     from mojo.UI import CurrentGlyphWindow
     s = CurrentGlyphWindow().getGlyphViewScale()
@@ -159,10 +162,8 @@ def screenPrint(string, (x, y)):
     restore()
 
 '''
-Custom Point object implementation
-to ease point manipulation based on their attributes
-and those of their surroundings in a contour.
-Those IntelPoints are meant to be children of an IntelContour (see below)
+Custom Point object implementation to ease point contour manipulation.
+Those IntelPoints are meant to be children of an IntelContour.
 '''
 
 from pointLabelDict import PointLabelDict
@@ -186,6 +187,17 @@ class IntelPoint(object):
     def __repr__(self): #### print p
         return "<IntelPoint x:%s y:%s %s>" %(self.x, self.y, self.segmentType)
 
+    def __setitem__(self, index, value):
+        if index == 0:
+            if isinstance(value, (int, float)):
+                self.x = value
+            else: raise ValueError
+        elif index == 1:
+            if isinstance(value, (int, float)):
+                self.y = value
+            else: raise ValueError
+        raise IndexError
+
     def __getitem__(self, index):
         if index == 0:
             return self.x
@@ -198,22 +210,22 @@ class IntelPoint(object):
             yield value
 
     def __add__(self, p): # p+ p
-        self.mathOperate(p, 'add')
+        return self.mathOperate(p, 'add')
 
     __radd__ = __add__
 
     def __sub__(self, p): #p - p
-        self.mathOperate(p, 'sub')
+        return self.mathOperate(p, 'sub')
 
     __rsub__ = __sub__
 
     def __mul__(self, p): ## p * p
-        self.mathOperate(p, 'mul')
+        return self.mathOperate(p, 'mul')
 
     __rmul__ = __mul__
 
     def __div__(self, p):
-        self.mathOperate(p, 'div')
+        return self.mathOperate(p, 'div')
 
     __rdiv__ = __truediv__ = __rtruediv__ = __div__
 
@@ -233,29 +245,39 @@ class IntelPoint(object):
 
     def mathOperate(self, p, operation):
         newX, newY = 0, 0
-        segmentType = None
-        smooth = False
-        if not isinstance(p, self.__class__):
+        x, y = None, None
+        if isinstance(p, (float, int)):
             x, y = p, p
-        elif isinstance(p, self.__class__):
-            x, y = p.x, p.y
-            if self.segmentType == p.segmentType:
-                segmentType = p.segmentType
-            if self.smooth == p.smooth:
-                smooth = p.smooth
-        if operation == 'add':
-            self.x += x
-            self.y += y
-        elif operation == 'sub':
-            self.x -= x
-            self.y -= y
-        elif operation == 'mul':
-            self.x *= x
-            self.y *= y
-        elif operation == 'div':
-            self.x /= x
-            self.y /= y
-        return self.__class__(newX, newY, segmentType, smooth)
+        elif isinstance(p, (self.__class__, tuple, list)):
+            x, y = p[0], p[1]
+        if (x, y) != (None, None):
+            if operation == 'add':
+                newX = self.x + x
+                newY = self.y + y
+            elif operation == 'sub':
+                newX = self.x - x
+                newY = self.y - y
+            elif operation == 'mul':
+                newX = self.x * x
+                newY = self.y * y
+            elif operation == 'div':
+                newX = self.x / x
+                newY = self.y / y
+            return self.__class__((newX, newY), self.segmentType, self.smooth)
+        raise ValueError
+
+    def move(self, (mx, my)):
+        self.x += mx
+        self.y += my
+
+    def rotate(self, angle, (rx, ry)):
+        xDelta = self.x - rx
+        yDelta = self.y - ry
+        d = hypot(xDelta, yDelta)
+        a = atan2(yDelta, xDelta)
+        nx = rx + (d * cos(a-angle))
+        ny = ry + (d * sin(a-angle))
+        self.x, self.y = nx, ny
 
     def asRPoint(self):
         return RPoint(self.x, self.y, self.segmentType)
@@ -271,10 +293,22 @@ class IntelPoint(object):
         self.x, self.y = x, y
         return x, y
 
-    def roundFloat(self, f):
-        error = 1000000.
-        return round(f*error)/error
+    '''
+    Return two points on each side of this one, following the outline’s path.
+    Can be useful for a number of applications.
+    '''
+    def split(self, radius, angle1=None, angle2=None):
+        if angle1 is None:
+            angle1 = self.incomingDirection()
+        if angle2 is None:
+            angle2 = self.direction()
+        a1 = self.derive(angle1, -radius)
+        a2 = self.derive(angle2, radius)
+        return a1, a2
 
+    '''
+    making it easy to modify length of an anchor-offCurve distance (e.g point.lengthen(2) = x2)
+    '''
     def lengthen(self, value):
         if (self.segmentType is None):
             anchor = self.anchor()
@@ -300,16 +334,16 @@ class IntelPoint(object):
     def getParentPoint(self):
         return self.parentPoint
 
-    def overlap(self, point, sensitivity=2):
-        s = sensitivity
-        return (floor(point.x) - s <= floor(self.x) <= floor(point.x) + s) and (floor(point.y) - s <= floor(self.y) <= floor(point.y) + s)
+    def overlap(self, point, margin=2):
+        m = margin
+        return (floor(point.x) - m <= floor(self.x) <= floor(point.x) + m) and (floor(point.y) - m <= floor(self.y) <= floor(point.y) + m)
 
     # measure distance with another point
     def distance(self, p):
         ox, oy = p
         return hypot(ox - self.x, oy - self.y)
 
-    # derive polar to coordinates from this point w/ distance & angle
+    # get new coordinates in a ‘polar’ manner, from this point with given distance & angle
     def polarCoord(self, angle, distance, pt=None):
         if pt is None:
             x, y = self.x, self.y
@@ -317,19 +351,24 @@ class IntelPoint(object):
             x, y = pt
         return x + (distance*cos(angle)), y + (distance*sin(angle))
 
-    # return a new IntelPoint (or subclass) translated by distance + angle
+    # return a new Point translated by distance + angle
     def derive(self, angle, distance, direction=None):
         derivedPoint = self.__class__(self.polarCoord(angle, distance), self.segmentType, self.smooth, None)
-        derivedPoint.parentPoint = self
+        derivedPoint.setParentPoint(self)
+        derivedPoint.setParentContour(self.parentContour)
         return derivedPoint
 
-    # interpolate point coordinates and return a new IntelPoint with new coordinates
-    def interpolatePoint(self, otherPoint, f, segmentType=None, smooth=False):
+    # interpolate x,y coordinates
+    def interpolate(self, otherPoint, f):
         x1, y1 = self.x, self.y
         x2, y2 = otherPoint[0], otherPoint[1]
         nx = x1 + (x2-x1)*f
         ny = y1 + (y2-y1)*f
-        return self.__class__((nx, ny), segmentType=segmentType, smooth=smooth)
+        return (nx, ny)
+
+    # interpolate point coordinates and return a new IntelPoint with new coordinates
+    def interpolatePoint(self, otherPoint, f, segmentType=None, smooth=False):
+        return self.__class__(self.interpolate(otherPoint, f), segmentType=segmentType, smooth=smooth)
 
     # measure angle of the line formed with another point, radians
     def angle(self, other):
@@ -395,6 +434,12 @@ class IntelPoint(object):
             return (anchor, d, a)
         return
 
+    def pivotAngle(self):
+        assert self.parentContour is not None
+        turn = self.turn()
+        direction = self.incomingDirection()
+        return direction + (turn/2) + (pi/2)
+
     def turn(self):
         assert self.parentContour is not None
         return self.parentContour.getTurn(self)
@@ -439,10 +484,6 @@ class IntelPoint(object):
         assert self.parentContour is not None
         return self == self.parentContour.getLast()
 
-    def isSelected(self):
-        assert self.parentContour is not None
-        return self.parentContour.selected(self)
-
 '''
 Custom Contour object implementation
 to ease point manipulation based on their attributes
@@ -450,7 +491,7 @@ and those of their surroundings.
 An IntelContour is the object informing IntelPoints
 of their context, through methods like self.getNext(point).
 
-Once operations on the points of a contour are done with,
+Once operations on the points of a contour are done,
 the IntelContour can send back a usual path
 through the use of the draw(pen) method,
 working in the same way it does for robofab Glyphs & contours.
@@ -458,16 +499,16 @@ working in the same way it does for robofab Glyphs & contours.
 
 class IntelContour(object):
 
-    def __init__(self, baseContour=[], index=0):
+    _pointClass = IntelPoint
+
+    def __init__(self, baseContour=None, index=0):
         super(IntelContour, self).__init__()
         self.points = []
-        self.segments = []
-        self.curveSegments = []
         self._source = baseContour
-        self.processContour(baseContour)
-        self.pointClass = IntelPoint
-        self.pointsToRemove = []
+        if baseContour is not None:
+            self.processContour(baseContour)
         self.index = index
+        self.clockwise = self.isClockwise()
 
     def __repr__(self): #### print p
         return "<IntelContour points:%s>" %(len(self.points))
@@ -475,8 +516,18 @@ class IntelContour(object):
     def __len__(self):
         return len(self.points)
 
-    def __getitem__(self, key):
-        return self.points[key]
+    def __setitem__(self, index, point):
+        if index < self.length():
+            if isinstance(point, self._pointClass):
+                self.points[index] = point
+            else: raise ValueError
+        else:
+            raise IndexError
+
+    def __getitem__(self, index):
+        if index < self.length():
+            return self.points[index]
+        raise IndexError
 
     def __iter__(self):
         for value in self.points:
@@ -496,6 +547,14 @@ class IntelContour(object):
         if not isinstance(otherOutline, self.__class__):
             return
 
+    def move(self, (mx, my)):
+        for point in self.points:
+            point.move((mx, my))
+
+    def rotate(self, angle, origin=(0, 0)):
+        for point in self.points:
+            point.rotate(angle, origin)
+
     def round(self):
 
         self.updateIndices()
@@ -514,25 +573,30 @@ class IntelContour(object):
     def asList(self):
         return [{'x':point[0], 'y':point[1], 'type':point.segmentType, 'smooth':point.smooth} for point in self.points]
 
+    '''
+    Method use in case the IntelContour object is iniated with a RContour directly
+    '''
     def processContour(self, contour):
         length = len(contour)
-        anchors = []
-        for point in contour.points:
-            if point.name is not None:
-                pointLabels = point.name.split(',')
-                anchors = list(set(pointLabels) & set(['top', 'bottom', 'right', 'mid', 'left', 'circum']))
-            if (length > 1) and len(anchors) == 0:
-                self.append(point)
+        if length:
+            anchors = []
+            for point in contour.points:
+                # filter out anchors
+                if (length == 1) and (point.name is not None):
+                    pointLabels = point.name.split(',')
+                    anchors = list(set(pointLabels) & set(['top', 'bottom', 'right', 'mid', 'left', 'circum']))
+                if (length > 1) and len(anchors) == 0:
+                    self.append(point)
 
-        self.cleanCurves()
+            self.cleanCurves()
 
     def append(self, point):
 
         if isinstance(point, IntelPoint):
             iPoint = point
             iPoint.setParentContour(self)
+            iPoint.index = self.length()
             self.points.append(iPoint)
-            # self.updateIndices()
         else:
             selected = False
             if hasattr(point, 'selected'):
@@ -550,7 +614,7 @@ class IntelContour(object):
 
     def insert(self, index, point):
         if isinstance(point, IntelPoint):
-                    iPoint = point
+            iPoint = point
         else:
             try:
                 iPoint = IntelPoint(point['pt'], point['segmentType'], point['smooth'], point['name'], self.length())
@@ -571,8 +635,13 @@ class IntelContour(object):
         self.updateIndices(index)
         return poppedPoint
 
+    def remove(self, point):
+        if point in self.points:
+            self.points.remove(point)
+
     def reverse(self):
         self.points.reverse()
+        self.clockwise = not self.clockwise
         self.checkSanity()
 
     def length(self):
@@ -610,20 +679,21 @@ class IntelContour(object):
 
     def isClockwise(self):
         points = self.points
-        # overlapping moves can give false results, so filter them out
-        if points[0] == points[-1]:
-            del points[-1]
-        angles = []
-        total = 0
-        pointCount = len(points)
+        if len(points):
+            # overlapping moves can give false results, so filter them out
+            if points[0] == points[-1]:
+                del points[-1]
+            angles = []
+            total = 0
+            pointCount = len(points)
 
-        for index1 in xrange(pointCount):
-            index2 = (index1 + 1) % pointCount
-            x1, y1 = points[index1]
-            x2, y2 = points[index2]
-            total += (x1*y2)-(x2*y1)
+            for index1 in xrange(pointCount):
+                index2 = (index1 + 1) % pointCount
+                x1, y1 = points[index1]
+                x2, y2 = points[index2]
+                total += (x1*y2)-(x2*y1)
 
-        return total < 0
+            return total < 0
 
     def getSelection(self):
         return [point for point in self.points if point.selected]
@@ -759,7 +829,6 @@ class IntelContour(object):
         return
 
     def getTurn(self, point):
-        # IOangles = self.getBothDirections(point)
         inAngle = self.getBackwardDirection(point)
         outAngle = self.getForwardDirection(point)
         if (inAngle is not None) and (outAngle is not None):
@@ -795,6 +864,7 @@ class IntelContour(object):
         delta = self.delta(angle1, angle2)
         return delta / 2
 
+    # Source: Frederik Berlaen, Outliner
     @classmethod
     def intersectLineLine(self, seg1s, seg1e, seg2s, seg2e):
         denom = (seg2e[1] - seg2s[1]) * (seg1e[0] - seg1s[0]) - (seg2e[0] - seg2s[0]) * (seg1e[1] - seg1s[1])
@@ -820,28 +890,24 @@ class IntelContour(object):
 
             if (point.segmentType is None): continue
 
-            nextPoint = point.next()
+            nextPoint = self.getNext(point)
 
             if nextPoint is not None:
                 if nextPoint.segmentType is None:
                     segment = self.getCurve(point)
                     if len(segment) == 4:
-                        segments['all'].append(segment)
                         segments['curves'].append(segment)
-                        if segment[0].selected and segment[-1].selected:
-                            segments['selection'].append(segment)
                 elif nextPoint.segmentType is not None:
                     segment = [point, nextPoint]
-                    segments['all'].append(segment)
                     segments['lines'].append(segment)
-                    if segment[0].selected and segment[-1].selected:
-                        segments['selection'].append(segment)
+                segments['all'].append(segment)
+                if segment[0].selected and segment[-1].selected:
+                    segments['selection'].append(segment)
 
         return segments
 
     def cleanCurves(self):
 
-        # curveSegments = self.collectSegments()['curves']
         self.updateIndices()
         curveSegments = self.collectSegments()['curves']
         offCurvesToPop = []
@@ -865,6 +931,10 @@ class IntelContour(object):
                 self.points.remove(offCurve)
 
         self.checkSanity()
+
+    '''
+    Method that limits potential handle-crossing. Changes outline, obviously.
+    '''
 
     def constrainOffcurves(self):
 
@@ -903,7 +973,10 @@ class IntelContour(object):
 
         return (round(hx1), round(hy1)), (round(hx2), round(hy2))
 
-    # checks for contour sanity, no illegal segmentTypes and such
+    '''
+    Checks for contour sanity, no illegal segmentTypes and such.
+    '''
+
     def checkSanity(self):
 
         self.updateIndices()
@@ -1021,6 +1094,15 @@ class IntelContour(object):
         self.points = points
         self.cleanCurves()
 
+    '''
+    Method of crucial importance.
+    As this set of objects is meant to help outline manipulation,
+    indices, order of contours/points that is, are essential.
+    Most intervention that will alter the outline will also mess with indices,
+    hence the need for this method to reorder objects before the next operation.
+    I suppose there could be a cleaner way to do this, but if there is I’m not there yet.
+    '''
+
     def updateIndices(self, index=None):
         if index is None:
             points = self.points
@@ -1036,9 +1118,14 @@ class IntelContour(object):
             elif point.segmentType is not None:
                 point.onCurveIndex = i-offCurveCount
 
+    '''
+    The following methods do what it says on the bottle.
+    Beware though, mostly costly operations.
+    '''
+
     def getExtrema(self):
 
-        curveSegments = self.curveSegments
+        curveSegments = self.collectSegments()['curves']
         extrema = []
 
         for segment in curveSegments:
@@ -1056,7 +1143,6 @@ class IntelContour(object):
 # t = c10/(c10 - 0.5*c20)
 
 # found here: http://math.stackexchange.com/questions/889996/finding-parametric-distance-on-quadratic-curve-from-given-x-y-point
-
 
     def addExtrema(self):
 
@@ -1104,7 +1190,7 @@ class IntelContour(object):
         self.updateIndices()
 
     def splitSegmentAtT(self, pt0, pt1, pt2, pt3, (x, y), t):
-        PointClass = self.pointClass
+        PointClass = self._pointClass
         m1 = pt0.interpolatePoint(pt1, t)
         m2 = pt1.interpolatePoint(pt2, t)
         m3 = pt2.interpolatePoint(pt3, t)
@@ -1199,24 +1285,31 @@ class IntelContour(object):
         self.updateIndices()
     '''
 
+    '''
+    Get rid of retracted offcurves (overlapping with their anchors),
+    or redefine cubic curve with two proper offcurves if either one of them is retracted.
+    '''
+
     def cleanCurveSegment(self, segment):
         a1, h1, h2, a2 = segment
+        redefineT = .4
         if a1.overlap(h1) and a2.overlap(h2):
             a2.segmentType = 'line'
             return (a1, a2), (h1, h2)
-        elif a1.overlap(h1) and not a2.overlap(h2):
-            h1.x = (a1.x*(1/3)) + (h2.x*(2/3))
-            h1.y = (a1.y*(1/3)) + (h2.y*(2/3))
-            h2.x = (a2.x*(1/3)) + (h2.x*(2/3))
-            h2.y = (a2.y*(1/3)) + (h2.y*(2/3))
+        elif (a1.overlap(h1) and not a2.overlap(h2)):
+            h1.x, h1.y = h2.interpolate(a1, redefineT)
+            h2.x, h2.y = h2.interpolate(a2, redefineT)
         elif not a1.overlap(h1) and a2.overlap(h2):
-            h1.x = (a1.x*(1/3)) + (h1.x*(2/3))
-            h1.y = (a1.y*(1/3)) + (h1.y*(2/3))
-            h2.x = (a2.x*(1/3)) + h1.x
-            h2.y = (a2.y*(1/3)) + h1.y
+            h2.x, h2.y = h1.interpolate(a2, redefineT)
+            h1.x, h1.y = h1.interpolate(a1, redefineT)
         h1.round()
         h2.round()
         return a1, h1, h2, a2
+
+    '''
+    Definition of offcurve position based on anchor position and velocity values.
+    Based on a formula found in a book by D. Knuth about Metafont. Forgot which one exactly.
+    '''
 
     def defineOffcurvesByVelocity(self, pt1, angle1, velocity1, pt2, angle2, velocity2, constrain=False):
 
@@ -1234,12 +1327,25 @@ class IntelContour(object):
         elif not constrain:
             return (hx1, hy1), (hx2, hy2)
 
+    '''
+    Build an acute corner from a round or flat one.
+    Needs either 2 or 4 points (line or curve segment).
+    The method doesn’t guess much about context,
+    so if you feed a bunch of line segments,
+    the result might not be what you want.
+    I should try to find a sorting algorithm
+    to work a series of connected segments in such a way
+    that the form of the outline isn’t blown to pieces.
+    Works well for most normal cases (on segment selected),
+    or several of them not sitting next to each other.
+    '''
+
     def buildCorner(self, points, minPoints=2, maxPoints=4):
         if minPoints <= len(points) <= maxPoints:
             closed = self.isClosed()
             pointsToRemove = points[1:-1]
             firstPoint, lastPoint = points[0], points[-1]
-            beforeFirst, afterLast = firstPoint.previous(), lastPoint.next()
+            beforeFirst, afterLast = self.getPrevious(firstPoint), self.getNext(lastPoint)
             distance = firstPoint.distance(lastPoint)
             length = self.orderDelta(firstPoint, lastPoint)
             if (closed or ((not closed) and (not firstPoint.isFirst()) and (not lastPoint.isLast()))) and \
@@ -1247,10 +1353,6 @@ class IntelContour(object):
                 startIndex = firstPoint.index
                 endIndex = lastPoint.index
                 cornerPoint = IntelPoint((0, 0))
-                if beforeFirst.segmentType is None:
-                    cornerPoint.segmentType = 'curve'
-                elif beforeFirst.segmentType is not None:
-                    cornerPoint.segmentType = 'line'
                 ix, iy = self.intersectLineLine(beforeFirst, firstPoint, lastPoint, afterLast)
                 if (ix, iy) != (None, None):
                     cornerPoint.x, cornerPoint.y = ix, iy
@@ -1260,7 +1362,12 @@ class IntelContour(object):
                         pointsToRemove.insert(0, firstPoint)
                     if (afterLast.segmentType is not None) or (afterLast.segmentType is None and lastPoint.distance(cornerPoint) < 10):
                         pointsToRemove.append(lastPoint)
-                    # if cornerDistance <= distance:
+                    if (beforeFirst.segmentType is None) and (firstPoint in pointsToRemove):
+                        cornerPoint.segmentType = 'curve'
+                    elif (beforeFirst.segmentType is not None) or ((beforeFirst.segmentType is None) and (firstPoint not in pointsToRemove)):
+                        cornerPoint.segmentType = 'line'
+                    if lastPoint not in pointsToRemove:
+                        lastPoint.segmentType = 'line'
                     self.insert(startIndex+1, cornerPoint)
                     l = self.length()
                     for point in pointsToRemove:
@@ -1270,19 +1377,25 @@ class IntelContour(object):
                     #     self.points.pop((startIndex+1)%(l-i))
                     self.updateIndices()
 
+    '''
+    The other corner method, one that breaks an acute corner into a round or flat one (and more).
+    Just needs a point from this contour and does the rest (even inserting the newly formed segment).
+    You can define velocity for offcurve points, or let the method guess velocity values (good results).
+    If you give a 0 velocity, you get a flat corner. The _insideOut_ variable allows you to ‘add overlap’ to the corner.
+    You might get a better idea of this by looking at the breakCornersByLabels() method, below.
+    '''
+
     def breakCorner(self, point, radius, velocity=1.25, guess=False, insideOut=False):
         turn = point.turn()
         if (point.segmentType is not None) and (abs(turn) >= (20/180)*pi) and \
         (self.isClosed() or (not self.isClosed() and (not point.isFirst()) and (not point.isLast()))):
             startIndex = point.index
+            if not insideOut:
+                radius = -radius
             angle1 = point.direction()
             angle2 = point.incomingDirection()
-            if insideOut:
-                radius = -radius
-            a1 = point.derive(angle1, radius)
-            a2 = point.derive(angle2, -radius)
-
-            if point.previous().segmentType is None:
+            a1, a2 = point.split(radius, angle1, angle2)
+            if self.getPrevious(point).segmentType is None:
                 a1.segmentType = 'line'
             if abs(turn) > pi/2 and guess:
                 velocity += 1.5 * ((abs(turn)-(pi/2))/(pi/2))
@@ -1300,14 +1413,53 @@ class IntelContour(object):
             # self.cleanCurves()
             self.removeOverlappingPoints()
 
+    def pitCorner(self, cornerPoint, depth=40, breadth=40, bottom=5, velocity=1.25):
+        if cornerPoint.segmentType is not None:
+            angle1 = cornerPoint.incomingDirection()
+            angle2 = cornerPoint.direction()
+            a1, a2 = cornerPoint.split(breadth, angle1, angle2)
+            pitAngle = cornerPoint.pivotAngle()
+            turn = cornerPoint.turn()
+            if not self.clockwise:
+                pitAngle = pi+pitAngle
+                cornerPoint.x, cornerPoint.y = cornerPoint.polarCoord(pitAngle, -depth)
+                b1, b2 = cornerPoint.split(bottom/2, pitAngle+(pi/2), pitAngle+(pi/2))
+            elif self.clockwise:
+                cornerPoint.x, cornerPoint.y = cornerPoint.polarCoord(pitAngle, -depth)
+                b1, b2 = cornerPoint.split(bottom/2, pitAngle-(pi/2), pitAngle-(pi/2))
+            h1, h2 = self.defineOffcurvesByVelocity(a1, angle1, velocity, b1, pitAngle, -velocity)
+            h1, h2 = self.constrainSegmentOffcurves(a1, h1, h2, b1)
+            h3, h4 = self.defineOffcurvesByVelocity(b2, pitAngle, velocity, a2, angle2, velocity)
+            h3, h4 = self.constrainSegmentOffcurves(b2, h3, h4, a2)
+            offcurves = [h1, h2, h3, h4]
+            for i, offcurve in enumerate(offcurves):
+                offcurve = IntelPoint(offcurve)
+                offcurve.setParentContour(self)
+                offcurves[i] = offcurve
+            a2.segmentType = b1.segmentType = 'curve'
+            a1.round()
+            a2.round()
+            b1.round()
+            b2.round()
+            for point in [a2, offcurves[3], offcurves[2], b2, b1]:
+                self.points.insert(cornerPoint.index+1, point)
+            for point in [offcurves[1], offcurves[0], a1]:
+                self.points.insert(cornerPoint.index, point)
+            self.points.remove(cornerPoint)
+            self.checkSanity()
+
+    '''
+    General method that goes over all points and makes corners based on point label values.
+    '''
+
     def breakCornersByLabels(self):
         for point in self.points:
             if point.labels['cornerRadius']:
-                if not point.labels['cut'] and not point.labels['addOverlap']:
+                if not point.labels['cut'] and not point.labels['overlap']:
                     self.breakCorner(point, point.labels['cornerRadius'], guess=True)
                 elif point.labels['cut']:
                     self.breakCorner(point, point.labels['cornerRadius'], velocity=0)
-                elif point.labels['addOverlap']:
+                elif point.labels['overlap']:
                     self.breakCorner(point, point.labels['cornerRadius'], velocity=0, insideOut=True)
         self.correctSmoothness()
 
@@ -1337,20 +1489,76 @@ class IntelContour(object):
         print '\n'
 
 '''
-Convenience glyph object that handles its contours
-through the ways and methods of IntelContour objects.
+Pen that makes conversion to IntelContours a bit faster that the basic IntelGlyph method.
+Isn’t much use if one needs to keep point selection info though.
+'''
+
+class IntelOutlinePen(AbstractPointPen):
+
+    def __init__(self, contourClass, pointClass):
+        self.contourClass = contourClass
+        self.pointClass = pointClass
+        self.contours = []
+        self.contourCount = 0
+
+    def beginPath(self):
+        self.currentContour = self.contourClass(index=self.contourCount)
+        self.pointCount = 0
+
+    def addPoint(self, pt, segmentType, smooth, name, *args, **kwargs):
+        anchors = []
+        if (self.pointCount == 0) and (name is not None):
+            pointLabels = name.split(',')
+            anchors = list(set(pointLabels) & set(['top', 'bottom', 'right', 'mid', 'left', 'circum']))
+        if not len(anchors):
+            point = self.pointClass(pt, segmentType, smooth, name, index=self.pointCount)
+            self.currentContour.append(point)
+            self.pointCount += 1
+
+    def endPath(self):
+        self.currentContour.clockwise = self.currentContour.isClockwise()
+        self.contours.append(self.currentContour)
+        self.contourCount += 1
+        self.currentContour = []
+        self.pointCount = 0
+
+    def get(self):
+        return self.contours
+
+'''
+Convenience glyph object simply there to group IntelContours
+and ease operations on a bunch of them.
 '''
 
 class IntelGlyph(object):
 
+    _contourClass = IntelContour
+
     def __init__(self, glyph=None):
         self._sourceGlyph = glyph
-        self.contours = []
-        self._contourClass = IntelContour
         if glyph is not None:
-            for c in glyph.contours:
-                self.appendContour(c)
+            if not len(glyph.selection):
+                '''
+                If there’s no points selection to get
+                go through the IntelOutlinePen (faster)
+                '''
+                pen = IntelOutlinePen(self._contourClass, self._contourClass._pointClass)
+                glyph.drawPoints(pen)
+                self.contours = pen.get()
+                for contour in self.contours:
+                    contour.cleanCurves()
+            elif len(glyph.selection):
+                '''
+                If there are selected points
+                go through appendContour to gather selection info
+                '''
+                self.contours = []
+                for c in glyph.contours:
+                    self.appendContour(c)
             self.name = glyph.name
+        elif glyph is None:
+            self.contours = []
+            self.name = None
 
     def __iter__(self):
         for value in self.contours:
@@ -1361,12 +1569,21 @@ class IntelGlyph(object):
             return self.contours[index]
         raise IndexError
 
+    def move(self, (mx, my)):
+        for contour in self.contours:
+            contour.move((mx, my))
+
+    def rotate(self, angle, origin=(0, 0)):
+        for contour in self.contours:
+            contour.rotate(angle, origin)
+
     def appendContour(self, c):
         if not isinstance(c, self._contourClass):
             contour = self._contourClass(c, index=len(self.contours))
         elif isinstance(c, self._contourClass):
             contour = c
             contour.index = len(self.contours)
+            contour.cleanCurves()
         self.contours.append(contour)
 
     def getSelection(self, withSegments=False):
@@ -1389,6 +1606,16 @@ class IntelGlyph(object):
         for contour in self.contours:
             contour.breakCornersByLabels()
 
+    def extractGlyph(self, glyph, replace=True):
+        if glyph is not None:
+            glyph.prepareUndo('extractIntelGlyph')
+            pen = glyph.getPointPen()
+            if replace:
+                glyph.clearContours()
+            self.drawPoints(pen)
+            glyph.performUndo()
+            return glyph
+
     def drawPoints(self, pointPen):
         if pointPen is not None:
             for contour in self.contours:
@@ -1408,6 +1635,8 @@ class IntelGlyph(object):
 
     If the plain boolean is set to True,
     the rendered outline is simply a plain black glyph
+
+    Note: I should try to work something out with representation factories, ’d be better I guess.
     '''
 
     def drawPreview(self,
@@ -1468,12 +1697,35 @@ class IntelGlyph(object):
             previewPen.onCurvePoints.fill()
 
     def digest(self):
-        for contour in self.contours:
-            digest = []
+        allContours = []
+        for i, contour in enumerate(self.contours):
+            thisContour = []
             for point in contour:
                 pointView = '%s  %s  %s' % (point.x, point.y, point.segmentType)
-                digest.append(pointView)
-            print len(digest)
-            print '\n'.join(digest)
-            print '-'
-        print '\n'
+                thisContour.append(pointView)
+            thisContour.insert(0, u'#%s(%s) Points: %s\n—'%(i,contour.index,len(thisContour)))
+            thisContour.append(u'—\n')
+            allContours.append('\n'.join(thisContour))
+        return '\n'.join(allContours)
+
+
+# Used mostly for testing purposes
+from mojo.events import addObserver, removeObserver
+
+class BaseIntelGlyphPreview:
+
+    def __init__(self, intelGlyph=None):
+        addObserver(self, 'drawPreviewGlyph', 'draw')
+        addObserver(self, 'drawPreviewGlyph', 'drawInactive')
+        self.glyph = intelGlyph
+
+    def setGlyph(self, glyph):
+        self.glyph = glyph
+
+    def drawPreviewGlyph(self, notification):
+        if self.glyph is not None:
+            sc = notification['scale']
+            glyph = self.glyph
+            glyph.drawPreview(sc)
+        removeObserver(self, 'draw')
+        removeObserver(self, 'drawInactive')
