@@ -137,8 +137,8 @@ class ScaleController:
             {'name':'shift', 'title':'Shift', 'value':'0'},
             {'name':'tracking', 'title':'Tracking', 'unit':'%', 'value':'0'}
         ]
-        controls.scaleGoalsTitle = TextBox((0, -330, -0, 19), 'scale Goals', sizeStyle='small')
-        controls.scaleGoalsMode = TextBox((-140, -330, -0, 19), 'Mode: isotropic', sizeStyle='small', alignment='right')
+        controls.scaleGoalsTitle = TextBox((0, -330, -0, 19), 'Scale goals', sizeStyle='small')
+        controls.scaleGoalsMode = TextBox((-140, -330, -0, 19), 'mode: Isotropic', sizeStyle='small', alignment='right')
         controls.scaleGoals = Box((0, -310, -0, (len(scaleControls)*30)+10))
         for i, control in enumerate(scaleControls):
             controlName = control['name']
@@ -195,7 +195,7 @@ class ScaleController:
         previewControls.pointSize = ComboBox((-73, 3, -10, 22), [str(p) for p in range(24,256, 8)], callback=self.pointSize)
         previewControls.pointSize.set(176)
 
-        self.scaleControlValues = {'width':1, 'height':1, 'vstem':None, 'hstem':None, 'shift': 0, 'tracking':(1, '%')}
+        self.scaleControlValues = {'width':1, 'height':750, 'vstem':None, 'hstem':None, 'shift': 0, 'tracking':(1, '%')}
         self.vstemValues = []
         self.hstemValues = []
         self.masters = []
@@ -221,9 +221,9 @@ class ScaleController:
             masters = self.masters
             scaleValues = self.scaleControlValues
             for glyphName in glyphSet:
-                scaleedGlyph = self.scaleGlyph(glyphName, masters, scaleValues)
-                if scaleedGlyph is not None:
-                    f.insertGlyph(scaleedGlyph, glyphName+suffix)
+                scaledGlyph = self.scaleGlyph(glyphName, masters, scaleValues)
+                if scaledGlyph is not None:
+                    f.insertGlyph(scaledGlyph, glyphName+suffix)
             f.round()
             f.showUI()
 
@@ -236,36 +236,35 @@ class ScaleController:
             baseFont = masters[0]['font']
             preRefGlyph = [baseFont[glyphName] for glyphName in stringToGlyphNames(self.preGlyphList)]
             postRefGlyph = [baseFont[glyphName] for glyphName in stringToGlyphNames(self.postGlyphList)]
-            scaleedGlyphLine = []
+            scaledGlyphLine = []
             if len(masters) > 1 and len(glyphSet):
                 for glyphName in glyphSet:
-                    scaleedGlyph = self.scaleGlyph(glyphName, masters, scaleValues)
-                    if scaleedGlyph is not None:
-                        scaleedGlyphLine.append(scaleedGlyph)
-            scaleedGlyphLine = preRefGlyph + scaleedGlyphLine + postRefGlyph
-            self.w.glyphPreview.set(scaleedGlyphLine)
+                    scaledGlyph = self.scaleGlyph(glyphName, masters, scaleValues)
+                    if scaledGlyph is not None:
+                        scaledGlyphLine.append(scaledGlyph)
+            scaledGlyphLine = preRefGlyph + scaledGlyphLine + postRefGlyph
+            self.w.glyphPreview.set(scaledGlyphLine)
 
     def scaleGlyph(self, glyphName, masters, scaleValues):
-        width, sc, wishedVStem, wishedHStem, shift, (trackingValue, trackingUnit) = scaleValues['width'], scaleValues['height'], scaleValues['vstem'], scaleValues['hstem'], scaleValues['shift'], scaleValues['tracking']
+        width, height, wishedVStem, wishedHStem, shift, (trackingValue, trackingUnit) = scaleValues['width'], scaleValues['height'], scaleValues['vstem'], scaleValues['hstem'], scaleValues['shift'], scaleValues['tracking']
         mutatorMasters = []
         mode = self.mode
         isValid = self.isValidGlyph(glyphName, [master['font'] for master in masters])
 
         if isValid:
 
-            if not masters[0].has_key('hstem') and (mode == 'anisotropic'):
-                requestedStemLocation = Location(stem=(wishedVStem, wishedHStem))
-            elif masters[0].has_key('hstem'):
-                requestedStemLocation = Location(vstem=wishedVStem, hstem=wishedHStem)
-            else:
-                requestedStemLocation = Location(stem=wishedVStem)
+            requestedStemLocation = self.getInstanceLocation(masters[0], mode, wishedVStem, wishedHStem)
+            refHeightName, refHeight = self.getScaleRefValue()
 
             for item in masters:
                 masterFont = item['font']
+                masterRefHeight = getattr(masterFont.info, refHeightName)
+                sc = height/masterRefHeight
                 baseGlyph = masterFont[glyphName]
                 masterGlyph = decomposeGlyph(baseGlyph)
                 masterGlyph.scale((sc*width, sc))
                 masterGlyph.width = baseGlyph.width * sc * width
+
                 try:
                     if trackingUnit == '%':
                         masterGlyph.angledLeftMargin *= trackingValue
@@ -286,27 +285,32 @@ class ScaleController:
                     yShift = shift * sin(radians(-italicAngle)+pi/2)
                 elif italicAngle is None:
                     xShift, yShift = 0, shift
+
                 masterGlyph.move((xShift, yShift))
-                if item.has_key('hstem') and (mode == 'anisotropic'):
-                    axis = {'stem':item['vstem']*sc*width}
-                elif item.has_key('hstem') and (mode == 'bidimensionnal'):
+                if item.has_key('hstem') and (mode == 'bidimensionnal'):
                     axis = {'vstem':item['vstem']*sc*width, 'hstem':item['hstem']*sc}
                 else:
                     axis = {'stem':item['vstem']*sc*width}
                 mutatorMasters.append((Location(**axis), MathGlyph(masterGlyph)))
 
-            return self.getInstance(requestedStemLocation, mutatorMasters)
-        return
+            return self.getInstanceGlyph(requestedStemLocation, mutatorMasters)
+        return errorGlyph()
+
+    def getInstanceGlyph(self, location, masters):
+        I = self.getInstance(location, masters)
+        if I is not None:
+            return I.extractGlyph(RGlyph())
+        else:
+            return errorGlyph()
 
     def getInstance(self, location, masters):
         try:
             b, m = buildMutator(masters)
             if m is not None:
-                glyph = m.makeInstance(location).extractGlyph(RGlyph())
-                return glyph
+                instance = m.makeInstance(location)
+                return instance
         except:
-            return errorGlyph()
-        return
+            return
 
     def switchIsotropic(self, sender):
         if len(self.masters):
@@ -316,6 +320,13 @@ class ScaleController:
             self.processGlyphs()
         else:
             sender.set(not sender.get())
+
+    def getInstanceLocation(self, master, mode, vstem, hstem):
+        if not master.has_key('hstem') and (mode == 'anisotropic'):
+            return Location(stem=(vstem, hstem))
+        elif master.has_key('hstem'):
+            return Location(vstem=vstem, hstem=hstem)
+        else: return Location(stem=vstem)
 
     def scaleValueInput(self, sender):
         scaleValueName = sender.name
@@ -332,24 +343,15 @@ class ScaleController:
             except: value = (0, 'upm')
             scaleValueName = 'tracking'
         elif scaleValueName == 'height':
-            try:
-                refValueIndex = self.w.controls.scaleGoals.refHeight.get()
-                refValueName = self.w.controls.scaleGoals.refHeight.getItems()[refValueIndex]
-                sourceFont = self.masters[0]['font']
-                refValue = getattr(sourceFont.info, refValueName)
-                shift = self.scaleControlValues['shift']
-                value = float(value)/float(refValue)
-            except: value = 1
-        elif scaleValueName == 'refHeight':
-            try:
-                refValueIndex = value
-                refValueName = self.w.controls.scaleGoals.refHeight.getItems()[refValueIndex]
-                sourceFont = self.masters[0]['font']
-                refValue = getattr(sourceFont.info, refValueName)
-                heightValue = float(self.w.controls.scaleGoals.height.get())
-                value = heightValue/float(refValue)
-            except: value = 1
-            scaleValueName = 'height'
+            try: value = float(value)
+            except: value = 750
+        # elif scaleValueName == 'refHeight':
+        #     try:
+        #         refValue = self.getScaleRefValue()
+        #         heightValue = float(self.w.controls.scaleGoals.height.get())
+        #         value = heightValue/float(refValue)
+        #     except: value = 1
+        #     scaleValueName = 'height'
         elif scaleValueName in ['vstem', 'hstem']:
             try: value = int(value)
             except: value = 80
@@ -391,6 +393,12 @@ class ScaleController:
             scaleValueName = 'shift'
         self.scaleControlValues[scaleValueName] = value
         self.processGlyphs()
+
+    def getScaleRefValue(self):
+        refValueIndex = self.w.controls.scaleGoals.refHeight.get()
+        refValueName = self.w.controls.scaleGoals.refHeight.getItems()[refValueIndex]
+        sourceFont = self.masters[0]['font']
+        return refValueName, getattr(sourceFont.info, refValueName)
 
     def inputGlyphs(self, sender):
         inputString = sender.get()
@@ -502,8 +510,17 @@ class ScaleController:
             return bool(eq) and bool(neq)
         return
 
+    def checkSimilarity(self, values):
+        if len(values):
+            eq = 1
+            for i, value in enumerate(values):
+                if i > 0:
+                    eq *= (value == prevValue)
+                prevValue = value
+            return bool(eq)
+
     def setMode(self, modeName):
-        self.w.controls.scaleGoalsMode.set('Mode: %s'%(modeName))
+        self.w.controls.scaleGoalsMode.set('mode: %s'%(modeName.capitalize()))
         if modeName == 'isotropic':
             self.w.controls.scaleGoals.mode.show(True)
             self.w.controls.scaleGoals.mode.set(True)
@@ -596,6 +613,7 @@ class ScaleController:
         self.scaleControlValues['hstem'] = hstem
         for attribute in ['descender', 'xHeight', 'capHeight', 'ascender']:
             self.verticalMetrics[attribute] = getattr(font.info, attribute)
+        self.scaleControlValues['height'] = self.verticalMetrics['capHeight']
 
     def getSelectedFont(self, popuplist):
         fontIndex = popuplist.get()
