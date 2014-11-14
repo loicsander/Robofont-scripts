@@ -13,7 +13,9 @@ class ParameterModeError(Exception):
         return self.msg + repr(self.mode)
 
 def valueToRatio(referenceValue, value, rounding=8):
-    return round((value/referenceValue), rounding)
+    if referenceValue:
+        return round((value/referenceValue), rounding)
+    return 1
 
 def ratioToValue(reference, ratio, rounding=8):
     return round(reference * ratio, rounding)
@@ -222,6 +224,7 @@ class SingleValueParameter(object):
                 self.slaves.append(parameter)
                 parameter.master = self
                 parameter.relationValue = parameter._getRelationValue()
+                parameter.limits = self.limits
                 parameter.value = parameter.get()
                 parameter.update()
             else:
@@ -240,6 +243,13 @@ class SingleValueParameter(object):
             master.enslave(self)
         elif master is None:
             self.master = None
+
+    def setLimits(self, (minValue, maxValue)):
+        self.limits = (minValue, maxValue)
+        for slave in self.slaves:
+            slave.limits = (minValue, maxValue)
+            slave.value = slave.get()
+            slave.update()
 
     def _checkValue(self, value):
         if isinstance(value, str) or isinstance(value, unicode):
