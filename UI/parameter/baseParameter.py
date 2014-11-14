@@ -32,14 +32,15 @@ class SingleValueParameter(object):
         self.mode = mode
         self.numType = numType
         self.validModes = ['ratio', 'offset']
+        self.limits = limits
         if master is not None:
             master.slaves.append(self)
             if mode not in self.validModes:
                 raise ParameterModeError('A slave parameter’s mode cannot be ', mode)
                 return
+            self.limits = master.limits
         self.relationValue = self._getRelationValue()
         self.slaves = []
-        self.limits = limits
         self.defaultValue = defaultValue
 
     def __repr__(self):
