@@ -256,7 +256,8 @@ class FontInfoTransferController(BaseWindowController):
     def transferFontInfoData(self, sender):
         fontInfoAttributes = self.attributeOrders['general'] + self.attributeOrders['postscript'] + self.attributeOrders['opentype']
         fontInfos = []
-        for tableName in self.tables:
+        for table in self.tables:
+            tableName = table['title'].lower()
             table = getattr(self.w.fontInfo, tableName)
             tableList = table.get()
             fontInfos += tableList
