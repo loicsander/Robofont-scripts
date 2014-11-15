@@ -38,10 +38,11 @@ def fontName(font):
 def errorGlyph():
     glyph = RGlyph()
     glyph.width = 330
+    glyph.name = '_error_'
     pen = glyph.getPen()
 
     l = 50
-    p = (120, 150)
+    p = (130, 170)
     a = pi/4
     pen.moveTo(p)
     px, py = p
@@ -195,7 +196,7 @@ class ScaleController:
         # self.w.glyphPreview = MultiLineView((280, 30, -0, -0), pointSize=176, selectionCallback=None)
         self.w.glyphPreview = Group((280, 0, -0, -0))
         glyphPreview = self.w.glyphPreview
-        glyphPreview.glyphs = MultiLineView((0, 30, -0, -0), pointSize=176, selectionCallback=self.glyphSelection, hasVerticalScroller=False)
+        glyphPreview.glyphs = MultiLineView((0, 30, -0, -0), pointSize=176, lineHeight=264, selectionCallback=self.glyphSelection, hasVerticalScroller=False)
         self.displayStates = glyphPreview.glyphs.getDisplayStates()
         # glyphPreview.glyphs.setDisplayMode('Single Line')
         glyphPreview.vSep = VerticalLine((0, 0, 1, -0))
@@ -240,12 +241,13 @@ class ScaleController:
                 'Ascender': (0.8, 0.2, 0),
                 'Baseline': (0.3, 0.3, 0.3),
                 'X height': (0.6, 0.6, 0.6),
-                'Cap height': (0.6, 0.6, 0.6)
+                'Cap height': (0.6, 0.6, 0.6),
+                'textColor': (0.6, 0.6, 0.6)
             },
             'selectedGlyph': None
         }
         self.stickyMetric = 'baseline'
-        # addObserver(self, 'drawMetrics', 'spaceCenterDraw')
+        addObserver(self, 'drawMetrics', 'spaceCenterDraw')
         addObserver(self, 'updateFontList', 'fontDidOpen')
         addObserver(self, 'updateFontList', 'fontWillClose')
         self.w.bind('close', self.windowClose)
@@ -262,6 +264,7 @@ class ScaleController:
                 'right': selectedGlyph.rightMargin
             }
             self.selectedGlyph = selectedGlyph
+
         if selectedGlyph is None:
             self.displayStates['Show metrics'] = False
             sender.setDisplayStates(self.displayStates)
@@ -270,30 +273,69 @@ class ScaleController:
 
     def drawMetrics(self, notification):
         glyphs = self.setGlyphs
+        scaledGlyphs = self.scaledGlyphs
         selectedGlyph = self.selectedGlyph
         currentGlyph = notification['glyph']
         sc = notification['scale']
         verticalMetrics = self.multiLineRepresentations['verticalMetrics']
         colors = self.multiLineRepresentations['colors']
-        selectedGlyphInfo = self.multiLineRepresentations['selectedGlyph']
+        # selectedGlyphInfo = self.multiLineRepresentations['selectedGlyph']
+        offset = 0
         if currentGlyph == glyphs[0] and (selectedGlyph is not None):
             for key, value in verticalMetrics.items():
+                if key == 'Cap height':
+                    offset = -15
+                if key == 'Descender':
+                    offset = +18
                 color = colors[key]
                 fill()
                 stroke(*color)
                 strokeWidth(0.5*sc)
                 line((10, value), (100000, value))
-                fontSize(9*sc)
+                fontSize(8*sc)
                 save()
-                translate(0, value+40)
+                translate(0, value+20+offset)
                 scale(1, -1)
-                labelBox = (0, 0, 350, 80)
+                labelBox = (0, 0, 250, 80)
                 fill(1)
                 stroke()
                 rect(*labelBox)
                 fill(*color)
-                textBox(key, labelBox, align='left')
+                textBox(str(value), labelBox, align='left')
                 restore()
+        if (currentGlyph in scaledGlyphs) and (currentGlyph.name != '_error_'):
+            leftMargin = currentGlyph.leftMargin
+            rightMargin = currentGlyph.rightMargin
+            width = currentGlyph.width
+            ascender = verticalMetrics['Ascender']
+            descender = verticalMetrics['Descender']
+            textColor = colors['textColor']
+            metricsColor = colors['Descender']
+            stroke()
+            fill(*textColor)
+            fontSize(8*sc)
+
+            save()
+            translate(0, ascender+100)
+            scale(1, -1)
+            textBox('%0.0f'%(round(width)), ((width/2)-50, 0, 100, 80), align='center')
+            restore()
+
+            save()
+            translate(0, descender-50)
+            scale(1, -1)
+            textBox('%0.0f'%(round(leftMargin)), (20, 0, 100, 80), align='left')
+            textBox('%0.0f'%(round(rightMargin)), (width-120, 0, 100, 80), align='right')
+            restore()
+
+            save()
+            fill()
+            stroke(*metricsColor)
+            sw = 0.75*sc
+            strokeWidth(sw)
+            line((0, descender), (0, descender+65))
+            line((width, descender), (width, descender+65))
+            restore()
 
     def generateGlyphset(self, sender):
         glyphString = self.w.controls.glyphSet.get()
@@ -321,7 +363,7 @@ class ScaleController:
             preRefGlyph = [baseFont[glyphName] for glyphName in stringToGlyphNames(self.preGlyphList)]
             postRefGlyph = [baseFont[glyphName] for glyphName in stringToGlyphNames(self.postGlyphList)]
             marginGlyph = RGlyph()
-            marginGlyph.width = 200
+            marginGlyph.width = 300
             preRefGlyph.insert(0, marginGlyph)
             scaledGlyphLine = []
             if len(masters) > 1 and len(glyphSet):
@@ -329,6 +371,7 @@ class ScaleController:
                     scaledGlyph = self.scaleGlyph(glyphName, masters, scaleValues)
                     if scaledGlyph is not None:
                         scaledGlyphLine.append(scaledGlyph)
+            self.scaledGlyphs = scaledGlyphLine
             scaledGlyphLine = preRefGlyph + scaledGlyphLine + postRefGlyph
             self.w.glyphPreview.glyphs.set(scaledGlyphLine)
             self.setGlyphs = scaledGlyphLine
@@ -354,6 +397,11 @@ class ScaleController:
                 else:
                     storedMargins = (baseMasterGlyph.leftMargin, baseMasterGlyph.rightMargin)
 
+                if (trackingUnit == '%'):
+                    storedMargins = (storedMargins[0] * trackingValue, storedMargins[1] * trackingValue)
+                elif trackingUnit == 'upm':
+                    storedMargins = (storedMargins[0] + trackingValue, storedMargins[1] + trackingValue)
+
             for item in masters:
                 masterFont = item['font']
                 masterRefHeight = getattr(masterFont.info, refHeightName)
@@ -364,20 +412,21 @@ class ScaleController:
                 if not keepSpacing or storedMargins is None:
                     masterGlyph.width = baseGlyph.width * sc * width
 
-                if italicAngle and hasattr(masterGlyph, 'angledLeftMargin') and hasattr(masterGlyph, 'angledRightMargin'):
-                    if trackingUnit == '%':
-                        masterGlyph.angledLeftMargin *= trackingValue
-                        masterGlyph.angledRightMargin *= trackingValue
-                    elif trackingUnit == 'upm':
-                        masterGlyph.angledLeftMargin += trackingValue
-                        masterGlyph.angledRightMargin += trackingValue
-                else:
-                    if trackingUnit == '%':
-                        masterGlyph.leftMargin *= trackingValue
-                        masterGlyph.rightMargin *= trackingValue
-                    elif trackingUnit == 'upm':
-                        masterGlyph.leftMargin += trackingValue
-                        masterGlyph.rightMargin += trackingValue
+                if storedMargins is None:
+                    if italicAngle and hasattr(masterGlyph, 'angledLeftMargin') and hasattr(masterGlyph, 'angledRightMargin'):
+                        if (trackingUnit == '%'):
+                            masterGlyph.angledLeftMargin *= trackingValue
+                            masterGlyph.angledRightMargin *= trackingValue
+                        elif trackingUnit == 'upm':
+                            masterGlyph.angledLeftMargin += trackingValue
+                            masterGlyph.angledRightMargin += trackingValue
+                    else:
+                        if trackingUnit == '%':
+                            masterGlyph.leftMargin *= trackingValue
+                            masterGlyph.rightMargin *= trackingValue
+                        elif trackingUnit == 'upm':
+                            masterGlyph.leftMargin += trackingValue
+                            masterGlyph.rightMargin += trackingValue
                 italicAngle = masterFont.info.italicAngle
                 if italicAngle is not None:
                     xShift = shift * cos(radians(-italicAngle)+pi/2)
@@ -393,7 +442,7 @@ class ScaleController:
                 mutatorMasters.append((Location(**axis), MathGlyph(masterGlyph)))
 
             instanceGlyph = self.getInstanceGlyph(requestedStemLocation, mutatorMasters)
-            if keepSpacing and storedMargins is not None:
+            if keepSpacing and (storedMargins is not None) and (instanceGlyph.name != '_error_'):
                 if italicAngle and hasattr(instanceGlyph, 'angledLeftMargin') and hasattr(instanceGlyph, 'angledRightMargin'):
                     instanceGlyph.angledLeftMargin = storedMargins[0]
                     instanceGlyph.angledRightMargin = storedMargins[1]
@@ -531,6 +580,7 @@ class ScaleController:
         try: value = float(value)
         except: value = 72
         self.w.glyphPreview.glyphs.setPointSize(value)
+        self.w.glyphPreview.glyphs.setLineHeight(value*1.5)
 
     def isValidGlyph(self, glyph, fonts):
         isValid = True
@@ -758,7 +808,7 @@ class ScaleController:
     def windowClose(self, notification):
         removeObserver(self, 'fontDidOpen')
         removeObserver(self, 'fontWillClose')
-        # removeObserver(self, 'spaceCenterDraw')
+        removeObserver(self, 'spaceCenterDraw')
 
 ScaleController()
 
