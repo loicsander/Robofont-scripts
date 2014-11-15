@@ -100,7 +100,7 @@ def mapValue(value, (minValue1, maxValue1), (minValue2, maxValue2)):
 class ScaleController:
 
     controllerDisplaySettings = {
-        'showVerticalMetrics': False,
+        'showVerticalGuides': False,
         'showMetrics': False
     }
 
@@ -205,11 +205,24 @@ class ScaleController:
                 setattr(controls.scaleGoals, '%s%s'%(controlName, 'Unit'), TextBox((130, 8+(i*32), 40, 22), control['unit'], sizeStyle='small'))
         controls.apply = Button((0, -22, -0, 22), 'Generate glyphSet', callback=self.generateGlyphset)
 
-        # self.w.glyphPreview = MultiLineView((280, 30, -0, -0), pointSize=176, selectionCallback=None)
-        self.w.glyphPreview = Group((280, 0, -0, -0))
-        glyphPreview = self.w.glyphPreview
-        glyphPreview.glyphs = MultiLineView((0, 30, -0, -0), pointSize=176, lineHeight=264, selectionCallback=self.glyphSelection, hasVerticalScroller=False)
+        # self.glyphPreview = MultiLineView((280, 30, -0, -0), pointSize=176, selectionCallback=None)
+
+        self.glyphPreview = Group((0, 0, -0, -0))
+        glyphPreview = self.glyphPreview
+        glyphPreview.glyphs = MultiLineView((0, 30, -0, -0), pointSize=176, lineHeight=264, hasVerticalScroller=False)
         self.displayStates = glyphPreview.glyphs.getDisplayStates()
+        self.displayStates['Show Metrics'] = False
+        self.displayStates['Upside Down'] = False
+        self.displayStates['Stroke'] = False
+        self.displayStates['Beam'] = False
+        self.displayStates['Fill'] = True
+        self.displayStates['Inverse'] = False
+        self.displayStates['Multi Line'] = True
+        self.displayStates['Water Fall'] = False
+        self.displayStates['Single Line'] = False
+        glyphPreview.glyphs.setDisplayStates(self.displayStates)
+        glyphPreview.glyphs.setDisplayMode('Multi Line')
+        self.displayModes = ['Multi Line', 'Water Fall']
         # glyphPreview.glyphs.setDisplayMode('Single Line')
         glyphPreview.vSep = VerticalLine((0, 0, 1, -0))
         glyphPreview.controls = Box((4, 0, -0, 30))
@@ -219,13 +232,51 @@ class ScaleController:
         previewControlsBox.setBoxType_(NSBoxCustom)
         previewControlsBox.setFillColor_(NSColor.colorWithCalibratedRed_green_blue_alpha_(.85, .85, .85, 1))
         previewControlsBox.setBorderWidth_(0)
-        previewControls.preGlyphInput = EditText((3, 3, 80, 22), callback=self.inputGlyphs)
-        previewControls.glyphInput = EditText((86, 3, -166, 22), callback=self.inputGlyphs)
-        previewControls.postGlyphInput = EditText((-163, 3, 80, 22), callback=self.inputGlyphs)
+        previewControls.preGlyphInput = EditText((3, 3, 120, 22), callback=self.inputGlyphs)
+        previewControls.glyphInput = EditText((126, 3, -183, 22), callback=self.inputGlyphs)
+        previewControls.postGlyphInput = EditText((-180, 3, 100, 22), callback=self.inputGlyphs)
         previewControls.preGlyphInput.name = 'pre'
         previewControls.postGlyphInput.name = 'post'
         previewControls.pointSize = ComboBox((-73, 3, -10, 22), [str(p) for p in range(24,256, 8)], callback=self.pointSize)
         previewControls.pointSize.set(176)
+
+        self.glyphPreviewSettings = Box((0, 0, -0, -0))
+        previewSettings = self.glyphPreviewSettings.getNSBox()
+        previewSettings.setBoxType_(NSBoxCustom)
+        previewSettings.setFillColor_(NSColor.colorWithCalibratedRed_green_blue_alpha_(.85, .85, .85, 1))
+        previewSettings.setBorderWidth_(0)
+        self.glyphPreviewSettings.g = Group((10, 10, -0, -5))
+        self.glyphPreviewSettings.g.displayModes = Box((0, 0, -0, 90))
+        self.glyphPreviewSettings.g.displayModes.title = TextBox((10, 10, -10, 20), 'DISPLAY MODE', sizeStyle='mini')
+        self.glyphPreviewSettings.g.displayModes.choice = RadioGroup((10, 30, -10, 40), self.displayModes, callback=self.changeDisplayMode, sizeStyle='small')
+        self.glyphPreviewSettings.g.displayModes.choice.set(0)
+
+        self.glyphPreviewSettings.g.showMetrics = CheckBox((0, 113, -0, 20), 'Show metrics', value=False, sizeStyle='small', callback=self.showMetrics)
+        self.glyphPreviewSettings.g.showVerticalGuides = CheckBox((0, 133, -0, 20), 'Show vertical guides', value=False, sizeStyle='small', callback=self.showVerticalGuides)
+        self.glyphPreviewSettings.g.verticalGuides = List((0, 160, -0, 175),
+            [
+            {'Line':'Descender', 'Height':-250 },
+            {'Line':'Baseline', 'Height':0 },
+            {'Line':'X height', 'Height':500 },
+            {'Line':'Cap height', 'Height':750 },
+            {'Line':'Ascender', 'Height':750 }
+            ],
+            columnDescriptions=[
+                {'title':'Line', 'editable':True, 'width':100},
+                {'title':'Height', 'editable':True}
+            ],
+            editCallback=self.editVerticalGuides
+            )
+
+        self.glyphPreviewSettings.g.addGuide = GradientButton((0, 340, 90, 20), title='Add guide', sizeStyle='small', callback=self.addVerticalGuide)
+        self.glyphPreviewSettings.g.removeGuide = GradientButton((95, 340, 110, 20), title='Remove guide', sizeStyle='small', callback=self.removeVerticalGuide)
+
+        panes = [
+            dict(view=self.glyphPreview, identifier='glyphPreview'),
+            dict(view=self.glyphPreviewSettings, identifier='glyphPreviewSettings', size=0)
+        ]
+
+        self.w.glyphSplitView = SplitView((280, 0, -0, -0), panes)
 
         self.scaleControlValues = {'width':1, 'height':750, 'vstem':None, 'hstem':None, 'shift': 0, 'tracking':(1, '%'), 'keepSpacing':False}
         self.vstemValues = []
@@ -238,6 +289,7 @@ class ScaleController:
         self.previousMode = None
         self.draggedIndex = None
         self.setGlyphs = []
+        self.scaledGlyphs = []
         self.selectedGlyph = None
         self.verticalMetrics = {'descender':-250, 'baseline':0, 'xHeight':500, 'capHeight':750, 'ascender':750}
         self.multiLineRepresentations = {
@@ -265,23 +317,23 @@ class ScaleController:
         self.w.bind('close', self.windowClose)
         self.w.open()
 
-    def glyphSelection(self, sender):
-        selectedGlyph = sender.getSelectedGlyph()
-        if selectedGlyph is not None:
-            self.displayStates['Show metrics'] = True
-            sender.setDisplayStates(self.displayStates)
-            self.multiLineRepresentations['selectedGlyph'] = {
-                'width': selectedGlyph.width,
-                'left': selectedGlyph.leftMargin,
-                'right': selectedGlyph.rightMargin
-            }
-            self.selectedGlyph = selectedGlyph
+    # def glyphSelection(self, sender):
+    #     selectedGlyph = sender.getSelectedGlyph()
+    #     if selectedGlyph is not None:
+    #         self.displayStates['Show metrics'] = True
+    #         sender.setDisplayStates(self.displayStates)
+    #         self.multiLineRepresentations['selectedGlyph'] = {
+    #             'width': selectedGlyph.width,
+    #             'left': selectedGlyph.leftMargin,
+    #             'right': selectedGlyph.rightMargin
+    #         }
+    #         self.selectedGlyph = selectedGlyph
 
-        if selectedGlyph is None:
-            self.displayStates['Show metrics'] = False
-            sender.setDisplayStates(self.displayStates)
-            self.multiLineRepresentations['selectedGlyph'] = None
-            self.selectedGlyph = None
+    #     if selectedGlyph is None:
+    #         self.displayStates['Show metrics'] = False
+    #         sender.setDisplayStates(self.displayStates)
+    #         self.multiLineRepresentations['selectedGlyph'] = None
+    #         self.selectedGlyph = None
 
     def drawMetrics(self, notification):
         glyphs = self.setGlyphs
@@ -289,32 +341,24 @@ class ScaleController:
         selectedGlyph = self.selectedGlyph
         currentGlyph = notification['glyph']
         sc = notification['scale']
+        showVerticalGuides = self.controllerDisplaySettings['showVerticalGuides']
+        showMetrics = self.controllerDisplaySettings['showMetrics']
         verticalMetrics = self.multiLineRepresentations['verticalMetrics']
         colors = self.multiLineRepresentations['colors']
-        # selectedGlyphInfo = self.multiLineRepresentations['selectedGlyph']
-        offset = 0
-        if currentGlyph == glyphs[0] and (selectedGlyph is not None):
+        if (currentGlyph.name is None) and showVerticalGuides:
             for key, value in verticalMetrics.items():
-                if key == 'Cap height':
-                    offset = -15
-                if key == 'Descender':
-                    offset = +18
-                color = colors[key]
-                fill()
+                save()
+                width = currentGlyph.width
+                if colors.has_key(key):
+                    color = colors[key]
+                elif not colors.has_key(key):
+                    color = (.1, .1, .7, .75)
+                # fill()
                 stroke(*color)
                 strokeWidth(0.5*sc)
-                line((10, value), (100000, value))
-                fontSize(8*sc)
-                save()
-                translate(0, value+20+offset)
-                scale(1, -1)
-                labelBox = (0, 0, 250, 80)
-                fill(1)
-                stroke()
-                rect(*labelBox)
-                fill(*color)
-                textBox(str(value), labelBox, align='left')
+                line((0, value), (100000, value))
                 restore()
+
         if (currentGlyph in scaledGlyphs) and (currentGlyph.name != '_error_'):
             leftMargin = currentGlyph.leftMargin
             rightMargin = currentGlyph.rightMargin
@@ -324,30 +368,7 @@ class ScaleController:
             textColor = colors['textColor']
             metricsColor = colors['Descender']
             stroke()
-            fill(*textColor)
             fontSize(8*sc)
-
-            save()
-            translate(0, ascender+100)
-            scale(1, -1)
-            textBox('%0.0f'%(round(width)), ((width/2)-50, 0, 100, 80), align='center')
-            restore()
-
-            save()
-            translate(0, descender-50)
-            scale(1, -1)
-            textBox('%0.0f'%(round(leftMargin)), (20, 0, 100, 80), align='left')
-            textBox('%0.0f'%(round(rightMargin)), (width-120, 0, 100, 80), align='right')
-            restore()
-
-            save()
-            fill()
-            stroke(*metricsColor)
-            sw = 0.75*sc
-            strokeWidth(sw)
-            line((0, descender), (0, descender+65))
-            line((width, descender), (width, descender+65))
-            restore()
 
     def generateGlyphset(self, sender):
         glyphString = self.w.controls.glyphSet.get()
@@ -363,6 +384,7 @@ class ScaleController:
             suffix = glyphString = self.w.controls.suffix.get()
             scaleValues = self.scaleControlValues
             for glyphName in glyphSet:
+                if glyphName == 'newLine': continue
                 scaledGlyph = self.scaleGlyph(glyphName, masters, scaleValues)
                 if scaledGlyph is not None:
                     f.insertGlyph(scaledGlyph, glyphName+suffix)
@@ -376,23 +398,28 @@ class ScaleController:
         masters = self.masters
         scaleValues = self.scaleControlValues
         stringToGlyphNames = self.stringToGlyphNames
+        glyphNamesToGlyphs = self.glyphNamesToGlyphs
         glyphSet = stringToGlyphNames(self.glyphList)
         if len(masters) > 0:
             baseFont = masters[0]['font']
-            preRefGlyph = [baseFont[glyphName] for glyphName in stringToGlyphNames(self.preGlyphList) if glyphName in baseFont]
-            postRefGlyph = [baseFont[glyphName] for glyphName in stringToGlyphNames(self.postGlyphList) if glyphName in baseFont]
+            preRefGlyph = [glyph for glyph in glyphNamesToGlyphs(baseFont, stringToGlyphNames(self.preGlyphList))]
+            postRefGlyph = [glyph for glyph in glyphNamesToGlyphs(baseFont, stringToGlyphNames(self.postGlyphList))]
             marginGlyph = RGlyph()
-            marginGlyph.width = 300
+            # marginGlyph.width = 300
+            # marginGlyph.name = None
             preRefGlyph.insert(0, marginGlyph)
             scaledGlyphLine = []
             if len(masters) > 1 and len(glyphSet):
                 for glyphName in glyphSet:
-                    scaledGlyph = self.scaleGlyph(glyphName, masters, scaleValues)
+                    if glyphName == 'newLine':
+                        scaledGlyph = self.glyphPreview.glyphs.createNewLineGlyph()
+                    else:
+                        scaledGlyph = self.scaleGlyph(glyphName, masters, scaleValues)
                     if scaledGlyph is not None:
                         scaledGlyphLine.append(scaledGlyph)
             self.scaledGlyphs = scaledGlyphLine
             scaledGlyphLine = preRefGlyph + scaledGlyphLine + postRefGlyph
-            self.w.glyphPreview.glyphs.set(scaledGlyphLine)
+            self.glyphPreview.glyphs.set(scaledGlyphLine)
             self.setGlyphs = scaledGlyphLine
 
     def scaleGlyph(self, glyphName, masters, scaleValues):
@@ -593,8 +620,27 @@ class ScaleController:
     def stringToGlyphNames(self, string):
         cmap = self.getCMap()
         if cmap is not None:
-            return splitText(string, cmap)
+            glyphLines = []
+            lines = string.split('\\n')
+            l = len(lines)
+            for i, line in enumerate(lines):
+                glyphs = splitText(line, cmap)
+                if 0 < i < l:
+                    glyphs.append('newLine')
+                glyphLines += glyphs
+            return glyphLines
         return []
+
+    def glyphNamesToGlyphs(self, font, glyphSet):
+        glyphs = []
+        for glyphName in glyphSet:
+            if glyphName == 'newLine':
+                glyph = self.glyphPreview.glyphs.createNewLineGlyph()
+                glyphs.append(glyph)
+            elif glyphName in font:
+                glyph = font[glyphName]
+                glyphs.append(glyph)
+        return glyphs
 
     def getCMap(self):
         masters = self.masters
@@ -607,8 +653,8 @@ class ScaleController:
         value = sender.get()
         try: value = float(value)
         except: value = 72
-        self.w.glyphPreview.glyphs.setPointSize(value)
-        self.w.glyphPreview.glyphs.setLineHeight(value*1.5)
+        self.glyphPreview.glyphs.setPointSize(value)
+        self.glyphPreview.glyphs.setLineHeight(value*1.5)
 
     def isValidGlyph(self, glyph, fonts):
         isValid = True
@@ -786,7 +832,7 @@ class ScaleController:
         self.processGlyphs()
 
     def setMainFont(self, controls, font, vstem, hstem):
-        self.w.glyphPreview.glyphs.setFont(font)
+        self.glyphPreview.glyphs.setFont(font)
         controls.scaleGoals.vstem.set(vstem)
         controls.scaleGoals.hstem.set(hstem)
         controls.scaleGoals.height.setItems([str(getattr(font.info, height)) for height in ['capHeight', 'xHeight', 'unitsPerEm']])
@@ -803,6 +849,19 @@ class ScaleController:
             'X height': self.verticalMetrics['xHeight'],
             'Cap height': self.verticalMetrics['capHeight']
         }
+        guides = self.glyphPreviewSettings.g.verticalGuides.get()
+        addedGuides = []
+        if len(guides) > 5:
+            addedGuides = guides[5:]
+        guides = [
+            {'Line': 'Descender', 'Height':self.verticalMetrics['descender']},
+            {'Line': 'Baseline', 'Height':0},
+            {'Line': 'X height', 'Height':self.verticalMetrics['xHeight']},
+            {'Line': 'Cap height', 'Height':self.verticalMetrics['capHeight']},
+            {'Line': 'Ascender', 'Height':self.verticalMetrics['ascender']}
+        ]
+        guides += addedGuides
+        self.glyphPreviewSettings.g.verticalGuides.set(guides)
 
     def getSelectedFont(self, popuplist):
         fontIndex = popuplist.get()
@@ -833,6 +892,56 @@ class ScaleController:
                     masterList.pop(i)
                 self.w.controls.masters.set(masterList)
             fontlist.setItems(namesList)
+
+    def changeDisplayMode(self, sender):
+        index = sender.get()
+        for i, mode in enumerate(self.displayModes):
+            if i == index:
+                modeName =  mode
+                self.displayStates[mode] = True
+            else:
+                self.displayStates[mode] = False
+        self.glyphPreview.glyphs.setDisplayStates(self.displayStates)
+        self.glyphPreview.glyphs.setDisplayMode(modeName)
+
+    def editVerticalGuides(self, sender):
+        guides = self.glyphPreviewSettings.g.verticalGuides.get()
+        self.multiLineRepresentations['verticalMetrics'] = {}
+        for guide in guides:
+            guideName = guide['Line']
+            guideHeight = guide['Height']
+            self.multiLineRepresentations['verticalMetrics'][guideName] = float(guideHeight)
+        self.processGlyphs()
+
+    def addVerticalGuide(self, sender):
+        guides = self.glyphPreviewSettings.g.verticalGuides.get()
+        l = len(guides)
+        newGuideName = 'New guide %s'%(l-4)
+        guides.append({'Line': newGuideName, 'Height':0})
+        self.glyphPreviewSettings.g.verticalGuides.set(guides)
+        self.multiLineRepresentations['verticalMetrics'][newGuideName] = 0
+
+    def removeVerticalGuide(self, sender):
+        guides = self.glyphPreviewSettings.g.verticalGuides.get()
+        selection = self.glyphPreviewSettings.g.verticalGuides.getSelection()
+        for i in reversed(selection):
+            if i > 4:
+                guideName = guides[i]['Line']
+                self.multiLineRepresentations['verticalMetrics'].pop(guideName, 0)
+                guides.pop(i)
+        self.glyphPreviewSettings.g.verticalGuides.set(guides)
+
+    def showVerticalGuides(self, sender):
+        value = bool(sender.get())
+        self.controllerDisplaySettings['showVerticalGuides'] = value
+        self.processGlyphs()
+
+    def showMetrics(self, sender):
+        value = bool(sender.get())
+        self.displayStates['Show Metrics'] = value
+        self.glyphPreview.glyphs.setDisplayStates(self.displayStates)
+        self.glyphPreview.glyphs.setCanSelect(value)
+        self.processGlyphs()
 
     def windowClose(self, notification):
         removeObserver(self, 'fontDidOpen')
