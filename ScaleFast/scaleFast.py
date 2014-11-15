@@ -17,6 +17,7 @@ from vanilla import *
 from mojo.events import addObserver, removeObserver
 from mojo.UI import MultiLineView
 from mojo.tools import IntersectGlyphWithLine
+from mojo.drawingTools import *
 from fontMath.mathGlyph import MathGlyph
 from defconAppKit.tools.textSplitter import splitText
 from AppKit import NSColor, NSBoxCustom, NSDragOperationNone
@@ -89,8 +90,13 @@ def decomposeGlyph(glyph, fixedWidth=False):
 
 class ScaleController:
 
+    controllerDisplaySettings = {
+        'showVerticalMetrics': False,
+        'showMetrics': False
+    }
+
     def __init__(self):
-        self.w = Window((800, 500), 'ScaleFast', minSize=(800, 520))
+        self.w = Window((800, 550), 'ScaleFast', minSize=(800, 550))
         self.w.controls = Group((15, 15, 250, -15))
         controls = self.w.controls
         allFontsNames = [fontName(font) for font in AllFonts()]
@@ -107,7 +113,7 @@ class ScaleController:
             'operation': NSDragOperationNone,
             'allowDropOnRow':True,
             'callback': self.dragCallback }
-        controls.masters = List((0, 30, -0, -345),
+        controls.masters = List((0, 30, -0, -395),
             [],
             columnDescriptions= [
                 {'title':'font', 'width':155},
@@ -133,56 +139,69 @@ class ScaleController:
         scaleControls = [
             {'name':'width', 'title':'Width', 'unit':'%', 'value':'100.0'},
             {'name':'height', 'title':'Height', 'value':'750'},
+            {'name':'keepSpacing', 'title':u'Don’t scale spacing', 'value':False},
             {'name':'stem', 'title':'Stem', 'value':'80'},
             {'name':'shift', 'title':'Shift', 'value':'0'},
             {'name':'tracking', 'title':'Tracking', 'unit':'%', 'value':'0'}
         ]
-        controls.scaleGoalsTitle = TextBox((0, -330, -0, 19), 'Scale goals', sizeStyle='small')
-        controls.scaleGoalsMode = TextBox((-140, -330, -0, 19), 'mode: Isotropic', sizeStyle='small', alignment='right')
-        controls.scaleGoals = Box((0, -310, -0, (len(scaleControls)*30)+10))
+        controls.scaleGoalsTitle = TextBox((0, -380, -0, 19), 'Scale goals', sizeStyle='small')
+        controls.scaleGoalsMode = TextBox((-140, -380, -0, 19), 'mode: Isotropic', sizeStyle='small', alignment='right')
+        controls.scaleGoals = Box((0, -360, -0, (len(scaleControls)*32)+12))
         for i, control in enumerate(scaleControls):
             controlName = control['name']
-            setattr(controls.scaleGoals, '%s%s'%(controlName, 'Title'), TextBox((10, 8+(i*30), 100, 22), control['title'], sizeStyle='small'))
             if controlName in ['width','shift','tracking']:
-                setattr(controls.scaleGoals, controlName, EditText((65, 5+(i*30), 60, 22), control['value'], continuous=False, callback=self.scaleValueInput))
+                setattr(controls.scaleGoals, '%s%s'%(controlName, 'Title'), TextBox((10, 10+(i*32), 200, 22), control['title'], sizeStyle='small'))
+                setattr(controls.scaleGoals, controlName, EditText((65, 5+(i*32), 60, 22), control['value'], continuous=False, callback=self.scaleValueInput))
                 inputControl = getattr(controls.scaleGoals, controlName)
                 inputControl.name = controlName
             elif controlName == 'height':
-                setattr(controls.scaleGoals, controlName, ComboBox((65, 5+(i*30), 60, 22), [], callback=self.scaleValueInput))
+                setattr(controls.scaleGoals, '%s%s'%(controlName, 'Title'), TextBox((10, 10+(i*32), 200, 22), control['title'], sizeStyle='small'))
+                setattr(controls.scaleGoals, controlName, ComboBox((65, 5+(i*32), 60, 22), [], callback=self.scaleValueInput))
                 inputControl = getattr(controls.scaleGoals, controlName)
                 inputControl.name = controlName
             elif controlName == 'stem':
-                setattr(controls.scaleGoals, '%s%s'%('v',controlName), ComboBox((65, 5+(i*30), 60, 22), [], callback=self.scaleValueInput))
-                setattr(controls.scaleGoals, '%s%s'%('h',controlName), ComboBox((140, 5+(i*30), 60, 22), [], callback=self.scaleValueInput))
-                setattr(controls.scaleGoals, 'mode', CheckBox((210, 5+(i*30), -0, 22), u'∞', value=True, callback=self.switchIsotropic, sizeStyle='small'))
+                setattr(controls.scaleGoals, '%s%s'%(controlName, 'Title'), TextBox((10, 10+(i*32), 200, 22), control['title'], sizeStyle='small'))
+                setattr(controls.scaleGoals, '%s%s'%('v',controlName), ComboBox((65, 5+(i*32), 60, 22), [], callback=self.scaleValueInput))
+                setattr(controls.scaleGoals, '%s%s'%('h',controlName), ComboBox((140, 5+(i*32), 60, 22), [], callback=self.scaleValueInput))
+                setattr(controls.scaleGoals, 'mode', CheckBox((210, 5+(i*32), -0, 22), u'∞', value=True, callback=self.switchIsotropic, sizeStyle='small'))
                 vInputControl = getattr(controls.scaleGoals, '%s%s'%('v',controlName))
                 vInputControl.name = '%s%s'%('v',controlName)
                 hInputControl = getattr(controls.scaleGoals, '%s%s'%('h',controlName))
                 hInputControl.name = '%s%s'%('h',controlName)
                 hInputControl.enable(False)
             if controlName == 'shift':
-                controls.scaleGoals.shiftUp = SquareButton((140, 7+(i*30), 17, 17), u'⥘', sizeStyle='small', callback=self.scaleValueInput)
+                controls.scaleGoals.shiftUp = SquareButton((140, 7+(i*32), 17, 17), u'⥘', sizeStyle='small', callback=self.scaleValueInput)
                 controls.scaleGoals.shiftUp.name = 'shiftUp'
-                controls.scaleGoals.shiftDown = SquareButton((160, 7+(i*30), 17, 17), u'⥕', sizeStyle='small', callback=self.scaleValueInput)
+                controls.scaleGoals.shiftDown = SquareButton((160, 7+(i*32), 17, 17), u'⥕', sizeStyle='small', callback=self.scaleValueInput)
                 controls.scaleGoals.shiftDown.name = 'shiftDown'
             if controlName == 'height':
-                setattr(controls.scaleGoals, 'rel', TextBox((127, 5+(i*30), 15, 22), '/'))
-                setattr(controls.scaleGoals, 'refHeight', PopUpButton((140, 5+(i*30), -10, 22), ['capHeight', 'xHeight', 'unitsPerEm'], callback=self.scaleValueInput))
+                setattr(controls.scaleGoals, 'rel', TextBox((127, 5+(i*32), 15, 22), '/'))
+                setattr(controls.scaleGoals, 'refHeight', PopUpButton((140, 5+(i*32), -10, 22), ['capHeight', 'xHeight', 'unitsPerEm'], callback=self.scaleValueInput))
                 refHeight = getattr(controls.scaleGoals, 'refHeight')
                 refHeight.name = 'refHeight'
+            if controlName == 'keepSpacing':
+                setattr(controls.scaleGoals, controlName, CheckBox((65, 5+(i*32), -10, 22), control['title'], value=False, callback=self.scaleValueInput, sizeStyle='small'))
+                spacingControl = getattr(controls.scaleGoals, controlName)
+                spacingControl.name = controlName
             if controlName == 'tracking':
-                setattr(controls.scaleGoals, 'trackingAbs', EditText((150, 5+(i*30), 60, 22), control['value'], continuous=False, callback=self.scaleValueInput))
-                setattr(controls.scaleGoals, 'trackingAbsUnit', TextBox((215, 10+(i*30), -0, 22), 'upm', sizeStyle='mini'))
+                setattr(controls.scaleGoals, 'trackingAbs', EditText((150, 5+(i*32), 60, 22), control['value'], continuous=False, callback=self.scaleValueInput))
+                setattr(controls.scaleGoals, 'trackingAbsUnit', TextBox((215, 10+(i*32), -0, 22), 'upm', sizeStyle='mini'))
                 inputControl = getattr(controls.scaleGoals, 'trackingAbs')
                 inputControl.name = 'trackingAbs'
             if control.has_key('unit'):
-                setattr(controls.scaleGoals, '%s%s'%(controlName, 'Unit'), TextBox((130, 8+(i*30), 40, 22), control['unit'], sizeStyle='small'))
+                setattr(controls.scaleGoals, '%s%s'%(controlName, 'Unit'), TextBox((130, 8+(i*32), 40, 22), control['unit'], sizeStyle='small'))
         controls.apply = Button((0, -22, -0, 22), 'Generate glyphSet', callback=self.generateGlyphset)
 
-        self.w.glyphPreview = MultiLineView((280, 30, -0, -0), pointSize=176)
-        self.w.glyphPreviewControls = Box((282, 0, -0, 30))
+        # self.w.glyphPreview = MultiLineView((280, 30, -0, -0), pointSize=176, selectionCallback=None)
+        self.w.glyphPreview = Group((280, 0, -0, -0))
         glyphPreview = self.w.glyphPreview
-        previewControls = self.w.glyphPreviewControls
+        glyphPreview.glyphs = MultiLineView((0, 30, -0, -0), pointSize=176, selectionCallback=self.glyphSelection, hasVerticalScroller=False)
+        self.displayStates = glyphPreview.glyphs.getDisplayStates()
+        # glyphPreview.glyphs.setDisplayMode('Single Line')
+        glyphPreview.vSep = VerticalLine((0, 0, 1, -0))
+        glyphPreview.controls = Box((4, 0, -0, 30))
+        glyphPreview.hSep = HorizontalLine((0, 32, -0, 1))
+        previewControls = glyphPreview.controls
         previewControlsBox = previewControls.getNSBox()
         previewControlsBox.setBoxType_(NSBoxCustom)
         previewControlsBox.setFillColor_(NSColor.colorWithCalibratedRed_green_blue_alpha_(.85, .85, .85, 1))
@@ -195,7 +214,7 @@ class ScaleController:
         previewControls.pointSize = ComboBox((-73, 3, -10, 22), [str(p) for p in range(24,256, 8)], callback=self.pointSize)
         previewControls.pointSize.set(176)
 
-        self.scaleControlValues = {'width':1, 'height':750, 'vstem':None, 'hstem':None, 'shift': 0, 'tracking':(1, '%')}
+        self.scaleControlValues = {'width':1, 'height':750, 'vstem':None, 'hstem':None, 'shift': 0, 'tracking':(1, '%'), 'keepSpacing':False}
         self.vstemValues = []
         self.hstemValues = []
         self.masters = []
@@ -205,12 +224,76 @@ class ScaleController:
         self.mode = 'isotropic'
         self.previousMode = None
         self.draggedIndex = None
+        self.setGlyphs = []
+        self.selectedGlyph = None
         self.verticalMetrics = {'descender':-250, 'baseline':0, 'xHeight':500, 'capHeight':750, 'ascender':750}
+        self.multiLineRepresentations = {
+            'verticalMetrics':{
+                'Descender': -250,
+                'Ascender': 750,
+                'Baseline': 0,
+                'X height': 500,
+                'Cap height': 750
+            },
+            'colors': {
+                'Descender': (0.8, 0.2, 0),
+                'Ascender': (0.8, 0.2, 0),
+                'Baseline': (0.3, 0.3, 0.3),
+                'X height': (0.6, 0.6, 0.6),
+                'Cap height': (0.6, 0.6, 0.6)
+            },
+            'selectedGlyph': None
+        }
         self.stickyMetric = 'baseline'
+        # addObserver(self, 'drawMetrics', 'spaceCenterDraw')
         addObserver(self, 'updateFontList', 'fontDidOpen')
         addObserver(self, 'updateFontList', 'fontWillClose')
         self.w.bind('close', self.windowClose)
         self.w.open()
+
+    def glyphSelection(self, sender):
+        selectedGlyph = sender.getSelectedGlyph()
+        if selectedGlyph is not None:
+            self.displayStates['Show metrics'] = True
+            sender.setDisplayStates(self.displayStates)
+            self.multiLineRepresentations['selectedGlyph'] = {
+                'width': selectedGlyph.width,
+                'left': selectedGlyph.leftMargin,
+                'right': selectedGlyph.rightMargin
+            }
+            self.selectedGlyph = selectedGlyph
+        if selectedGlyph is None:
+            self.displayStates['Show metrics'] = False
+            sender.setDisplayStates(self.displayStates)
+            self.multiLineRepresentations['selectedGlyph'] = None
+            self.selectedGlyph = None
+
+    def drawMetrics(self, notification):
+        glyphs = self.setGlyphs
+        selectedGlyph = self.selectedGlyph
+        currentGlyph = notification['glyph']
+        sc = notification['scale']
+        verticalMetrics = self.multiLineRepresentations['verticalMetrics']
+        colors = self.multiLineRepresentations['colors']
+        selectedGlyphInfo = self.multiLineRepresentations['selectedGlyph']
+        if currentGlyph == glyphs[0] and (selectedGlyph is not None):
+            for key, value in verticalMetrics.items():
+                color = colors[key]
+                fill()
+                stroke(*color)
+                strokeWidth(0.5*sc)
+                line((10, value), (100000, value))
+                fontSize(9*sc)
+                save()
+                translate(0, value+40)
+                scale(1, -1)
+                labelBox = (0, 0, 350, 80)
+                fill(1)
+                stroke()
+                rect(*labelBox)
+                fill(*color)
+                textBox(key, labelBox, align='left')
+                restore()
 
     def generateGlyphset(self, sender):
         glyphString = self.w.controls.glyphSet.get()
@@ -236,6 +319,9 @@ class ScaleController:
             baseFont = masters[0]['font']
             preRefGlyph = [baseFont[glyphName] for glyphName in stringToGlyphNames(self.preGlyphList)]
             postRefGlyph = [baseFont[glyphName] for glyphName in stringToGlyphNames(self.postGlyphList)]
+            marginGlyph = RGlyph()
+            marginGlyph.width = 200
+            preRefGlyph.insert(0, marginGlyph)
             scaledGlyphLine = []
             if len(masters) > 1 and len(glyphSet):
                 for glyphName in glyphSet:
@@ -243,18 +329,29 @@ class ScaleController:
                     if scaledGlyph is not None:
                         scaledGlyphLine.append(scaledGlyph)
             scaledGlyphLine = preRefGlyph + scaledGlyphLine + postRefGlyph
-            self.w.glyphPreview.set(scaledGlyphLine)
+            self.w.glyphPreview.glyphs.set(scaledGlyphLine)
+            self.setGlyphs = scaledGlyphLine
 
     def scaleGlyph(self, glyphName, masters, scaleValues):
-        width, height, wishedVStem, wishedHStem, shift, (trackingValue, trackingUnit) = scaleValues['width'], scaleValues['height'], scaleValues['vstem'], scaleValues['hstem'], scaleValues['shift'], scaleValues['tracking']
+        width, height, wishedVStem, wishedHStem, shift, (trackingValue, trackingUnit), keepSpacing = scaleValues['width'], scaleValues['height'], scaleValues['vstem'], scaleValues['hstem'], scaleValues['shift'], scaleValues['tracking'], scaleValues['keepSpacing']
         mutatorMasters = []
         mode = self.mode
         isValid = self.isValidGlyph(glyphName, [master['font'] for master in masters])
 
         if isValid:
 
+            baseMasterFont = masters[0]['font']
+            italicAngle = baseMasterFont.info.italicAngle
+            baseMasterGlyph = baseMasterFont[glyphName]
             requestedStemLocation = self.getInstanceLocation(masters[0], mode, wishedVStem, wishedHStem)
             refHeightName, refHeight = self.getScaleRefValue()
+            storedMargins = None
+
+            if keepSpacing:
+                if italicAngle and hasattr(baseMasterGlyph, 'angledLeftMargin') and hasattr(baseMasterGlyph, 'angledRightMargin'):
+                    storedMargins = (baseMasterGlyph.angledLeftMargin, baseMasterGlyph.angledRightMargin)
+                else:
+                    storedMargins = (baseMasterGlyph.leftMargin, baseMasterGlyph.rightMargin)
 
             for item in masters:
                 masterFont = item['font']
@@ -263,16 +360,17 @@ class ScaleController:
                 baseGlyph = masterFont[glyphName]
                 masterGlyph = decomposeGlyph(baseGlyph)
                 masterGlyph.scale((sc*width, sc))
-                masterGlyph.width = baseGlyph.width * sc * width
+                if not keepSpacing or storedMargins is None:
+                    masterGlyph.width = baseGlyph.width * sc * width
 
-                try:
+                if italicAngle and hasattr(masterGlyph, 'angledLeftMargin') and hasattr(masterGlyph, 'angledRightMargin'):
                     if trackingUnit == '%':
                         masterGlyph.angledLeftMargin *= trackingValue
                         masterGlyph.angledRightMargin *= trackingValue
                     elif trackingUnit == 'upm':
                         masterGlyph.angledLeftMargin += trackingValue
                         masterGlyph.angledRightMargin += trackingValue
-                except:
+                else:
                     if trackingUnit == '%':
                         masterGlyph.leftMargin *= trackingValue
                         masterGlyph.rightMargin *= trackingValue
@@ -293,7 +391,15 @@ class ScaleController:
                     axis = {'stem':item['vstem']*sc*width}
                 mutatorMasters.append((Location(**axis), MathGlyph(masterGlyph)))
 
-            return self.getInstanceGlyph(requestedStemLocation, mutatorMasters)
+            instanceGlyph = self.getInstanceGlyph(requestedStemLocation, mutatorMasters)
+            if keepSpacing and storedMargins is not None:
+                if italicAngle and hasattr(instanceGlyph, 'angledLeftMargin') and hasattr(instanceGlyph, 'angledRightMargin'):
+                    instanceGlyph.angledLeftMargin = storedMargins[0]
+                    instanceGlyph.angledRightMargin = storedMargins[1]
+                else:
+                    instanceGlyph.leftMargin = storedMargins[0]
+                    instanceGlyph.rightMargin = storedMargins[1]
+            return instanceGlyph
         return errorGlyph()
 
     def getInstanceGlyph(self, location, masters):
@@ -330,7 +436,7 @@ class ScaleController:
 
     def scaleValueInput(self, sender):
         scaleValueName = sender.name
-        if isinstance(sender, (EditText, ComboBox, PopUpButton)):
+        if isinstance(sender, (EditText, ComboBox, PopUpButton, CheckBox)):
             value = sender.get()
         if scaleValueName == 'width':
             try: value = float(value)/100.0
@@ -345,13 +451,8 @@ class ScaleController:
         elif scaleValueName == 'height':
             try: value = float(value)
             except: value = 750
-        # elif scaleValueName == 'refHeight':
-        #     try:
-        #         refValue = self.getScaleRefValue()
-        #         heightValue = float(self.w.controls.scaleGoals.height.get())
-        #         value = heightValue/float(refValue)
-        #     except: value = 1
-        #     scaleValueName = 'height'
+        elif scaleValueName == 'keepSpacing':
+            value = bool(value)
         elif scaleValueName in ['vstem', 'hstem']:
             try: value = int(value)
             except: value = 80
@@ -428,7 +529,7 @@ class ScaleController:
         value = sender.get()
         try: value = float(value)
         except: value = 72
-        self.w.glyphPreview.setPointSize(value)
+        self.w.glyphPreview.glyphs.setPointSize(value)
 
     def isValidGlyph(self, glyph, fonts):
         isValid = True
@@ -605,6 +706,7 @@ class ScaleController:
         self.processGlyphs()
 
     def setMainFont(self, controls, font, vstem, hstem):
+        self.w.glyphPreview.glyphs.setFont(font)
         controls.scaleGoals.vstem.set(vstem)
         controls.scaleGoals.hstem.set(hstem)
         controls.scaleGoals.height.setItems([str(getattr(font.info, height)) for height in ['capHeight', 'xHeight', 'unitsPerEm']])
@@ -614,6 +716,13 @@ class ScaleController:
         for attribute in ['descender', 'xHeight', 'capHeight', 'ascender']:
             self.verticalMetrics[attribute] = getattr(font.info, attribute)
         self.scaleControlValues['height'] = self.verticalMetrics['capHeight']
+        self.multiLineRepresentations['verticalMetrics'] = {
+            'Descender': self.verticalMetrics['descender'],
+            'Ascender': self.verticalMetrics['ascender'],
+            'Baseline': 0,
+            'X height': self.verticalMetrics['xHeight'],
+            'Cap height': self.verticalMetrics['capHeight']
+        }
 
     def getSelectedFont(self, popuplist):
         fontIndex = popuplist.get()
@@ -648,6 +757,7 @@ class ScaleController:
     def windowClose(self, notification):
         removeObserver(self, 'fontDidOpen')
         removeObserver(self, 'fontWillClose')
+        # removeObserver(self, 'spaceCenterDraw')
 
 ScaleController()
 
