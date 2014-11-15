@@ -47,6 +47,15 @@ Now back to ScaleFast, if you provide at least three masters that allow the scri
 
 NB: ScaleFast figures out on its own if it has all that is required for bi-dimensional interpolation, it will switch automatically to this mode if it can.
 
+#### Spacing
+
+There are several things you can do about the spacing of the glyphs you scale. By default, the width of a scaled glyph is scaled as well. But if you’d rather avoid that, you can activate the ‘Don’t scale spacing’ checkbox, the glyph will be scaled but  its sidebearings will remain those of the normally sized glyph.
+On top of that, the spacing being scaled or not, you can add tracking, either in percentage or units (per em).
+
+#### Generating
+
+Generating options should be relatively obvious I suppose. You can generate any glyphset you want, up to the whole glyphset of the first master font (on top of the masters list), and the generated glyph can be directly reinserted into one of the existing masters, or another open font, or a new one created for the occasion. Additionnally, you can suffix the generated glyphs. Note that if you reinsert generated glyphs in a existing font without suffixing glyph names, existing glyphs with the same name in the target font will be replaced.
+
 ![alt tag](images/example-scalefast-1.png)
 ![alt tag](images/example-scalefast-2.png)
 ![alt tag](images/example-scalefast-3.png)
