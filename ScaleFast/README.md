@@ -9,7 +9,7 @@ This script’s mission is simple: keep stem widths consistent while you fiddle 
 
 ### How it works
 
-To get the best possible results, here’s a few explanations about how this script works. 
+To get the best possible results, here are a few explanations about how this script works.
 
 When you add masters (as many as you like), they are analysed for vertical & horizontal stem width (based on I’s stem and the horizontal bar of H). These values are then used as reference point to build an interpolation space (with help of MutatorMath). 
 
