@@ -43,7 +43,7 @@ But in the case of a family of which contrast and serif thickness do not change 
 
 Now back to ScaleFast, if you provide at least three masters that allow the script to build a two axis interpolation scheme, then you can generate whatever scaled glyphs you need, and it’s actually the case in which the tool performs the best.
 
-To be more specific, it requires that at least two masters both share their horizontal stem values while having different vertical stem values, and that a a least one third master has an horizontal stem value different from the two others.
+To be more specific, this mode requires that at least two masters both share their horizontal stem values while having different vertical stem values, and that a a least one third master has an horizontal stem value different from the two others.
 But don’t bother keeping that in mind, ScaleFast figures out on its own if it has all that is required for bi-dimensional interpolation, it will switch automatically to this mode if it can. 
 
 #### Spacing
