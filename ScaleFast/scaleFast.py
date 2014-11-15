@@ -129,7 +129,9 @@ class ScaleController:
             'abcdefghijklmnopqrstuvwxyz',
             'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
             '0123456789',
-            '/zero.LP/one.LP/two.LP/three.LP/four.LP/five.LP/six.LP/seven.LP/eight.LP/nine.LP'
+            '/zero.LP/one.LP/two.LP/three.LP/four.LP/five.LP/six.LP/seven.LP/eight.LP/nine.LP',
+            u'> Full glyphset',
+            u'> Selected glyphs'
             ])
         controls.suffixTitle = TextBox((0, -92, 70, 22), 'Suffix', sizeStyle='small')
         controls.suffix = EditText((70, -95, -0, 22))
@@ -339,16 +341,23 @@ class ScaleController:
 
     def generateGlyphset(self, sender):
         glyphString = self.w.controls.glyphSet.get()
-        glyphSet = self.stringToGlyphNames(glyphString)
+        masters = self.masters
+        if glyphString == u'> Full glyphset':
+            glyphSet = masters[0]['font'].keys()
+        elif glyphString == u'> Selected glyphs':
+            glyphSet = CurrentFont().selection
+        else:
+            glyphSet = self.stringToGlyphNames(glyphString)
         if len(glyphSet):
             name, f = self.getSelectedFont(self.w.controls.addTo)
             suffix = glyphString = self.w.controls.suffix.get()
-            masters = self.masters
             scaleValues = self.scaleControlValues
             for glyphName in glyphSet:
                 scaledGlyph = self.scaleGlyph(glyphName, masters, scaleValues)
                 if scaledGlyph is not None:
                     f.insertGlyph(scaledGlyph, glyphName+suffix)
+                    if scaledGlyph.name == '_error_':
+                        f[glyphName+suffix].mark = (0.9, 0.2, 0, 0.9)
             f.round()
             f.autoUnicodes()
             f.showUI()
