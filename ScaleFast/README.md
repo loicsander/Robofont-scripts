@@ -11,9 +11,7 @@ This script’s mission is simple: keep stem widths consistent while you fiddle 
 
 To get the best possible results, here are a few explanations about how this script works.
 
-When you add masters (as many as you like), they are analysed for vertical & horizontal stem width (based on I’s stem and the horizontal bar of H). These values are then used as reference point to build an interpolation space (with help of MutatorMath). 
-
-It doesn’t really matter that these values are the right ones for stem width. These values are used as reference points when you put values in the stem input fields. So if the reference values are actual stem values, this means that you can put in stem values in the stem field as well, and that’s what you get as output. Remember, the value you ask for corresponds to the widths of a capital H’s stem (horizontal, or vertical). That’s the way the tool was built to be used, ideally. But if you’d rather make your masters stem values on a 0 to 1000 scale, it will work all the same, only you won’t ask for a stem of 120 units between masters that have stems of 80 and 200, you’ll be asking a instance of 700 between masters of say, 300 and 1000.
+When you add masters (as many as you like), they are analyzed for vertical & horizontal stem width (based on I’s stem and the horizontal bar of H). These values are then used as reference points to build an interpolation space (with help of MutatorMath). If you don’t wish to work with stem values, you can replace them and work with units on any scale you like (0 to 1000 for instance), but note that this tool is built to work with stem widths, so if you work outside of this frame, the script will work fine, but you won’t be able track the stem sizes of generated glyphs.
 
 #### The first master
 
