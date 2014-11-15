@@ -308,6 +308,7 @@ class ScaleController:
                 if scaledGlyph is not None:
                     f.insertGlyph(scaledGlyph, glyphName+suffix)
             f.round()
+            f.autoUnicodes()
             f.showUI()
 
     def processGlyphs(self):
