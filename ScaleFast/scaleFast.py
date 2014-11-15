@@ -1,7 +1,7 @@
 #coding=utf-8
 
 '''
-v.0.3
+v.0.4
 ScaleFast is a script with a simple mission:
 trying to maintain stem width while you transform a glyph.
 To do that, the tool relies on masters (you need at least two),
