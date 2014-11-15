@@ -92,8 +92,10 @@ def decomposeGlyph(glyph, fixedWidth=False):
 def mapValue(value, (minValue1, maxValue1), (minValue2, maxValue2)):
     d1 = maxValue1 - minValue1
     d2 = maxValue2 - minValue2
-    factor = (value-minValue1) / d1
-    return minValue2 + (d2 * factor)
+    if d1:
+        factor = (value-minValue1) / d1
+        value = minValue2 + (d2 * factor)
+    return value
 
 class ScaleController:
 
@@ -158,9 +160,11 @@ class ScaleController:
         controls.scaleGoals = Box((0, -360, -0, (len(scaleControls)*32)+12))
         for i, control in enumerate(scaleControls):
             controlName = control['name']
+            continuous = False
             if controlName in ['width','shift','tracking']:
+                if controlName == 'shift': continuous = True
                 setattr(controls.scaleGoals, '%s%s'%(controlName, 'Title'), TextBox((10, 10+(i*32), 200, 22), control['title'], sizeStyle='small'))
-                setattr(controls.scaleGoals, controlName, EditText((65, 5+(i*32), 60, 22), control['value'], continuous=False, callback=self.scaleValueInput))
+                setattr(controls.scaleGoals, controlName, EditText((65, 5+(i*32), 60, 22), control['value'], continuous=continuous, callback=self.scaleValueInput))
                 inputControl = getattr(controls.scaleGoals, controlName)
                 inputControl.name = controlName
             elif controlName == 'height':
@@ -185,7 +189,7 @@ class ScaleController:
                 controls.scaleGoals.shiftDown.name = 'shiftDown'
             if controlName == 'height':
                 setattr(controls.scaleGoals, 'rel', TextBox((127, 5+(i*32), 15, 22), '/'))
-                setattr(controls.scaleGoals, 'refHeight', PopUpButton((140, 5+(i*32), -10, 22), ['capHeight', 'xHeight', 'unitsPerEm'], callback=self.scaleValueInput))
+                setattr(controls.scaleGoals, 'refHeight', PopUpButton((140, 5+(i*32), -10, 22), ['capHeight', 'xHeight', 'unitsPerEm', 'ascender', 'descender'], callback=self.scaleValueInput))
                 refHeight = getattr(controls.scaleGoals, 'refHeight')
                 refHeight.name = 'refHeight'
             if controlName == 'keepSpacing':
@@ -375,8 +379,8 @@ class ScaleController:
         glyphSet = stringToGlyphNames(self.glyphList)
         if len(masters) > 0:
             baseFont = masters[0]['font']
-            preRefGlyph = [baseFont[glyphName] for glyphName in stringToGlyphNames(self.preGlyphList)]
-            postRefGlyph = [baseFont[glyphName] for glyphName in stringToGlyphNames(self.postGlyphList)]
+            preRefGlyph = [baseFont[glyphName] for glyphName in stringToGlyphNames(self.preGlyphList) if glyphName in baseFont]
+            postRefGlyph = [baseFont[glyphName] for glyphName in stringToGlyphNames(self.postGlyphList) if glyphName in baseFont]
             marginGlyph = RGlyph()
             marginGlyph.width = 300
             preRefGlyph.insert(0, marginGlyph)
@@ -535,7 +539,7 @@ class ScaleController:
             except: value = 0
         elif scaleValueName == 'shiftUp':
             shift = self.scaleControlValues['shift']
-            height = float(self.w.controls.scaleGoals.height.get())
+            height = int(self.w.controls.scaleGoals.height.get())
             verticalMetrics = self.verticalMetrics
             value = shift
             for metric in ['xHeight', 'capHeight', 'ascender']:
@@ -546,7 +550,7 @@ class ScaleController:
                     break
                 elif shift >= 0:
                     if (shift + height) < verticalMetrics[metric]:
-                        value = round(verticalMetrics[metric] - height)
+                        value = int(round(verticalMetrics[metric] - height))
                         self.w.controls.scaleGoals.shift.set(str(value))
                         self.stickyMetric = metric
                         break
@@ -555,12 +559,12 @@ class ScaleController:
             scaleValueName = 'shift'
         elif scaleValueName == 'shiftDown':
             shift = self.scaleControlValues['shift']
-            height = float(self.w.controls.scaleGoals.height.get())
+            height = int(self.w.controls.scaleGoals.height.get())
             verticalMetrics = self.verticalMetrics
             value = shift
             for metric in ['ascender', 'capHeight', 'xHeight', 'baseline', 'descender']:
                 if shift > verticalMetrics[metric]:
-                    value = round(verticalMetrics[metric])
+                    value = int(round(verticalMetrics[metric]))
                     self.w.controls.scaleGoals.shift.set(str(value))
                     break
                 else:

@@ -1,9 +1,11 @@
 ## ScaleFast
 ================
 
-This script’s mission is simple: keep stem widths consistent while you fiddle with proportions of a glyph. It manages that by trying to compensate for scale deformations through interpolation. To do that, it requires at least two masters (a regular and bold for instance). This way, you can easily produce scaled versions of existing glyph for any purpose you see fit, small capitals, superiors, extended or condensed styles, scaled up, down, etc. The tool’s flexibility comes a great deal from its relying on MutatorMath, written by Erik van Blokland.
+This script’s mission is simple: keep stem widths consistent while you fiddle with proportions of a glyph. It manages that by trying to compensate for scale deformations through interpolation. To do that, it requires at least two masters (a regular and bold for instance). This way, you can easily produce scaled versions of existing glyph for any purpose you see fit, small capitals, superiors, extended or condensed styles, scaled up, down, etc. 
+*The tool’s flexibility comes a great deal from its relying on ![MutatorMath](http://github.com/LettError/MutatorMath), written by Erik van Blokland.*
 
-![alt tag](images/example-scalefast-5.png)
+![alt tag](images/example-scalefast-6.png)
+
 
 ### How it works
 
