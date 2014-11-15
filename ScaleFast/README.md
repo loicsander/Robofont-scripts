@@ -19,7 +19,7 @@ The font from which glyphs are scaled and worked on is always the first in the m
 
 #### Scaling
 
-With ScaleFast, what you scale firstly are reference heights. This is why you’ll find a text input requiring a value in units (per em) and a popup menu with predefined reference heights. What you’re asking when you ask for [300]/[xHeight] is that ScaleFast scales glyphs with a ratio of 300/500 if you’re xHeight is 500 units high, for instance. The ratio part is taken care of, all you need to know is the change in dimensions you want. This will effectively result in lowercase letters having a 300 units height xHeight themselves.
+With ScaleFast, what you scale firstly are reference heights. This is why you’ll find a text input requiring a value in units (per em) and a popup menu with predefined reference heights. What you’re asking for when you input [300]/[xHeight] is that ScaleFast reduces glyphs with a ratio of 300/500, if xHeight is 500 units high, for instance. The ratio part is taken care of, all you need to know is the change in dimensions you want. This specific input will effectively result in lowercase letters having a 300 units high xHeight themselves.
 
 #### Stems
 
