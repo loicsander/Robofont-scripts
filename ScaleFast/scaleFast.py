@@ -89,6 +89,12 @@ def decomposeGlyph(glyph, fixedWidth=False):
         return decomposedGlyph
     return
 
+def mapValue(value, (minValue1, maxValue1), (minValue2, maxValue2)):
+    d1 = maxValue1 - minValue1
+    d2 = maxValue2 - minValue2
+    factor = (value-minValue1) / d1
+    return minValue2 + (d2 * factor)
+
 class ScaleController:
 
     controllerDisplaySettings = {
@@ -97,7 +103,7 @@ class ScaleController:
     }
 
     def __init__(self):
-        self.w = Window((800, 550), 'ScaleFast', minSize=(800, 550))
+        self.w = Window((900, 550), 'ScaleFast', minSize=(800, 550))
         self.w.controls = Group((15, 15, 250, -15))
         controls = self.w.controls
         allFontsNames = [fontName(font) for font in AllFonts()]
@@ -393,11 +399,13 @@ class ScaleController:
 
         if isValid:
 
+            refHeightName, refHeight = self.getScaleRefValue()
             baseMasterFont = masters[0]['font']
             italicAngle = baseMasterFont.info.italicAngle
             baseMasterGlyph = baseMasterFont[glyphName]
-            requestedStemLocation = self.getInstanceLocation(masters[0], mode, wishedVStem, wishedHStem)
-            refHeightName, refHeight = self.getScaleRefValue()
+            baseMasterRefHeight = getattr(baseMasterFont.info, refHeightName)
+            baseSc = height/baseMasterRefHeight
+            requestedStemLocation = self.getInstanceLocation(masters[0], mode, wishedVStem, wishedHStem, baseSc)
             storedMargins = None
 
             if keepSpacing:
@@ -486,8 +494,15 @@ class ScaleController:
         else:
             sender.set(not sender.get())
 
-    def getInstanceLocation(self, master, mode, vstem, hstem):
+    def getInstanceLocation(self, master, mode, vstem, hstem, sc):
         if not master.has_key('hstem') and (mode == 'anisotropic'):
+            mastersList = self.w.controls.masters.get()
+            hStems = [item['hstem']*sc for item in mastersList]
+            vStems = [item['vstem'] for item in mastersList]
+            hStems = (min(hStems), max(hStems))
+            vStems = (min(vStems), max(vStems))
+            hstem = mapValue(hstem, hStems, vStems)
+            hstem *= sc
             return Location(stem=(vstem, hstem))
         elif master.has_key('hstem'):
             return Location(vstem=vstem, hstem=hstem)
@@ -690,10 +705,11 @@ class ScaleController:
         elif modeName == 'anisotropic':
             self.w.controls.scaleGoals.mode.show(True)
             self.w.controls.scaleGoals.mode.set(False)
-            value = self.w.controls.scaleGoals.vstem.get()
-            self.w.controls.scaleGoals.hstem.set(value)
+            # value = self.w.controls.scaleGoals.vstem.get()
+            hValue = self.scaleControlValues['hstem']
+            self.w.controls.scaleGoals.hstem.set(hValue)
             self.w.controls.scaleGoals.hstem.enable(True)
-            self.scaleControlValues['hstem'] = float(value)
+            # self.scaleControlValues['hstem'] = float(value)
         elif modeName == 'bidimensionnal':
             if self.mode == 'isotropic':
                 self.previousMode = 'isotropic'
