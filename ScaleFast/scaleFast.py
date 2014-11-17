@@ -458,8 +458,6 @@ class ScaleController:
 
                 mutatorGlyphMasters.append((Location(**axis), masterGlyph))
 
-            # x, y shifts for composite instances
-
             lXshift = 0
             if baseItalicAngle is not None:
                 lXshift += round(shift * cos(radians(baseItalicAngle)+pi/2))
@@ -469,28 +467,30 @@ class ScaleController:
 
             instanceGlyph = self.getInstanceGlyph(requestedStemLocation, mutatorGlyphMasters)
 
-            if italicAngle:
-                instanceGlyph.skew(italicAngle)
+            if instanceGlyph.name != '_error_':
 
-            if keepSpacing and (storedMargins is not None) and (instanceGlyph.name != '_error_'):
-                instanceGlyph.leftMargin = storedMargins[0]
-                instanceGlyph.rightMargin = storedMargins[1]
+                if italicAngle:
+                    instanceGlyph.skew(italicAngle)
 
-            instanceGlyph = self.setGlyphTracking(instanceGlyph, trackingValue, trackingUnit, baseItalicAngle)
+                if keepSpacing and (storedMargins is not None):
+                    instanceGlyph.leftMargin = storedMargins[0]
+                    instanceGlyph.rightMargin = storedMargins[1]
 
-            if italicAngle:
-                instanceGlyph.skew(-italicAngle)
+                instanceGlyph = self.setGlyphTracking(instanceGlyph, trackingValue, trackingUnit)
 
-            instanceGlyph.move((lXshift, yShift))
+                if italicAngle:
+                    instanceGlyph.skew(-italicAngle)
 
-            if parentFont is not None:
-                parentFont.insertGlyph(instanceGlyph, glyphName)
-                instanceGlyph.setParent(parentFont)
+                instanceGlyph.move((lXshift, yShift))
+
+                if parentFont is not None:
+                    parentFont.insertGlyph(instanceGlyph, glyphName)
+                    instanceGlyph.setParent(parentFont)
 
             return instanceGlyph
         return errorGlyph()
 
-    def setGlyphTracking(self, glyph, trackingValue, trackingUnit, italicAngle=None):
+    def setGlyphTracking(self, glyph, trackingValue, trackingUnit):
         if trackingUnit == '%':
             glyph.leftMargin *= trackingValue
             glyph.rightMargin *= trackingValue
@@ -498,35 +498,6 @@ class ScaleController:
             glyph.leftMargin += trackingValue
             glyph.rightMargin += trackingValue
         return glyph
-
-    def _setGlyphTracking(self, glyph, trackingValue, trackingUnit, isItalic=False):
-        if isItalic and hasattr(glyph, 'angledLeftMargin') and hasattr(glyph, 'angledRightMargin'):
-            if (trackingUnit == '%'):
-                glyph.angledLeftMargin *= trackingValue
-                glyph.angledRightMargin *= trackingValue
-            elif trackingUnit == 'upm':
-                glyph.angledLeftMargin += trackingValue
-                glyph.angledRightMargin += trackingValue
-        else:
-            if trackingUnit == '%':
-                glyph.leftMargin *= trackingValue
-                glyph.rightMargin *= trackingValue
-            elif trackingUnit == 'upm':
-                glyph.leftMargin += trackingValue
-                glyph.rightMargin += trackingValue
-        return glyph
-
-    def _getInstanceGlyph(self, location, masters, (lXshift, rXshift, yShift)):
-        I = self.getInstance(location, masters)
-        if I is not None:
-            newGlyph = RGlyph()
-            pen = newGlyph.getPointPen()
-            sPen = ShiftPointPen(pen, (lXshift, yShift))
-            newGlyph = I.extractGlyph(newGlyph, sPen)
-            newGlyph.width += rXshift
-            return newGlyph
-        else:
-            return errorGlyph()
 
     def getInstanceGlyph(self, location, masters):
         I = self.getInstance(location, masters)
