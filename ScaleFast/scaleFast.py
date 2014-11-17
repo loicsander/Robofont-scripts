@@ -18,6 +18,9 @@ from mojo.events import addObserver, removeObserver
 from mojo.UI import MultiLineView
 from mojo.tools import IntersectGlyphWithLine
 from mojo.drawingTools import *
+# from robofab.pens.pointPen import AbstractPointPen
+# from sidebearingsPen import SidebearingsPointPen
+from shiftPointPen import ShiftPointPen
 from fontMath.mathGlyph import MathGlyph
 from defconAppKit.tools.textSplitter import splitText
 from AppKit import NSColor, NSBoxCustom, NSDragOperationNone
@@ -64,12 +67,17 @@ def decomposeGlyph(glyph, fixedWidth=False):
         components = glyph.components
         font = glyph.getParent()
         decomposedGlyph = RGlyph()
+        decomposedGlyph.width = glyph.width
+        decomposedGlyph.unicodes = glyph.unicodes
+        decomposedGlyph.name = glyph.name
+        for anchor in glyph.anchors:
+            decomposedGlyph.appendAnchor(anchor.name, (anchor.x, anchor.y))
 
         if font is not None:
             for component in components:
                 base = font[component.baseGlyph]
                 if len(base.components) > 0:
-                    base = makePreviewGlyph(base)
+                    base = decomposeGlyph(base)
                 decomponent = RGlyph()
                 decomponent.appendGlyph(base)
                 decomponent.scale((component.scale[0], component.scale[1]))
@@ -83,8 +91,6 @@ def decomposeGlyph(glyph, fixedWidth=False):
                 decomposedGlyph.leftMargin = decomposedGlyph.rightMargin = (decomposedGlyph.leftMargin + decomposedGlyph.rightMargin)/2
                 decomposedGlyph.scale((.75, .75), (decomposedGlyph.width/2, 0))
                 decomposedGlyph.move((0, -50))
-
-            decomposedGlyph.name = glyph.name
 
         return decomposedGlyph
     return
@@ -411,20 +417,23 @@ class ScaleController:
             scaledGlyphLine = []
             if len(masters) > 1 and len(glyphSet):
                 for glyphName in glyphSet:
+                    tempFont = RFont(showUI=False)
                     if glyphName == 'newLine':
                         scaledGlyph = self.glyphPreview.glyphs.createNewLineGlyph()
                     else:
-                        scaledGlyph = self.scaleGlyph(glyphName, masters, scaleValues)
+                        scaledGlyph = self.scaleGlyph(glyphName, masters, scaleValues, tempFont)
                     if scaledGlyph is not None:
+                        tempFont.insertGlyph(scaledGlyph, glyphName)
+                        scaledGlyph = decomposeGlyph(scaledGlyph)
                         scaledGlyphLine.append(scaledGlyph)
             self.scaledGlyphs = scaledGlyphLine
             scaledGlyphLine = preRefGlyph + scaledGlyphLine + postRefGlyph
             self.glyphPreview.glyphs.set(scaledGlyphLine)
             self.setGlyphs = scaledGlyphLine
 
-    def scaleGlyph(self, glyphName, masters, scaleValues):
+    def scaleGlyph(self, glyphName, masters, scaleValues, parentFont=None):
         width, height, wishedVStem, wishedHStem, shift, (trackingValue, trackingUnit), keepSpacing = scaleValues['width'], scaleValues['height'], scaleValues['vstem'], scaleValues['hstem'], scaleValues['shift'], scaleValues['tracking'], scaleValues['keepSpacing']
-        mutatorMasters = []
+        mutatorGlyphMasters = []
         mode = self.mode
         isValid = self.isValidGlyph(glyphName, [master['font'] for master in masters])
 
@@ -432,15 +441,20 @@ class ScaleController:
 
             refHeightName, refHeight = self.getScaleRefValue()
             baseMasterFont = masters[0]['font']
-            italicAngle = baseMasterFont.info.italicAngle
+            baseItalicAngle = baseMasterFont.info.italicAngle
             baseMasterGlyph = baseMasterFont[glyphName]
+            storedComponents = []
+            # if len(baseMasterGlyph.components):
+            #     for component in reversed(baseMasterGlyph.components):
+            #         baseGlyph = component.baseGlyph
+            #         self.scaleGlyph(baseGlyph, masters, scaleValues, parentFont)
             baseMasterRefHeight = getattr(baseMasterFont.info, refHeightName)
             baseSc = height/baseMasterRefHeight
             requestedStemLocation = self.getInstanceLocation(masters[0], mode, wishedVStem, wishedHStem, baseSc)
             storedMargins = None
 
             if keepSpacing:
-                if italicAngle and hasattr(baseMasterGlyph, 'angledLeftMargin') and hasattr(baseMasterGlyph, 'angledRightMargin'):
+                if baseItalicAngle and hasattr(baseMasterGlyph, 'angledLeftMargin') and hasattr(baseMasterGlyph, 'angledRightMargin'):
                     storedMargins = (baseMasterGlyph.angledLeftMargin, baseMasterGlyph.angledRightMargin)
                 else:
                     storedMargins = (baseMasterGlyph.leftMargin, baseMasterGlyph.rightMargin)
@@ -452,53 +466,79 @@ class ScaleController:
 
             for item in masters:
                 masterFont = item['font']
+                italicAngle = masterFont.info.italicAngle
                 masterRefHeight = getattr(masterFont.info, refHeightName)
                 sc = height/masterRefHeight
-                baseGlyph = masterFont[glyphName]
-                masterGlyph = decomposeGlyph(baseGlyph)
-                masterGlyph.scale((sc*width, sc))
-                if not keepSpacing or storedMargins is None:
-                    masterGlyph.width = baseGlyph.width * sc * width
+                baseGlyph = decomposeGlyph(masterFont[glyphName])
+                if italicAngle:
+                    baseGlyph.skew(italicAngle)
+                baseGlyph.scale((sc*width, sc))
+                if italicAngle:
+                    baseGlyph.skew(-italicAngle)
+                baseGlyph.width *= sc*width
+                masterGlyph = MathGlyph(baseGlyph)
 
-                if storedMargins is None:
-                    if italicAngle and hasattr(masterGlyph, 'angledLeftMargin') and hasattr(masterGlyph, 'angledRightMargin'):
-                        if (trackingUnit == '%'):
-                            masterGlyph.angledLeftMargin *= trackingValue
-                            masterGlyph.angledRightMargin *= trackingValue
-                        elif trackingUnit == 'upm':
-                            masterGlyph.angledLeftMargin += trackingValue
-                            masterGlyph.angledRightMargin += trackingValue
-                    else:
-                        if trackingUnit == '%':
-                            masterGlyph.leftMargin *= trackingValue
-                            masterGlyph.rightMargin *= trackingValue
-                        elif trackingUnit == 'upm':
-                            masterGlyph.leftMargin += trackingValue
-                            masterGlyph.rightMargin += trackingValue
-                italicAngle = masterFont.info.italicAngle
-                if italicAngle is not None:
-                    xShift = shift * cos(radians(-italicAngle)+pi/2)
-                    yShift = shift * sin(radians(-italicAngle)+pi/2)
-                elif italicAngle is None:
-                    xShift, yShift = 0, shift
-
-                masterGlyph.move((xShift, yShift))
                 if item.has_key('hstem') and (mode == 'bidimensionnal'):
                     axis = {'vstem':item['vstem']*sc*width, 'hstem':item['hstem']*sc}
                 else:
                     axis = {'stem':item['vstem']*sc*width}
-                mutatorMasters.append((Location(**axis), MathGlyph(masterGlyph)))
 
-            instanceGlyph = self.getInstanceGlyph(requestedStemLocation, mutatorMasters)
+                mutatorGlyphMasters.append((Location(**axis), masterGlyph))
+
+            instanceGlyph = self.getInstanceGlyph(requestedStemLocation, mutatorGlyphMasters)
+
+            if parentFont is not None:
+                parentFont.insertGlyph(instanceGlyph, glyphName)
+                instanceGlyph.setParent(parentFont)
+
+            xShift = 0
+            if baseItalicAngle is not None:
+                xShift += shift * cos(radians(-baseItalicAngle)+pi/2)
+                yShift = shift * sin(radians(-baseItalicAngle)+pi/2)
+            elif baseItalicAngle is None:
+                yShift = shift
+
+            instanceGlyph.move((xShift, yShift))
+
             if keepSpacing and (storedMargins is not None) and (instanceGlyph.name != '_error_'):
-                if italicAngle and hasattr(instanceGlyph, 'angledLeftMargin') and hasattr(instanceGlyph, 'angledRightMargin'):
+                if baseItalicAngle and hasattr(instanceGlyph, 'angledLeftMargin') and hasattr(instanceGlyph, 'angledRightMargin'):
                     instanceGlyph.angledLeftMargin = storedMargins[0]
                     instanceGlyph.angledRightMargin = storedMargins[1]
                 else:
                     instanceGlyph.leftMargin = storedMargins[0]
                     instanceGlyph.rightMargin = storedMargins[1]
+            instanceGlyph = self.setGlyphTracking(instanceGlyph, trackingValue, trackingUnit, bool(baseItalicAngle))
             return instanceGlyph
         return errorGlyph()
+
+    def setGlyphTracking(self, glyph, trackingValue, trackingUnit, isItalic=False):
+        if isItalic and hasattr(glyph, 'angledLeftMargin') and hasattr(glyph, 'angledRightMargin'):
+            if (trackingUnit == '%'):
+                glyph.angledLeftMargin *= trackingValue
+                glyph.angledRightMargin *= trackingValue
+            elif trackingUnit == 'upm':
+                glyph.angledLeftMargin += trackingValue
+                glyph.angledRightMargin += trackingValue
+        else:
+            if trackingUnit == '%':
+                glyph.leftMargin *= trackingValue
+                glyph.rightMargin *= trackingValue
+            elif trackingUnit == 'upm':
+                glyph.leftMargin += trackingValue
+                glyph.rightMargin += trackingValue
+        return glyph
+
+    def _getInstanceGlyph(self, location, masters, trackingValue):
+        I = self.getInstance(location, masters)
+        if I is not None:
+            newGlyph = RGlyph()
+            pen = newGlyph.getPointPen()
+            sPen = ShiftPointPen(pen, (trackingValue, 0))
+            newGlyph = I.extractGlyph(newGlyph, sPen)
+            newGlyph.width += (trackingValue*2)
+            return newGlyph
+        else:
+            return errorGlyph()
 
     def getInstanceGlyph(self, location, masters):
         I = self.getInstance(location, masters)
