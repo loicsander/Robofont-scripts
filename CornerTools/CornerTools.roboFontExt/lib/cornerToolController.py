@@ -15,7 +15,7 @@ class CornerController:
         self.modifiedGlyph = None
         self.w = FloatingWindow((400, 170), 'Corner Tool')
         self.w.getNSWindow().setBackgroundColor_(NSColor.whiteColor())
-        self.modes = ['Build', 'Break','Pit']
+        self.modes = ['Break', 'Build','Pit']
         self.objectTypes = {'Build':'Segment', 'Break':'Corner point', 'Pit':'Corner point'}
         self.parameters = {
             'radius': VanillaSingleValueParameter('radius', 20, (-200, 200), numType='int'),
@@ -24,7 +24,7 @@ class CornerController:
             'breadth': VanillaSingleValueParameter('breadth', 30, (0, 150), numType='int'),
             'bottom': VanillaSingleValueParameter('bottom', 5, (0, 40), numType='int')
         }
-        self.currentMode = 'Build'
+        self.currentMode = 'Break'
         self.previewGlyph = None
 
         self.w.modes = RadioGroup((15, 15, 70, -15), self.modes, callback=self.changeMode)
@@ -45,6 +45,10 @@ class CornerController:
 
         addObserver(self, 'preview', 'draw')
         addObserver(self, 'preview', 'drawInactive')
+        addObserver(self, 'makePreviewGlyph', 'mouseDown')
+        addObserver(self, 'makePreviewGlyph', 'mouseDragged')
+        addObserver(self, 'makePreviewGlyph', 'keyDown')
+        addObserver(self, 'makePreviewGlyph', 'keyUp')
         addObserver(self, 'setControls', 'mouseUp')
         addObserver(self, 'setControls', 'selectAll')
         addObserver(self, 'setControls', 'deselectAll')
@@ -94,6 +98,11 @@ class CornerController:
             self.previewGlyph.drawPreview(sc, styleFill=True, showNodes=False, strokeWidth=2, fillColor=cornerOutlineSoftColor, strokeColor=cornerOutlineStrongColor)
 
     def makePreviewGlyph(self, sender=None):
+        if (sender is not None) and isinstance(sender, dict):
+            if sender.has_key('notificationName') and sender['notificationName'] == 'mouseDragged':
+                g = sender['glyph']
+                if not len(g.selection):
+                    return
         self.previewGlyph = self.makeCornerGlyph()
         UpdateCurrentGlyphView()
 
@@ -174,6 +183,10 @@ class CornerController:
         removeObserver(self, 'draw')
         removeObserver(self, 'drawInactive')
         removeObserver(self, 'mouseUp')
+        removeObserver(self, 'mouseDown')
+        removeObserver(self, 'mouseDragged')
+        removeObserver(self, 'keyDown')
+        removeObserver(self, 'keyUp')
         removeObserver(self, 'selectAll')
         removeObserver(self, 'deselectAll')
         removeObserver(self, 'currentGlyphChanged')

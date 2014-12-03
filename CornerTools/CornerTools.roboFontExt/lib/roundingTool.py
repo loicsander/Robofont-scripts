@@ -2,7 +2,7 @@
 
 from glyphObjects import IntelGlyph
 
-from mojo.events import BaseEventTool, EditingTool, installTool
+from mojo.events import BaseEventTool, EditingTool, installTool, addObserver, removeObserver
 from mojo.drawingTools import *
 from AppKit import NSColor, NSBezierPath, NSImage
 from robofab.misc.arrayTools import pointInRect
@@ -12,13 +12,59 @@ import os
 dirname = os.path.dirname(__file__)
 toolbarIcon = NSImage.alloc().initWithContentsOfFile_(os.path.join(dirname, "RoundingToolIcon.pdf"))
 
+knobColor = NSColor.colorWithCalibratedRed_green_blue_alpha_(.3, .1, 0.7, 0.85)
+
+# class BaseCornerKnob(object):
+#     """
+#     UI object catching mouse events and sending back relevant info
+#     """
+#     def __init__(self, point, relatedObject=None):
+#         self.x, self.y = point
+#         if relatedObject is None:
+#             self.relatedObject = point
+#         elif relatedObject is not None:
+#             self.relatedObject = relatedObject
+#         self.active = False
+#         addObserver(self, 'mouseDown', 'mouseDown')
+#         addObserver(self, 'mouseDragged', 'mouseDragged')
+#         addObserver(self, 'mouseUp', 'mouseUp')
+#         addObserver(self, 'draw', 'draw')
+
+#     def mouseDown(self, notification):
+#         x, y = notification['point']
+#         a = 5
+#         if (x-a <= self.x <= x+a) and (y-a <= self.y <= y+a): self.active = True
+#         else: self.active = False
+
+#     def mouseDragged(self, notification):
+#         if self.active:
+#             self.x, self.y = notification['point']
+
+#     def mouseUp(self, notification):
+#         self.active = False
+
+#     def draw(self, notification):
+#         sc = notification['scale']
+#         r = 15*sc
+#         knobColor.set()
+#         radiusCircle = NSBezierPath.bezierPathWithOvalInRect_(((self.x-r, self.y-r), (r*2, r*2)))
+#         radiusCircle.fill()
+
+#     def end(self):
+#         removeObserver(self, 'mouseDown')
+#         removeObserver(self, 'mouseDragged')
+#         removeObserver(self, 'mouseUp')
+#         removeObserver(self, 'draw')
+
+
 class RoundingTool(BaseEventTool):
 
     def becomeActive(self):
         self.init()
+        # self.testKnob = BaseCornerKnob((100, 100))
 
     # def becomeInactive(self):
-        # pass
+        # self.testKnob.end()
 
     def init(self):
         self._sourceGlyph = None
@@ -41,6 +87,7 @@ class RoundingTool(BaseEventTool):
                     point.labels['cornerRadius'] = 0
                     point.labels['cut'] = False
                     self.writePointLabels(self._sourceGlyph, point)
+                self.updateRoundablePoints()
             elif not self.commandDown:
                 self.makeRoundedGlyph()
         elif clickCount == 1:
@@ -115,7 +162,7 @@ class RoundingTool(BaseEventTool):
             self._roundedGlyph.drawCornersByLabels()
             roundablePoints = []
             for contour in workingGlyph:
-                closed = contour.isClosed()
+                closed = contour.isClosed
                 for point in contour:
                     nextPoint = point.next()
                     previousPoint = point.previous()
