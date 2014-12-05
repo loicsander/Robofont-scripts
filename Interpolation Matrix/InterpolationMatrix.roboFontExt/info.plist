@@ -32,6 +32,10 @@
 	<key>timeStamp</key>
 	<real>1415051872.8521161</real>
 	<key>version</key>
-	<string>0.61</string>
+	<string>0.64</string>
+    <key>repository</key>
+    <string>loicsander/Robofont-scripts</string>
+    <key>extensionPath</key>
+    <string>Interpolation Matrix/InterpolationMatrix.roboFontExt</string>
 </dict>
 </plist>
