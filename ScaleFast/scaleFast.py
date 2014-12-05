@@ -1,7 +1,7 @@
 #coding=utf-8
 
 '''
-v.0.5
+v.0.5.1
 ScaleFast is a script with a simple mission:
 trying to maintain stem width while you transform a glyph.
 To do that, the tool relies on masters (you need at least two),
@@ -34,6 +34,29 @@ def fontName(font):
             styleName = font.info.styleName = 'Unnamed'
         return ' > '.join([familyName, styleName])
     return ''
+
+def keepCamelCaseCapitalize(string):
+    c = string.capitalize()[0]
+    s = c + string[1:]
+    return s
+
+def keepCamelCaseLower(string):
+    c = string.lower()[0]
+    s = c + string[1:]
+    return s
+
+def humanReadableScaleValue(value):
+    if value is None:
+        return 'None'
+    elif isinstance(value, (tuple, list)):
+        if value[1] in ['%', u'%']:
+            v, u = value
+            return '%s%s' % ((v-1)*100, u)
+        else:return str(int(value[0]))
+    elif isinstance(value, bool):
+        return str(bool(value))
+    else:
+        return str(value)
 
 def errorGlyph():
     glyph = RGlyph()
@@ -147,8 +170,8 @@ class ScaleController:
         controls.suffixTitle = TextBox((0, -92, 70, 22), 'Suffix', sizeStyle='small')
         controls.suffix = EditText((70, -95, -0, 22))
         controls.addToTitle = TextBox((0, -62, 70, 22), 'Add to', sizeStyle='small')
-        allFontsNames.insert(0, 'New Font')
-        controls.addTo = PopUpButton((70, -65, -0, 22), allFontsNames)
+        outputFonts = ['New Font'] + allFontsNames
+        controls.addTo = PopUpButton((70, -65, -0, 22), outputFonts)
 
         scaleControls = [
             {'name':'width', 'title':'Width', 'unit':'%', 'value':'100.0'},
@@ -243,20 +266,20 @@ class ScaleController:
         previewControls.pointSize = ComboBox((-73, 3, -10, 22), [str(p) for p in range(24,256, 8)], callback=self.pointSize)
         previewControls.pointSize.set(176)
 
-        self.glyphPreviewSettings = Box((0, 0, -0, -0))
-        previewSettings = self.glyphPreviewSettings.getNSBox()
+        self.scaleFastSettings = Box((0, 0, -0, -0))
+        previewSettings = self.scaleFastSettings.getNSBox()
         previewSettings.setBoxType_(NSBoxCustom)
         previewSettings.setFillColor_(NSColor.colorWithCalibratedRed_green_blue_alpha_(.85, .85, .85, 1))
         previewSettings.setBorderWidth_(0)
-        self.glyphPreviewSettings.g = Group((10, 10, -0, -5))
-        self.glyphPreviewSettings.g.displayModes = Box((0, 0, -0, 90))
-        self.glyphPreviewSettings.g.displayModes.title = TextBox((10, 10, -10, 20), 'DISPLAY MODE', sizeStyle='mini')
-        self.glyphPreviewSettings.g.displayModes.choice = RadioGroup((10, 30, -10, 40), self.displayModes, callback=self.changeDisplayMode, sizeStyle='small')
-        self.glyphPreviewSettings.g.displayModes.choice.set(0)
+        self.scaleFastSettings.g = Group((10, 10, -0, -0))
+        self.scaleFastSettings.g.displayModes = Box((0, 0, -0, 90))
+        self.scaleFastSettings.g.displayModes.title = TextBox((10, 10, -10, 20), 'DISPLAY MODE', sizeStyle='mini')
+        self.scaleFastSettings.g.displayModes.choice = RadioGroup((10, 30, -10, 40), self.displayModes, callback=self.changeDisplayMode, sizeStyle='small')
+        self.scaleFastSettings.g.displayModes.choice.set(0)
 
-        self.glyphPreviewSettings.g.showMetrics = CheckBox((0, 113, -0, 20), 'Show metrics', value=False, sizeStyle='small', callback=self.showMetrics)
-        self.glyphPreviewSettings.g.showVerticalGuides = CheckBox((0, 133, -0, 20), 'Show vertical guides', value=False, sizeStyle='small', callback=self.showVerticalGuides)
-        self.glyphPreviewSettings.g.verticalGuides = List((0, 160, -0, 175),
+        self.scaleFastSettings.g.showMetrics = CheckBox((0, 113, -0, 20), 'Show metrics', value=False, sizeStyle='small', callback=self.showMetrics)
+        self.scaleFastSettings.g.showVerticalGuides = CheckBox((0, 133, -0, 20), 'Show vertical guides', value=False, sizeStyle='small', callback=self.showVerticalGuides)
+        self.scaleFastSettings.g.verticalGuides = List((0, 160, -0, 155),
             [
             {'Line':'Descender', 'Height':-250 },
             {'Line':'Baseline', 'Height':0 },
@@ -271,24 +294,46 @@ class ScaleController:
             editCallback=self.editVerticalGuides
             )
 
-        self.glyphPreviewSettings.g.addGuide = GradientButton((0, 340, 90, 20), title='Add guide', sizeStyle='small', callback=self.addVerticalGuide)
-        self.glyphPreviewSettings.g.removeGuide = GradientButton((95, 340, 110, 20), title='Remove guide', sizeStyle='small', callback=self.removeVerticalGuide)
+        self.scaleFastSettings.g.addGuide = GradientButton((0, 320, 90, 20), title='Add guide', sizeStyle='small', callback=self.addVerticalGuide)
+        self.scaleFastSettings.g.removeGuide = GradientButton((95, 320, 110, 20), title='Remove guide', sizeStyle='small', callback=self.removeVerticalGuide)
+
+        self.scaleFastSettings.g.presets = Box((0, 365, -10, 210))
+        self.scaleFastSettings.g.presets.g = Group((10, 10, -10, -10))
+        self.scaleFastSettings.g.presets.g.title = TextBox((0, 0, -0, 20), 'PRESETS', sizeStyle='mini')
+        self.scaleFastSettings.g.presets.g.allfonts = PopUpButton((1, 18, 300, 22), allFontsNames, callback=self.setPresetSourceFontCallback)
+        self.scaleFastSettings.g.presets.g.presetsList = List((25, 50, -0, 105), [],
+            columnDescriptions=[
+                {'title':'Name', 'editable':True, 'width':100},
+                {'title':'Width', 'width':45},
+                {'title':'Height', 'width':45},
+                {'title':'Vstem', 'width':45},
+                {'title':'Hstem', 'width':45},
+                {'title':'Shift', 'width':45},
+                {'title':'Tracking', 'width':55},
+                # {'title':'KeepSpacing', 'width':45, 'cell':CheckBoxListCell()},
+                {'title':'KeepSpacing', 'width':45},
+                {'title':'Mode'},
+            ],
+            editCallback=self.editPresetList)
+        self.scaleFastSettings.g.presets.g.addPreset = GradientButton((25, 160, 60, 20), title='Add', sizeStyle='small', callback=self.addPreset)
+        self.scaleFastSettings.g.presets.g.updatePreset = GradientButton((85, 160, 70, 20), title='Update', sizeStyle='small', callback=self.updatePreset)
+        self.scaleFastSettings.g.presets.g.removePreset = GradientButton((155, 160, 70, 20), title='Remove', sizeStyle='small', callback=self.removePreset)
+        self.scaleFastSettings.g.presets.g.loadPreset = Button((0, 50, 20, 105), '<', sizeStyle='small', callback=self.applyPreset)
 
         panes = [
             dict(view=self.glyphPreview, identifier='glyphPreview'),
-            dict(view=self.glyphPreviewSettings, identifier='glyphPreviewSettings', size=0)
+            dict(view=self.scaleFastSettings, identifier='glyphPreviewSettings', size=0)
         ]
 
         self.w.glyphSplitView = SplitView((280, 0, -0, -0), panes)
 
-        self.scaleControlValues = {'width':1, 'height':750, 'vstem':None, 'hstem':None, 'shift': 0, 'tracking':(1, '%'), 'keepSpacing':False}
+        self.scaleControlValues = {'width':1, 'height':750, 'vstem':None, 'hstem':None, 'shift': 0, 'tracking':(1, '%'), 'keepSpacing':False, 'mode':'isotropic'}
         self.vstemValues = []
         self.hstemValues = []
         self.masters = []
         self.preGlyphList = ''
         self.postGlyphList = ''
         self.glyphList = ''
-        self.mode = 'isotropic'
         self.previousMode = None
         self.draggedIndex = None
         self.setGlyphs = []
@@ -412,9 +457,9 @@ class ScaleController:
             self.setGlyphs = scaledGlyphLine
 
     def scaleGlyph(self, glyphName, masters, scaleValues, parentFont=None):
-        width, height, wishedVStem, wishedHStem, shift, (trackingValue, trackingUnit), keepSpacing = scaleValues['width'], scaleValues['height'], scaleValues['vstem'], scaleValues['hstem'], scaleValues['shift'], scaleValues['tracking'], scaleValues['keepSpacing']
+        width, height, wishedVStem, wishedHStem, shift, (trackingValue, trackingUnit), keepSpacing, mode = scaleValues['width'], scaleValues['height'], scaleValues['vstem'], scaleValues['hstem'], scaleValues['shift'], scaleValues['tracking'], scaleValues['keepSpacing'], scaleValues['mode']
         mutatorGlyphMasters = []
-        mode = self.mode
+        mode = self.scaleControlValues['mode']
         isValid = self.isValidGlyph(glyphName, [master['font'] for master in masters])
 
         if isValid:
@@ -700,7 +745,7 @@ class ScaleController:
         keepHStem = self.checkForSecondAxisCondition([item['hstem'] for item in stemValues])
         if (not keepHStem and len(stemValues) > 2) or (len(stemValues) <= 2):
             for stemValue in stemValues: stemValue.pop('hstem', None)
-            if (previousMode is not None) and (self.mode not in ['isotropic', 'anisotropic']):
+            if (previousMode is not None) and (self.scaleControlValues['mode'] not in ['isotropic', 'anisotropic']):
                 self.setMode(previousMode)
                 self.previousMode = None
             else:
@@ -760,15 +805,15 @@ class ScaleController:
             self.w.controls.scaleGoals.hstem.enable(True)
             # self.scaleControlValues['hstem'] = float(value)
         elif modeName == 'bidimensionnal':
-            if self.mode == 'isotropic':
+            if self.scaleControlValues['mode'] == 'isotropic':
                 self.previousMode = 'isotropic'
-            elif self.mode == 'anisotropic':
+            elif self.scaleControlValues['mode'] == 'anisotropic':
                 self.previousMode = 'anisotropic'
             self.w.controls.scaleGoals.mode.show(False)
             self.w.controls.scaleGoals.hstem.set(self.hstemValues[0])
             self.w.controls.scaleGoals.hstem.enable(True)
             self.scaleControlValues['hstem'] = self.hstemValues[0]
-        self.mode = modeName
+        self.scaleControlValues['mode'] = modeName
 
     def dropCallback(self, sender, dropInfo):
         if (self.draggedIndex is not None):
@@ -781,6 +826,7 @@ class ScaleController:
                     draggedItem = itemsList.pop(sourceIndex)
                     itemsList.insert(0, draggedItem)
                 font = masters[0]['font']
+                self.setPresetSourceFont(font)
                 for attribute in ['descender', 'xHeight', 'capHeight', 'ascender']:
                     self.verticalMetrics[attribute] = getattr(font.info, attribute)
                 vstem, hstem = self.scaleControlValues['vstem'], self.scaleControlValues['hstem'] = mastersList[0]['vstem'], mastersList[0]['hstem']
@@ -832,6 +878,7 @@ class ScaleController:
 
     def setMainFont(self, controls, font, vstem, hstem):
         self.glyphPreview.glyphs.setFont(font)
+        self.setPresetSourceFont(font)
         controls.scaleGoals.vstem.set(vstem)
         controls.scaleGoals.hstem.set(hstem)
         controls.scaleGoals.height.setItems([str(getattr(font.info, height)) for height in ['capHeight', 'xHeight', 'unitsPerEm']])
@@ -848,7 +895,7 @@ class ScaleController:
             'X height': self.verticalMetrics['xHeight'],
             'Cap height': self.verticalMetrics['capHeight']
         }
-        guides = self.glyphPreviewSettings.g.verticalGuides.get()
+        guides = self.scaleFastSettings.g.verticalGuides.get()
         addedGuides = []
         if len(guides) > 5:
             addedGuides = guides[5:]
@@ -860,21 +907,27 @@ class ScaleController:
             {'Line': 'Ascender', 'Height':self.verticalMetrics['ascender']}
         ]
         guides += addedGuides
-        self.glyphPreviewSettings.g.verticalGuides.set(guides)
+        self.scaleFastSettings.g.verticalGuides.set(guides)
 
     def getSelectedFont(self, popuplist):
         fontIndex = popuplist.get()
-        fontName = popuplist.getItems()[fontIndex]
-        if fontName == 'New Font':
-            return fontName, RFont(showUI=False)
+        _fontName = popuplist.getItems()[fontIndex]
+        if _fontName == 'New Font':
+            return _fontName, RFont(showUI=False)
         else:
-            try: return fontName, AllFonts().getFontsByFamilyNameStyleName(*fontName.split(' > '))
+            try: return _fontName, AllFonts().getFontsByFamilyNameStyleName(*_fontName.split(' > '))
             except: return RFont()
+
+    def setSelectedFont(self, popuplist, _fontName):
+        fontList = popuplist.getItems()
+        if _fontName in fontList:
+            i = fontList.index(_fontName)
+            popuplist.set(i)
 
     def updateFontList(self, notification):
         notifiedFont = notification['font']
         notifiedFontName = fontName(notifiedFont)
-        for fontlist in [self.w.controls.allfonts, self.w.controls.addTo]:
+        for fontlist in [self.w.controls.allfonts, self.w.controls.addTo, self.scaleFastSettings.g.presets.g.allfonts]:
             namesList = fontlist.getItems()
             if notification['notificationName'] == 'fontDidOpen':
                 namesList.append(notifiedFontName)
@@ -891,6 +944,26 @@ class ScaleController:
                     masterList.pop(i)
                 self.w.controls.masters.set(masterList)
             fontlist.setItems(namesList)
+        self.updatePresetsList()
+
+    def setControls(self):
+        scaleControlValues = self.scaleControlValues
+        controls = self.w.controls.scaleGoals
+        for name, value in scaleControlValues.items():
+            if name in ['width', 'height', 'hstem', 'vstem', 'keepSpacing', 'shift']:
+                if name == 'width':
+                    value *= 100
+                control = getattr(controls, name)
+                control.set(value)
+            elif name == 'tracking':
+                value, unit = value
+                if unit == u'%':
+                    value = int(round((value-1)*100))
+                    control = getattr(controls, name)
+                    control.set(value)
+                else:
+                    control = getattr(controls, name+'Abs')
+                    control.set(int(value))
 
     def changeDisplayMode(self, sender):
         index = sender.get()
@@ -904,7 +977,7 @@ class ScaleController:
         self.glyphPreview.glyphs.setDisplayMode(modeName)
 
     def editVerticalGuides(self, sender):
-        guides = self.glyphPreviewSettings.g.verticalGuides.get()
+        guides = self.scaleFastSettings.g.verticalGuides.get()
         self.multiLineRepresentations['verticalMetrics'] = {}
         for guide in guides:
             guideName = guide['Line']
@@ -913,22 +986,22 @@ class ScaleController:
         self.processGlyphs()
 
     def addVerticalGuide(self, sender):
-        guides = self.glyphPreviewSettings.g.verticalGuides.get()
+        guides = self.scaleFastSettings.g.verticalGuides.get()
         l = len(guides)
         newGuideName = 'New guide %s'%(l-4)
         guides.append({'Line': newGuideName, 'Height':0})
-        self.glyphPreviewSettings.g.verticalGuides.set(guides)
+        self.scaleFastSettings.g.verticalGuides.set(guides)
         self.multiLineRepresentations['verticalMetrics'][newGuideName] = 0
 
     def removeVerticalGuide(self, sender):
-        guides = self.glyphPreviewSettings.g.verticalGuides.get()
-        selection = self.glyphPreviewSettings.g.verticalGuides.getSelection()
+        guides = self.scaleFastSettings.g.verticalGuides.get()
+        selection = self.scaleFastSettings.g.verticalGuides.getSelection()
         for i in reversed(selection):
             if i > 4:
                 guideName = guides[i]['Line']
                 self.multiLineRepresentations['verticalMetrics'].pop(guideName, 0)
                 guides.pop(i)
-        self.glyphPreviewSettings.g.verticalGuides.set(guides)
+        self.scaleFastSettings.g.verticalGuides.set(guides)
 
     def showVerticalGuides(self, sender):
         value = bool(sender.get())
@@ -941,6 +1014,78 @@ class ScaleController:
         self.glyphPreview.glyphs.setDisplayStates(self.displayStates)
         self.glyphPreview.glyphs.setCanSelect(value)
         self.processGlyphs()
+
+    def getPresetsList(self, font):
+        if font is not None and font.lib.has_key('com.loicsander.scaleFast.presets'):
+            return font.lib['com.loicsander.scaleFast.presets']
+        return []
+
+    def updatePresetsList(self, presetsList=None, font=None):
+        if presetsList is None:
+            if font is None: fontName, font = self.getSelectedFont(self.scaleFastSettings.g.presets.g.allfonts)
+            presetsList = self.getPresetsList(font)
+        fontPresetsTable = []
+        for name, scaleControlValues in presetsList:
+            preset = {keepCamelCaseCapitalize(key):humanReadableScaleValue(value) for key, value in scaleControlValues.items()}
+            preset['Name'] = name
+            fontPresetsTable.append(preset)
+        self.scaleFastSettings.g.presets.g.presetsList.set(fontPresetsTable)
+
+    def setPresetSourceFontCallback(self, sender):
+        presetFontName, presetFont = self.getSelectedFont(sender)
+        self.setPresetSourceFont(presetFont)
+
+    def setPresetSourceFont(self, font):
+        self.setSelectedFont(self.scaleFastSettings.g.presets.g.allfonts, fontName(font))
+        self.updatePresetsList(font=font)
+
+    def addPreset(self, sender):
+        presetFontName, presetFont = self.getSelectedFont(self.scaleFastSettings.g.presets.g.allfonts)
+        fontPresetsList = self.getPresetsList(presetFont)
+        presetName = 'Preset %s' % (len(fontPresetsList)+1)
+        fontPresetsList.append((presetName, {key:value for key, value in self.scaleControlValues.items()}))
+        presetFont.lib['com.loicsander.scaleFast.presets'] = fontPresetsList
+        self.updatePresetsList(presetsList=fontPresetsList)
+
+    def updatePreset(self, sender):
+        presetFontName, presetFont = self.getSelectedFont(self.scaleFastSettings.g.presets.g.allfonts)
+        fontPresetsList = self.getPresetsList(presetFont)
+        selectedPresets = self.scaleFastSettings.g.presets.g.presetsList.getSelection()
+        if len(selectedPresets):
+            index = selectedPresets[0]
+            name, scaleControlValues = fontPresetsList[index]
+            fontPresetsList[index] = (name, {key:value for key, value in self.scaleControlValues.items()})
+        presetFont.lib['com.loicsander.scaleFast.presets'] = fontPresetsList
+        self.updatePresetsList(presetsList=fontPresetsList)
+
+    def removePreset(self, sender):
+        presetFontName, presetFont = self.getSelectedFont(self.scaleFastSettings.g.presets.g.allfonts)
+        fontPresetsList = self.getPresetsList(presetFont)
+        selectedPresets = self.scaleFastSettings.g.presets.g.presetsList.getSelection()
+        for i in reversed(selectedPresets):
+            fontPresetsList.pop(i)
+        presetFont.lib['com.loicsander.scaleFast.presets'] = fontPresetsList
+        self.updatePresetsList(presetsList=fontPresetsList)
+
+    def applyPreset(self, sender):
+        presetFontName, presetFont = self.getSelectedFont(self.scaleFastSettings.g.presets.g.allfonts)
+        fontPresetsList = self.getPresetsList(presetFont)
+        selectedPresets = self.scaleFastSettings.g.presets.g.presetsList.getSelection()
+        if len(selectedPresets):
+            presetIndex = selectedPresets[0]
+            presetName, presets = fontPresetsList[presetIndex]
+            self.scaleControlValues = presets
+        self.setControls()
+        self.processGlyphs()
+
+    def editPresetList(self, sender):
+        presetsList = sender.get()
+        presetFontName, presetFont = self.getSelectedFont(self.scaleFastSettings.g.presets.g.allfonts)
+        fontPresetsList = self.getPresetsList(presetFont)
+        for i, (name, scaleControlValues) in enumerate(fontPresetsList):
+            if i < len(presetsList):
+                fontPresetsList[i] = (presetsList[i]['Name'], scaleControlValues)
+        presetFont.lib['com.loicsander.scaleFast.presets'] = fontPresetsList
 
     def windowClose(self, notification):
         removeObserver(self, 'fontDidOpen')
