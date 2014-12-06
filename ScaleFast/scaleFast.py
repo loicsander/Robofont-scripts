@@ -51,10 +51,12 @@ def humanReadableScaleValue(value):
     elif isinstance(value, (tuple, list)):
         if value[1] in ['%', u'%']:
             v, u = value
-            return '%s%s' % ((v-1)*100, u)
+            return '%s%s' % (v*100, u)
         else:return str(int(value[0]))
     elif isinstance(value, bool):
-        return str(bool(value))
+        return value
+    elif isinstance(value, float):
+        return '%s%s' % (value*100, u'%')
     else:
         return str(value)
 
@@ -179,7 +181,7 @@ class ScaleController:
             {'name':'keepSpacing', 'title':u'Don’t scale spacing', 'value':False},
             {'name':'stem', 'title':'Stem', 'value':'80'},
             {'name':'shift', 'title':'Shift', 'value':'0'},
-            {'name':'tracking', 'title':'Tracking', 'unit':'%', 'value':'0'}
+            {'name':'tracking', 'title':'Tracking', 'unit':'%', 'value':'100'}
         ]
         controls.scaleGoalsTitle = TextBox((0, -380, -0, 19), 'Scale goals', sizeStyle='small')
         controls.scaleGoalsMode = TextBox((-140, -380, -0, 19), 'mode: Isotropic', sizeStyle='small', alignment='right')
@@ -223,7 +225,7 @@ class ScaleController:
                 spacingControl = getattr(controls.scaleGoals, controlName)
                 spacingControl.name = controlName
             if controlName == 'tracking':
-                setattr(controls.scaleGoals, 'trackingAbs', EditText((150, 5+(i*32), 60, 22), control['value'], continuous=False, callback=self.scaleValueInput))
+                setattr(controls.scaleGoals, 'trackingAbs', EditText((150, 5+(i*32), 60, 22), 0, continuous=False, callback=self.scaleValueInput))
                 setattr(controls.scaleGoals, 'trackingAbsUnit', TextBox((215, 10+(i*32), -0, 22), 'upm', sizeStyle='mini'))
                 inputControl = getattr(controls.scaleGoals, 'trackingAbs')
                 inputControl.name = 'trackingAbs'
@@ -304,15 +306,15 @@ class ScaleController:
         self.scaleFastSettings.g.presets.g.presetsList = List((25, 50, -0, 105), [],
             columnDescriptions=[
                 {'title':'Name', 'editable':True, 'width':100},
-                {'title':'Width', 'width':45},
-                {'title':'Height', 'width':45},
-                {'title':'Vstem', 'width':45},
-                {'title':'Hstem', 'width':45},
-                {'title':'Shift', 'width':45},
-                {'title':'Tracking', 'width':55},
-                # {'title':'KeepSpacing', 'width':45, 'cell':CheckBoxListCell()},
-                {'title':'KeepSpacing', 'width':45},
-                {'title':'Mode'},
+                {'title':'Width', 'editable':True, 'width':55},
+                {'title':'Height', 'editable':True, 'width':40},
+                {'title':'Vstem', 'editable':True, 'width':40},
+                {'title':'Hstem', 'editable':True, 'width':40},
+                {'title':'Shift', 'editable':True, 'width':40},
+                {'title':'Tracking', 'editable':True, 'width':55},
+                {'title':'KeepSpacing', 'editable':True, 'width':40, 'cell':CheckBoxListCell()},
+                # {'title':'KeepSpacing', 'editable':True, 'width':40},
+                {'title':'Mode', 'editable':False},
             ],
             editCallback=self.editPresetList)
         self.scaleFastSettings.g.presets.g.addPreset = GradientButton((25, 160, 60, 20), title='Add', sizeStyle='small', callback=self.addPreset)
@@ -591,14 +593,14 @@ class ScaleController:
             try: value = float(value)/100.0
             except: value = 1
         elif scaleValueName == 'tracking':
-            try: value = (1 + float(value)/100.0, '%')
+            try: value = (float(value)/100.0, '%')
             except: value = (1, '%')
         elif scaleValueName == 'trackingAbs':
-            try: value = (float(value), 'upm')
+            try: value = (int(value), 'upm')
             except: value = (0, 'upm')
             scaleValueName = 'tracking'
         elif scaleValueName == 'height':
-            try: value = float(value)
+            try: value = int(value)
             except: value = 750
         elif scaleValueName == 'keepSpacing':
             value = bool(value)
@@ -952,13 +954,13 @@ class ScaleController:
         for name, value in scaleControlValues.items():
             if name in ['width', 'height', 'hstem', 'vstem', 'keepSpacing', 'shift']:
                 if name == 'width':
-                    value *= 100
+                    value = round(value * 100)
                 control = getattr(controls, name)
                 control.set(value)
             elif name == 'tracking':
                 value, unit = value
                 if unit == u'%':
-                    value = int(round((value-1)*100))
+                    value = float(round(value*100))
                     control = getattr(controls, name)
                     control.set(value)
                 else:
@@ -1084,6 +1086,21 @@ class ScaleController:
         fontPresetsList = self.getPresetsList(presetFont)
         for i, (name, scaleControlValues) in enumerate(fontPresetsList):
             if i < len(presetsList):
+                for key in scaleControlValues:
+                    value = presetsList[i][keepCamelCaseCapitalize(key)]
+                    if isinstance(value, (str, unicode)) and key != 'mode':
+                        if value.endswith(u'%'):
+                            if key == 'tracking':
+                                scaleControlValues[key] = (float(value[:-1])/100, u'%')
+                            else:
+                                scaleControlValues[key] = float(value[:-1])/100
+                        else:
+                            if key == 'tracking':
+                                scaleControlValues[key] = (int(value), 'upm')
+                            else:
+                                scaleControlValues[key] = int(value)
+                    elif isinstance(value, bool):
+                        scaleControlValues[key] = bool(value)
                 fontPresetsList[i] = (presetsList[i]['Name'], scaleControlValues)
         presetFont.lib['com.loicsander.scaleFast.presets'] = fontPresetsList
 
