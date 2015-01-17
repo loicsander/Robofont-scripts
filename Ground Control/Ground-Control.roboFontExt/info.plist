@@ -30,8 +30,8 @@
 	<key>version</key>
 	<string>1.5</string>
 	<key>repository</key>
-	<string>loicsander/Robofont-scripts/Ground Control</string>
+	<string>loicsander/Robofont-scripts</string>
 	<key>extensionPath</key>
-	<string>Ground-Control.roboFontExt</string>
+	<string>Ground Control/Ground-Control.roboFontExt</string>
 </dict>
 </plist>
