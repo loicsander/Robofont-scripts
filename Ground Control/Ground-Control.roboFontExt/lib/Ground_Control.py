@@ -79,7 +79,7 @@ class BenchLine:
                 (0, 0, 0, 0),
                 pointSize = 128,
                 lineHeight = 100,
-                doubleClickCallback = None,
+                # doubleClickCallback = None,
                 applyKerning = True,
                 bordered = False,
                 hasHorizontalScroller = False,
