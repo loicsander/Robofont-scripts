@@ -1,5 +1,5 @@
 # -*- coding: utf8 -*-
-GCVersion = "1.0"
+GCVersion = "1.01"
 
 # Script written by Loïc Sander — may 2014
 # update 10 july 2014
@@ -22,7 +22,7 @@ from mojo.UI import *
 from mojo.events import addObserver, removeObserver
 from vanilla import *
 from defconAppKit.tools.textSplitter import splitText
-from AppKit import NSColor
+from AppKit import NSColor, NSEvent
 
 class BenchToolBox:
 
@@ -79,7 +79,7 @@ class BenchLine:
                 (0, 0, 0, 0),
                 pointSize = 128,
                 lineHeight = 100,
-                doubleClickCallbak = None,
+                doubleClickCallback = None,
                 applyKerning = True,
                 bordered = False,
                 hasHorizontalScroller = False,
@@ -460,6 +460,8 @@ class GroundControl:
 
             thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
             trackingValue = self.globalTrackingValue + thisLineMethAttr.localTrackingValue
+
+            print self.globalTrackingValue
 
             benchToolBox.modifyTracking(thisLineMethAttr.font, trackingValue)
 
