@@ -14,7 +14,7 @@ Any transformation you input can be saved as a preset for a later use. Presets a
 
 To get the best possible results, here are a few explanations about how this script works.
 
-When you add masters (as many as you like), they are analyzed for vertical & horizontal stem width (based on I’s stem and the horizontal bar of H). These values are then used as reference points to build an interpolation space (with help of MutatorMath). If you don’t wish to work with stem values, you can replace them and work with units on any scale you like (0 to 1000 for instance), but note that this tool is built to work with stem widths, so if you work outside of this frame, the script will work fine, but you won’t be able track the stem sizes of generated glyphs.
+When you add masters (as many as you like), they are analyzed for vertical & horizontal stem width (based on capital I’s stem and the horizontal bar of H). These values are then used as reference points to build an interpolation space (with help of MutatorMath). If you don’t wish to work with stem values, you can replace them and work with units on any scale you like (0 to 1000 for instance), but note that this tool is built to work with stem widths, so if you work outside of this scheme, the script will work fine, but you won’t be able to track the stem values of generated glyphs.
 
 #### The first master
 
