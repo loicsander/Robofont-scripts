@@ -56,7 +56,7 @@ On top of that — spacing being scaled or not — you can add tracking, either 
 
 #### Generating
 
-Generating glyphs should be relatively straightforward, I hope. You can generate any glyph set you want, up to the whole glyph set of the first master font (on top of the masters list), and the generated glyph can be directly reinserted into one of the existing masters, or another open font, or a new one created for the occasion. Additionally, you can suffix the generated glyphs. Note that if you reinsert generated glyphs in a existing font without suffixing glyph names, existing glyphs with the same name in the target font will be replaced.
+Generating glyphs should be relatively straightforward, I hope. You can generate any glyph set you want, up to the whole glyph set of the first master font (on top of the masters list). Nevertheless, be aware that this kind of glyph generation doesn’t handle components, it will only output contours. The generated glyphs can then be directly reinserted into one of the existing masters, or another open font, or a new one created for the occasion. Additionally, you can suffix the generated glyphs. Note that if you reinsert generated glyphs in a existing font without suffixing glyph names, existing glyphs with the same name in the target font will be replaced.
 
 ![alt tag](images/example-scalefast-1.png)
 ![alt tag](images/example-scalefast-2.png)
