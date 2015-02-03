@@ -9,7 +9,7 @@ Robofont has a very useful option that allows you to display the italic angle of
 
 ![alt tag](images/robofont-italicAngle-display.png)
 
-This feature has a little drawback however, due to the fact that binary fonts don’t support angled sidebearings (or I’ve been misled to think that), so a generated font will use upright values. Your spacing will remain intact, but if you try to use the italic in the midst of a text set in roman, the italic word will appear off, shifted to the right. To solve that, you simply need to shift the whole set of italic glyphs to the left before generating. Easier said than done. The task isn’t overly complex, but finding the right value to shift glyphs is one of those tasks for which a computer will probably do a better job than you would.
+This feature has a little drawback however, due to the fact that binary fonts don’t support angled sidebearings (or I’ve been misled to think that), so a generated font will use upright values. Your spacing *will* remain intact, but if you try to use the italic in the midst of a text set in roman, the italic word will appear off, shifted to the right. To solve that, you simply need to shift the whole set of italic glyphs to the left before generating. Easier said than done. The task isn’t overly complex, but finding the right value to shift glyphs is one of those tasks for which a computer will probably do a better job than you would.
 
 ![alt tag](images/pre-post-metrics-script.png)
 
