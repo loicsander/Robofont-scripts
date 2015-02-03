@@ -9,7 +9,7 @@ It allows you to set an italic font’s metrics according to an angle and base g
 for which you wish to have equal sidebearings (usually a lowercase or uppercase O).
 '''
 
-def shiftMetricToAngle(font, angle, baseGlyphName, setItalicAngle=True, glyphSet=None):
+def shiftMetricsToAngle(font, angle, baseGlyphName, setItalicAngle=True, glyphSet=None):
 
     fontKeys = font.keys()
 
@@ -56,4 +56,4 @@ def shiftMetricToAngle(font, angle, baseGlyphName, setItalicAngle=True, glyphSet
         print unicode('Didn’t move anything, no need.', 'utf-8')
 
 f = CurrentFont()
-shiftMetricToAngle(f, 0, 'o')
+shiftMetricsToAngle(f, 0, 'o')
