@@ -3,7 +3,7 @@ Metrics scripts
 
 ## shift-metrics-italic-to-upright.py
 
-Script to help with the ‘italic angle’ issue. 
+Script to help with the ‘italic angle’ feature. 
 
 Robofont has a very useful option that allows you to display the italic angle of a font in such a way that you can space glyphs as you would roman/upright glyphs, instead of having to use upright sidebearings on slanted shapes.
 
