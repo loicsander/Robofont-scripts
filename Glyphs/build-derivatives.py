@@ -4,7 +4,7 @@
 # written by Loïc Sander
 # february 2015
 
-DGBVersion = '0.5.0'
+DGBVersion = '0.5.1'
 
 from math import tan, radians
 from mojo.events import addObserver, removeObserver
@@ -145,19 +145,19 @@ class DerivativeGlyphsBuilder:
         self.collectFontData(f)
 
         m = 20
-        self.w = FloatingWindow((670, 700), 'Derivative Glyphs Builder %s' % (DGBVersion), minSize=(600, 700))
+        self.w = FloatingWindow((700, 700), 'Derivative Glyphs Builder %s' % (DGBVersion), minSize=(600, 700))
         self.w.inner = Group((m, m, -m, -15))
 #        self.w.inner.fontName = TextBox((0, 0, -0, 20), '%s %s' % (f.info.familyName.upper(), f.info.styleName.upper()))
         self.w.inner.fonts = PopUpButton((0, 0, -250, 20), listFontNames(fonts), callback=self.changeCurrentFont)
-        self.w.inner.derivatives = List((0, 35, -340, 330),
+        self.w.inner.derivatives = List((0, 35, -360, 330),
             self.buildDerivativesUIList(self.derivatives),
             selectionCallback=self.selectDerivativeGlyph,
             editCallback=self.editDerivativeGlyphNames,
             columnDescriptions=[{'title':'Derivative Glyph', 'width':130}, {'title':'Base Glyphs'}])
 
-        self.w.inner.addDefinition = SquareButton((0, 365, -480, 20), 'Add', callback=self.addDefinition, sizeStyle='small')
-        self.w.inner.removeDefinition = SquareButton((-480, 365, 140, 20), 'Remove', callback=self.removeDefinition, sizeStyle='small')
-        self.w.inner.definition = Box((-320, 35, -0, 350))
+        self.w.inner.addDefinition = SquareButton((0, 365, -500, 20), 'Add', callback=self.addDefinition, sizeStyle='small')
+        self.w.inner.removeDefinition = SquareButton((-500, 365, 140, 20), 'Remove', callback=self.removeDefinition, sizeStyle='small')
+        self.w.inner.definition = Box((-340, 35, -0, 350))
         m = 15
         self.w.inner.definition.inner = Group((m, m, -m, 0))
 
@@ -227,6 +227,8 @@ class DerivativeGlyphsBuilder:
         if hasattr(self, 'w'):
             self.w.inner.preview._glyphLineView._italicAngle = self.tempFont.info.italicAngle
             self.w.inner.preview._glyphLineView._italicSlantOffset = self.tempFont.lib['com.typemytype.robofont.italicSlantOffset']
+
+        self.updateTempFont()
 
     def collectFontHeights(self):
         font = self.currentFont
@@ -301,6 +303,8 @@ class DerivativeGlyphsBuilder:
 
             self.derivatives[index] = definition
             self.storeGlyphDefinitions(self.derivatives)
+
+            self.updateTempFont()
             self.updatePreview()
 
     def getCurrentDefinition(self):
@@ -333,6 +337,7 @@ class DerivativeGlyphsBuilder:
 
     def selectDerivativeGlyph(self, sender):
         selection = sender.getSelection()
+        self.updateTempFont(selection)
         if len(selection) == 1:
             index = selection[0]
             glyphDefinition = self.derivatives[index]
@@ -341,6 +346,12 @@ class DerivativeGlyphsBuilder:
             self.obfuscated = True
             self.obfuscateDefinitionSheet()
         self.updatePreview()
+
+    def updateTempFont(self, indices=None):
+        derivatives = self.derivatives
+        for i, definition in enumerate(derivatives):
+            if (indices is None) or (indices is not None and i in indices):
+                self.makeGlyph(definition, self.tempFont)
 
     def updateDefinitionsList(self):
         derivativesList = self.buildDerivativesUIList(self.derivatives)
@@ -378,13 +389,13 @@ class DerivativeGlyphsBuilder:
                 definitionDict[key] = baseGlyphRecord[key]
 
             isValid = self.validateGlyphDefinition(definition)
-            if isValid: validationStatus = u'✓'
+            if isValid: validationStatus = u'✔'
 
         if self.obfuscated:
            self.w.inner.definition.inner.show(True)
            self.w.inner.definition.warning.show(False)
 
-        self.w.inner.definition.inner.title.set(u'▶ %s %s' % (glyphName, validationStatus))
+        self.w.inner.definition.inner.title.set(u'%s %s' % (validationStatus, glyphName))
         self.w.inner.definition.inner.baseGlyph.setItems(baseGlyphs)
         if len(baseGlyphs):
             self.w.inner.definition.inner.baseGlyph.set(selectedBaseGlyph)
@@ -423,8 +434,8 @@ class DerivativeGlyphsBuilder:
 
         definitionInputFields = {}
 
-        self.w.inner.definition.inner.title = TextBox((0, 2, 130, 17), u'▶ Undefined')
-        self.w.inner.definition.inner.baseGlyph = PopUpButton((140, 0, -0, 20), [], callback=self.switchBaseGlyph)
+        self.w.inner.definition.inner.title = TextBox((0, 2, 150, 17), u'○ Undefined')
+        self.w.inner.definition.inner.baseGlyph = PopUpButton((160, 0, -0, 20), [], callback=self.switchBaseGlyph, sizeStyle='small')
         self.w.inner.definition.warning = TextBox((15, 15, -15, -15), 'Cannot edit multiple definitions at once.')
         self.w.inner.definition.warning.show(False)
 
@@ -606,10 +617,18 @@ class DerivativeGlyphsBuilder:
             return reference in self.availableGlyphs
 
     def validateGlyphDefinition(self, definition):
-        glyphName = definition['glyphName']
-        baseGlyphs = [baseGlyphName.split(':')[0] for baseGlyphName in definition['baseGlyphs']]
-        availableBaseGlyphs = set(baseGlyphs) <= set(self.availableGlyphs)
-        return glyphName in self.glyphOrder and availableBaseGlyphs
+        currentFont, tempFont = self.currentFont, self.tempFont
+        baseGlyphNames = [baseGlyphName.split(':')[0] for baseGlyphName in definition['baseGlyphs']]
+        validBaseGlyphsList = list(set(baseGlyphNames) & set(currentFont.keys() + tempFont.keys()))
+        baseGlyphs = {}
+        for baseGlyphName in baseGlyphNames:
+            if baseGlyphName in tempFont:
+                baseGlyphs[baseGlyphName] = tempFont[baseGlyphName]
+            elif baseGlyphName in currentFont:
+                baseGlyphs[baseGlyphName] = currentFont[baseGlyphName]
+        baseGlyphRecords = definition['baseGlyphRecords']
+        compositeBaseGlyphs = [baseGlyphName for baseGlyphName in definition['baseGlyphs'] if (baseGlyphName.split(':')[0] in validBaseGlyphsList) and (len(baseGlyphs[baseGlyphName.split(':')[0]].components))]
+        return not bool(len(compositeBaseGlyphs)) and bool(len(validBaseGlyphsList))
 
     def buildDerivativesUIList(self, derivativesList):
         return [{'Derivative Glyph':definition['glyphName'], 'Base Glyphs':', '.join(definition['baseGlyphs'])} for definition in derivativesList]
@@ -630,7 +649,11 @@ class DerivativeGlyphsBuilder:
         for index in selection:
             if index < len(self.derivatives):
                 definition = self.derivatives[index]
-                g = self.makeGlyph(definition, tempFont)
+                glyphName = definition['glyphName']
+                if glyphName in tempFont:
+                    g = tempFont[glyphName]
+                else:
+                    g = self.makeGlyph(definition, tempFont)
                 if g is not None:
                     glyphs.append(g)
                     glyphs.append(controlGlyph)

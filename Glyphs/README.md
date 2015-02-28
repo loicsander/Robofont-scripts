@@ -16,7 +16,7 @@ A definition can refer to as many glyphs as you want (in the limits of sanity of
 + If you fail no number several occurrences of the same name, it will count as only one base glyph.
 + Flipping is only allowed if the base glyph you refer to is copied as contour, not as a component (it’s probably for your own good).
 + You can defined horizontal or vertical alignments by providing which side (or center) of the glyph to align and to which dimension. Dimensions can be numbers input directly but you can can also refer to the fonts metrics or other glyphs. For instance: align [top] to [capHeight]. When you wish to center a glyph vertically, keep in mind that the value you refer to is the axis on which to center the glyph. Thus, if you wish to center a glyph in the capHeight, you should say [center] to [midCapHeight].
-+ For each definition, the script evaluates if the definition is valid, shown by a checkmark or cross next to the glyph’s name in the definition. It is shown as invalid if either the new glyph name doesn’t exist in the glyphOrder, or if the base glyph doesn’t exist in the font. Only in the second case will the script fail to build the new glyph.
++ For each definition, the script evaluates if the definition is valid, shown by a checkmark or cross next to the glyph’s name in the definition. It is shown as invalid if the base glyph doesn’t exist in the font, or isn’t defined in another valid definition.   It also checks if you’re making nested components and doesn’t agree. Nevertheless, it will only fail in the former case, not having a proper base glyph to work with.
 
 ![alt tag](build-derivatives.png)
 
