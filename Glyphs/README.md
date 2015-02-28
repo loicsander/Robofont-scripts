@@ -13,7 +13,7 @@ A definition can refer to as many glyphs as you want (in the limits of sanity of
 + If you wish to refer to the same glyph several times, you should append a number to its name when you put it in, following a glyphname:number syntax. For example: ellipsis —> [period:1, period:2, period:3]
 + If you fail no number several occurrences of the same name, it will count as only one base glyph.
 + Flipping is only allowed if the base glyph you refer to is copied as contour, not as a component (it’s probably for your own good).
-+ For each definition, the script evaluates if the definition is valid, shown by the checkmark or cross next to the glyph’s name in the definition. It is shown as invalid if either the new glyph name doesn’t exist in the glyphOrder, or if the base glyph doesn’t exist in the font. Only in this second case will the script fail to build the new glyph.
++ For each definition, the script evaluates if the definition is valid, shown by a checkmark or cross next to the glyph’s name in the definition. It is shown as invalid if either the new glyph name doesn’t exist in the glyphOrder, or if the base glyph doesn’t exist in the font. Only in the second case will the script fail to build the new glyph.
 
 ![alt tag](build-derivatives.png)
 
