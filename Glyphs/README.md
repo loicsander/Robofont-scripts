@@ -3,9 +3,16 @@ Glyph scripts
 
 ## build-derivatives.py
 
-In a font’s character set, there’s a great number of glyphs that are derivatives of others. The most obvious examples are the accented glyphs made up of a letter and a mark/diacritic. These are built fairly easily with the help of anchors. But there’s also a whole other range of glyphs that are derived from other outlines and which will most of the time be built manually (or blindly via scripting).
+Small tool that allows the user to define and build new glyphs by duplicating/associating other ones.
 
-This tool is meant to ease the extension of character sets and the deriving of glyphs that cannot be built through the anchor system. It provides a system of glyph definitions which allows you to make a new glyph by referring to one or several others, while providing a preview of the newly built glyph. The definitions include a set of transformations that can be applied per base glyph. Definitions are stored in the UFO and transferable from one font to another.
+Each glyph definition and stored per font and those are selectively transferable from one font to another.
+
+A definition can refer to as many glyphs as you want (it the limits of sanity of course). 
+
+**Notes** 
+– If you wish to refer several times to the same glyph, you should append a number to its name when you put it in, for example: ellipsis —> [period:1, period:2, period:3]
+– If you fail no number several occurrences of the same name, it will count as only one base glyph.
+– Flipping is only allowed if the base glyph you refer to is copied as contour, not as a component (it’s probably for your own good).
 
 ![alt tag](build-derivatives.png)
 

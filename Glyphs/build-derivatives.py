@@ -1,10 +1,11 @@
+#coding=utf-8
+
 # script for Robofont
 # written by Loïc Sander
 # february 2015
 
 DGBVersion = '0.5.0'
 
-#coding=utf-8
 from math import tan, radians
 from mojo.events import addObserver, removeObserver
 from mojo.UI import MultiLineView
