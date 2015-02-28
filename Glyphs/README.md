@@ -1,18 +1,19 @@
-Glyph scripts
+Glyph Tools
 ================
 
 ## build-derivatives.py
 
-Small tool that allows the user to define and build new glyphs by duplicating/associating other ones.
+Tool that allows the user to define and build new glyphs by duplicating/associating other ones.
 
-Each glyph definition and stored per font and those are selectively transferable from one font to another.
+Each glyph definition is stored per font and is selectively transferable from one font to another.
 
-A definition can refer to as many glyphs as you want (it the limits of sanity of course). 
+A definition can refer to as many glyphs as you want (in the limits of sanity of course). 
 
 **Notes** 
-+ If you wish to refer several times to the same glyph, you should append a number to its name when you put it in, for example: ellipsis —> [period:1, period:2, period:3]
++ If you wish to refer to the same glyph several times, you should append a number to its name when you put it in, following a glyphname:number syntax. For example: ellipsis —> [period:1, period:2, period:3]
 + If you fail no number several occurrences of the same name, it will count as only one base glyph.
 + Flipping is only allowed if the base glyph you refer to is copied as contour, not as a component (it’s probably for your own good).
++ For each definition, the script evaluates if the definition is valid, shown by the checkmark or cross next to the glyph’s name in the definition. It is shown as invalid if either the new glyph name doesn’t exist in the glyphOrder, or if the base glyph doesn’t exist in the font. Only in this second case will the script fail to build the new glyph.
 
 ![alt tag](build-derivatives.png)
 
