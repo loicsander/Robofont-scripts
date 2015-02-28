@@ -10,9 +10,9 @@ Each glyph definition and stored per font and those are selectively transferable
 A definition can refer to as many glyphs as you want (it the limits of sanity of course). 
 
 **Notes** 
-– If you wish to refer several times to the same glyph, you should append a number to its name when you put it in, for example: ellipsis —> [period:1, period:2, period:3]
-– If you fail no number several occurrences of the same name, it will count as only one base glyph.
-– Flipping is only allowed if the base glyph you refer to is copied as contour, not as a component (it’s probably for your own good).
++ If you wish to refer several times to the same glyph, you should append a number to its name when you put it in, for example: ellipsis —> [period:1, period:2, period:3]
++ If you fail no number several occurrences of the same name, it will count as only one base glyph.
++ Flipping is only allowed if the base glyph you refer to is copied as contour, not as a component (it’s probably for your own good).
 
 ![alt tag](build-derivatives.png)
 
