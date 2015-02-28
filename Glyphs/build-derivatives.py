@@ -723,8 +723,6 @@ class DerivativeGlyphsBuilder:
                     h2 = yCenter
                 yShift += (h1 - h2)
 
-            slantOffset = yShift * tan(radians(italicAngle))
-
             if baseGlyphRecord['xAlign']:
                 line, reference = baseGlyphRecord['xAlign']
                 referenceGlyph = currentFont[reference]
@@ -741,34 +739,36 @@ class DerivativeGlyphsBuilder:
                     w2 = baseDimensions['xRight']
                 elif line == 'center':
                     w2 = xCenter
-                xShift += (w1 - w2) - slantOffset
+                xShift += (w1 - w2)
 
-            # if contributeWidth:
-            #     xShift += baseDimensions['width']
+            slantOffset = yShift * tan(radians(italicAngle))
+            xShift -= slantOffset
+
             if not contributeWidth:
                 xShift -= xAdvance
+
+            dimensions = self.getGlyphDimensions(baseGlyph)
+            xCenter, yCenter = dimensions['center']
+
+            tempGlyph = baseGlyph.copy()
+            tempGlyph.scale(baseGlyphRecord['flip'], (xCenter, yCenter))
 
             if baseGlyphRecord['asComponent']:
                 glyph.appendComponent(baseGlyphName, (xShift, yShift))
 
             elif not baseGlyphRecord['asComponent']:
-                glyph.appendGlyph(baseGlyph, (xShift, yShift))
+                glyph.appendGlyph(tempGlyph, (xShift, yShift))
 
             if contributeWidth:
                 baseWidth += (xShift - xAdvance)
 
-            dimensions = self.getGlyphDimensions(glyph)
-            xCenter, yCenter = dimensions['center']
-
-            glyph.scale(baseGlyphRecord['flip'], (xCenter, yCenter))
-
             if baseGlyphRecord['flip'][0] == 1:
-                if b == 0 and (b > 0 and contributeWidth):
+                if b == 0 or (b > 0 and contributeWidth):
                     margins['left'].append(leftMargin)
                     margins['right'].append(rightMargin)
 
             elif baseGlyphRecord['flip'][0] == -1:
-                if b == 0 and (b > 0 and contributeWidth):
+                if b == 0 or (b > 0 and contributeWidth):
                     margins['left'].append(rightMargin)
                     margins['right'].append(leftMargin)
 
