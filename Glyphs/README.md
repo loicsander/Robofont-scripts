@@ -9,7 +9,7 @@ Each glyph definition is stored per font and is selectively transferable from on
 
 A definition can refer to as many glyphs as you want (in the limits of sanity of course). 
 
-![See it in action](https://vimeo.com/120873935)
+[See it in action](https://vimeo.com/120873935)
 
 **Notes** 
 + If you wish to refer to the same glyph several times, you should append a number to its name when you put it in, following a glyphname:number syntax. For example: ellipsis —> [period:1, period:2, period:3]
