@@ -9,6 +9,8 @@ Each glyph definition is stored per font and is selectively transferable from on
 
 A definition can refer to as many glyphs as you want (in the limits of sanity of course). 
 
+![See it in action](https://vimeo.com/120873935)
+
 **Notes** 
 + If you wish to refer to the same glyph several times, you should append a number to its name when you put it in, following a glyphname:number syntax. For example: ellipsis —> [period:1, period:2, period:3]
 + If you fail no number several occurrences of the same name, it will count as only one base glyph.
@@ -17,6 +19,7 @@ A definition can refer to as many glyphs as you want (in the limits of sanity of
 + For each definition, the script evaluates if the definition is valid, shown by a checkmark or cross next to the glyph’s name in the definition. It is shown as invalid if either the new glyph name doesn’t exist in the glyphOrder, or if the base glyph doesn’t exist in the font. Only in the second case will the script fail to build the new glyph.
 
 ![alt tag](build-derivatives.png)
+
 
 ## transfer-glyphs.py
 
