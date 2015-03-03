@@ -4,7 +4,7 @@
 # written by Loïc Sander
 # february 2015
 
-DGBVersion = '0.5.1'
+DGBVersion = '0.5.2'
 
 from math import tan, radians
 from mojo.events import addObserver, removeObserver
@@ -336,7 +336,7 @@ class DerivativeGlyphsBuilder:
                 self.updateDefinitionSheet(glyphName=glyphName, definition=glyphDefinition)
         self.derivatives = derivativesList
         self.storeGlyphDefinitions(self.derivatives)
-        self.updatePreview()
+        self.updatePreview(True)
 
     def selectDerivativeGlyph(self, sender):
         selection = sender.getSelection()
@@ -641,7 +641,7 @@ class DerivativeGlyphsBuilder:
         derivativeGlyphNames = [self.baseGlyphNames[index] for index in selection]
         self.w.inner.derivatives.set(derivativeGlyphNames)
 
-    def updatePreview(self):
+    def updatePreview(self, editedList=False):
         font = self.currentFont
         tempFont = self.tempFont
         selection = self.w.inner.derivatives.getSelection()
@@ -653,7 +653,7 @@ class DerivativeGlyphsBuilder:
             if index < len(self.derivatives):
                 definition = self.derivatives[index]
                 glyphName = definition['glyphName']
-                if glyphName in tempFont:
+                if glyphName in tempFont and not tempFont[glyphName].isEmpty() and not editedList:
                     g = tempFont[glyphName]
                 else:
                     g = self.makeGlyph(definition, tempFont)
