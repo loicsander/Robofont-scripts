@@ -201,10 +201,13 @@ class DerivativeGlyphsBuilder:
     def collectFontData(self, font):
 
         italicAngle = font.info.italicAngle
-        italicSlantOffset = font.lib['com.typemytype.robofont.italicSlantOffset']
-
         if italicAngle is None: italicAngle = 0
-        if italicSlantOffset is None: italicSlantOffset = 0
+
+        if font.lib.has_key('com.typemytype.robofont.italicSlantOffset'):
+            italicSlantOffset = font.lib['com.typemytype.robofont.italicSlantOffset']
+            if italicSlantOffset is None: italicSlantOffset = 0
+        else:
+            italicSlantOffset = 0
 
         self.tempFont = RFont(showUI=False)
 
