@@ -4,7 +4,7 @@
 # written by Loïc Sander
 # february 2015
 
-DGBVersion = '0.5.2'
+DGBVersion = '0.5.3'
 
 from math import tan, radians
 from mojo.events import addObserver, removeObserver
@@ -12,6 +12,13 @@ from mojo.UI import MultiLineView
 from defconAppKit.tools.textSplitter import splitText
 from vanilla import *
 from copy import deepcopy
+
+def getNumberFromString(item):
+    try:
+        n = float(item)
+        return ng
+    except:
+        return False
 
 def listFontNames(fontList):
     fontNames = []
@@ -200,9 +207,6 @@ class DerivativeGlyphsBuilder:
 
     def collectFontData(self, font):
 
-        italicAngle = font.info.italicAngle
-        if italicAngle is None: italicAngle = 0
-
         if font.lib.has_key('com.typemytype.robofont.italicSlantOffset'):
             italicSlantOffset = font.lib['com.typemytype.robofont.italicSlantOffset']
             if italicSlantOffset is None: italicSlantOffset = 0
@@ -211,7 +215,7 @@ class DerivativeGlyphsBuilder:
 
         self.tempFont = RFont(showUI=False)
 
-        self.tempFont.info.italicAngle = italicAngle
+        self.tempFont.info.italicAngle = font.info.italicAngle
         self.tempFont.lib['com.typemytype.robofont.italicSlantOffset'] = italicSlantOffset
 
         self.glyphOrder = font.lib['public.glyphOrder']
@@ -615,9 +619,9 @@ class DerivativeGlyphsBuilder:
 
     def validateReference(self, reference, axis):
         if axis == 'Y':
-            return reference in self.heights or reference in self.availableGlyphs
+            return reference in self.heights or reference in self.availableGlyphs or isinstance(getNumberFromString(reference), float)
         elif axis == 'X':
-            return reference in self.availableGlyphs
+            return reference in self.availableGlyphs or isinstance(getNumberFromString(reference), float)
 
     def validateGlyphDefinition(self, definition):
         currentFont, tempFont = self.currentFont, self.tempFont
@@ -671,6 +675,8 @@ class DerivativeGlyphsBuilder:
         glyphName = definition['glyphName']
         baseGlyphs = definition['baseGlyphs']
         baseGlyphRecords = definition['baseGlyphRecords']
+
+        if italicAngle is None: italicAngle = 0
 
         if glyphName in font:
             glyph = font[glyphName]
@@ -741,6 +747,8 @@ class DerivativeGlyphsBuilder:
                             h1 = referenceGlyph.box[1]
                         elif line == 'center':
                             h1 = ((referenceGlyph.box[3] - referenceGlyph.box[1]) / 2) + referenceGlyph.box[1]
+                else:
+                    h1 = getNumberFromString(reference)
                 if line == 'top':
                     h2 = baseDimensions['yTop']
                 elif line == 'bottom':
