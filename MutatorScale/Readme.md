@@ -1,6 +1,6 @@
 # MutatorScale
 
-[work in progress…]
+[work in progress… eventually, this will replace the lengthy chatter on ScaleFast]
 
 Here’s an introduction to MutatorScale, a code extension to Letterror’s MutatorMath and a scripting tool meant to be used inside Robofont.
 
@@ -36,17 +36,17 @@ scaler.set({
 })
 ```
 
-This way is less straightforward in terms of code but closer to the design. You provide the required elements that allow the MutatorScaleEngine to compute contextual scaling values.
+This way may seem less straightforward in terms of code but is closer to design. You provide the required elements that allow the MutatorScaleEngine to compute contextual scaling values.
 
-*width* corresponds to simple horizontal scaling and should be a float value akin to a percentage (100% == 1).
+**width** corresponds to simple horizontal scaling and should be a float value akin to a percentage (100% == 1).
 
-*referenceHeight* can be either a string or an number (float or int), but if it is a string, it should be a height reference meaningful to a font, vertical metrics for instances or glyph names (of which it will take the whole height).
+**referenceHeight** can be either a string or an number (float or int), but if it is a string, it should be a height reference meaningful to a font, vertical metrics for instances or glyph names (of which it will take the whole height).
 
-*targetHeight* is the height you wish to see your scaled glyphs have; should be a number (float or int).
+**targetHeight** is the height you wish to see your scaled glyphs have; should be a number (float or int).
 
-From these values, the MutatorScaleEngine computes proper scaling ratios. The interesting aspect in this approach is that the scaling ratios may vary among interpolation masters so that you can effectively interpolate glyphs from font with slightly different vertical metrics values for instance, and still obtain scaled glyphs at the exact proportion you asked for.
+From these values, the MutatorScaleEngine computes proper scaling ratios. The interesting aspect in this approach is that the scaling ratios may vary among interpolation masters so that you can effectively interpolate glyphs from font with slightly different vertical metrics/proportions for instance, and still obtain scaled glyphs at the exact proportion you asked for.
 
-Once scale is set and has fonts to work with, the MutatorScaleEngine is ready to produce scaled glyphs, on demand.
+Once scale and fonts are set to work with, the MutatorScaleEngine is ready to produce scaled glyphs, on demand.
 
 Now if we ask:
 
@@ -54,18 +54,18 @@ Now if we ask:
 scaledGlyph = scaler.getScaledGlyph(‘H’, stems)
 ```
 
-We get a new scaled letter H. With the glyphName, I’ve provided a stems variable and it is a crucial part of the process, so I’ll elaborate on that.
+We get a new scaled letter H. With the glyphName, I’ve also provided a **stems** variable and it is a crucial part of the process, so I’ll elaborate on that.
 
-When fonts are provided to a MutatorScaleEngine, it does a quick analysis on them to be able to place them in an interpolation scheme. It measures reference stems for each font so that you can later ask for scaled glyphs with a specific stem value. Working with stem values is arbitrary and you can actually override this if you’d rather work with some other values, but I’ll get into that later on.
+When fonts are provided to a MutatorScaleEngine, it does a quick analysis on them to be able to place them in an interpolation space. It measures reference stems for each font so that you can later ask for scaled glyphs with a specific stem value. Working with stem values is arbitrary and you can actually override this if you’d rather work with some other values, but I’ll get into that later on.
 
 Stems are measured on uppercase I and H, to get both a vertical and horizontal stem value of reference. Stem values aren’t collected for each and every glyph, that would require coding capabilities I don’t have. But you can still work your way out pretty well with these.
 
 As the reference values automatically gathered by the scaling engine are based on an H’s vertical and horizontal stems, you should use these as a reference when you scale glyphs and ask for specific stem values.
 
-In effet, if you ask:
+In effect, if you ask:
 
 ```python
 scaler.getScaledGlyph(‘H’, (100, 20))
 ```
 
-You’re asking for a scaled glyph ‘H’ that has 100 units for its vertical stems and 20 for its horizontal stems. If you ask for another glyph with these same values, you’re not asking to obtain that glyph with exactly these stem values but you’re asking for a scaled glyph, say ‘A’ with stems as they should be for an H with stem values of 100 and 20, vertically and horizontally, respectively. It may sound a bit confusing, but in fact, it’s relatively easy to get a hang of; all you have to do is keep track of an H’s stem values, the rest follows.
+You’re asking for a scaled glyph ‘H’ that has 100 units for its vertical stems and 20 for its horizontal stems. If you ask for another glyph with these same values, you’re not asking to obtain that glyph with exactly these stem values but you’re asking for a scaled glyph, say ‘A’, with stems as they will be next to an H with stem values of 100 and 20. It may sound a bit confusing, but in fact, it’s relatively easy to get a hang of; all you have to do in the end is keep track of an H’s stem values, the rest follows.
