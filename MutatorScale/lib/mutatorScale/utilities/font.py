@@ -1,6 +1,7 @@
 #coding=utf-8
 from __future__ import division
 
+from robofab.world import RGlyph
 from math import atan2, tan, hypot, cos
 from mojo.tools import IntersectGlyphWithLine
 
@@ -30,10 +31,15 @@ def getRefStems(font, slantedSection=False):
 
         if glyphName in font:
 
-            glyph = font[glyphName].copy()
+            baseGlyph = font[glyphName]
+            glyph = RGlyph()
+            pen = glyph.getPen()
+            baseGlyph.draw(pen)
             glyph.removeOverlap()
-            width = glyph.width
-            glyph.width = 2000
+            if glyphName == 'I':
+                width = 2000
+            elif glyphName == 'H':
+                width = baseGlyph.width
 
             xMin, yMin, xMax, yMax = glyph.box
             xCenter = width / 2
@@ -55,11 +61,13 @@ def getRefStems(font, slantedSection=False):
 
             intersections = IntersectGlyphWithLine(glyph, (refPoint1, refPoint2))
 
+            print glyphName, intersections
+
             (x1,y1), (x2,y2) = (intersections[0], intersections[-1])
 
             stemWidth = hypot(x2-x1, y2-y1)
             if i == 1: stemWidth = stemWidth * cos(angle)
-            stems.append(stemWidth)
+            stems.append(round(stemWidth))
 
         elif glyphName not in font:
             stems.append(None)
