@@ -2,7 +2,7 @@
 from __future__ import division
 
 from robofab.world import RGlyph
-from math import atan2, tan, hypot, cos
+from math import atan2, tan, hypot, cos, degrees
 from mojo.tools import IntersectGlyphWithLine
 
 def makeListFontName(font):
@@ -73,7 +73,7 @@ def getRefStems(font, slantedSection=False):
     return stems
 
 
-def getSlantAngle(font):
+def getSlantAngle(font, returnDegrees=False):
     '''
     Returns the probable slant/italic angle of a font measuring the slant of a capital I.
     '''
@@ -91,5 +91,9 @@ def getSlantAngle(font):
         if len(intersections) > 1:
             if len(intersections[0]) > 1 and len(intersections[1]) > 1:
                 (x1,y1), (x2,y2) = (intersections[0][0], intersections[1][0])
-                return atan2(x2-x1, y2-y1)
+                angle = atan2(x2-x1, y2-y1)
+                if returnDegrees == False:
+                    return angle
+                elif returnDegrees == True:
+                    return degrees(angle)
     return 0

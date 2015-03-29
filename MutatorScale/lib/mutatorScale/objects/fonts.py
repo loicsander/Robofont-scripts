@@ -2,7 +2,7 @@
 from __future__ import division
 
 from mutatorScale.objects.glyphs import MathGlyph
-from mutatorScale.utilities.fontUtils import makeListFontName, getRefStems
+from mutatorScale.utilities.fontUtils import makeListFontName, getRefStems, getSlantAngle
 
 class ScaleFont(object):
     '''
@@ -16,7 +16,8 @@ class ScaleFont(object):
         self.heights = {heightName:getattr(font.info, heightName) for heightName in ['capHeight','ascender','xHeight','descender']}
         self.name = '%s > %s' % (font.info.familyName, font.info.styleName)
         italicAngle = font.info.italicAngle
-        if italicAngle is None: italicAngle = 0
+        if italicAngle is None:
+            italicAngle = -getSlantAngle(font, True)
         self.italicAngle = italicAngle
         self.scale = scale
         if scale is not None:
