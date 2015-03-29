@@ -2,7 +2,7 @@
 from __future__ import division
 
 from mutatorScale.objects.glyphs import MathGlyph
-from mutatorScale.utilities.font import makeListFontName, getRefStems
+from mutatorScale.utilities.fontUtils import makeListFontName, getRefStems
 
 class ScaleFont(object):
     '''
@@ -94,6 +94,7 @@ class ScaleFont(object):
         # Skew to an upright position to prevent the slant angle from changing because of scaling
         if italicAngle:
             glyph.skewX(italicAngle)
+
         # Do the scaling
         glyph *= scale
         # Cancel scaling effect on components except for their offset values

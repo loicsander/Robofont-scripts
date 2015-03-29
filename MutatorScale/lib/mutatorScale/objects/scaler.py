@@ -9,8 +9,8 @@ from time import time
 
 from mutatorScale.objects.fonts import MutatorScaleFont
 from mutatorScale.objects.glyphs import errorGlyph
-from mutatorScale.utilities.font import makeListFontName
-from mutatorScale.utilities.numbers import mapValue
+from mutatorScale.utilities.fontUtils import makeListFontName
+from mutatorScale.utilities.numbersUtils import mapValue
 
 operationalTime = []
 
