@@ -206,10 +206,6 @@ smallH = mutator.getInstance( Location(stem=100) )
 
 Now we retrieved a scaled down ‘H’ glyph with weight identical to a unscaled ‘H’, and that’s the basic operation happening inside of a MutatorScaleEngine. 
 
-Here’s the difference compared with basic scaling:
-
-![alt tag](images/mutatorScale-2.png)
-
 ## Types of interpolation
 
 A MutatorScaleEngine will switch interpolation types depending on the fonts you provided and the stem values you’re asking for.
@@ -230,8 +226,8 @@ scaler.getScaledGlyph(‘H’, (100, 20))
 
 But you should be aware that this can lead to unwanted deformations and is far from being an ideal solutions. Still, used in reasonable amounts, it can produce almost final results. 
 
+*(When you go too far with anisotropic interpolation)*
 ![alt tag](images/mutatorScale-4.png)
-Gone too far with anisotropic interpolation
 
 Last but not least, you the scaling is best done with masters on both weight and contrast axes. This is the use case in which you will sometimes have results that require very little or no correction at all. A MutatorScaleEngine determines by itself if conditions are met to interpolate on two axes rather than anisotropically.
 
