@@ -24,10 +24,7 @@ def getRefStems(font, slantedSection=False):
     The method intersets the thick stem of a capital I and thin stem of a capital H.
     '''
     stems = []
-    if slantedSection == True:
-        angle = getSlantAngle(font)
-    else:
-        angle = 0
+    angle = getSlantAngle(font)
 
     for i, glyphName in enumerate(['I','H']):
 
@@ -36,6 +33,7 @@ def getRefStems(font, slantedSection=False):
             glyph = font[glyphName].copy()
             glyph.removeOverlap()
             width = glyph.width
+            glyph.width = 2000
 
             xMin, yMin, xMax, yMax = glyph.box
             xCenter = width / 2
@@ -43,8 +41,12 @@ def getRefStems(font, slantedSection=False):
 
             # glyph I, cut thick stem
             if i == 0:
-                refPoint1 = (0, yCenter + (xCenter * tan(angle)))
-                refPoint2 = (width, yCenter - (xCenter * tan(angle)))
+                if slantedSection == False:
+                    sectionAngle = 0
+                else:
+                    sectionAngle = angle
+                refPoint1 = (0, yCenter + (xCenter * tan(sectionAngle)))
+                refPoint2 = (width, yCenter - (xCenter * tan(sectionAngle)))
 
             # glyph H, cut thin stem
             elif i == 1:
@@ -52,6 +54,8 @@ def getRefStems(font, slantedSection=False):
                 refPoint2 = (xCenter, yMin)
 
             intersections = IntersectGlyphWithLine(glyph, (refPoint1, refPoint2))
+
+            print glyphName, intersections
 
             (x1,y1), (x2,y2) = (intersections[0], intersections[-1])
 

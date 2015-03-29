@@ -7,10 +7,10 @@ from mutatorMath.objects.mutator import buildMutator
 
 from time import time
 
-from meus.mutatorScale.objects.fonts import MutatorScaleFont
-from meus.mutatorScale.objects.glyphs import errorGlyph
-from meus.mutatorScale.utilities.font import makeListFontName
-from meus.mutatorScale.utilities.numbers import mapValue
+from mutatorScale.objects.fonts import MutatorScaleFont
+from mutatorScale.objects.glyphs import errorGlyph
+from mutatorScale.utilities.font import makeListFontName
+from mutatorScale.utilities.numbers import mapValue
 
 operationalTime = []
 
