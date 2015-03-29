@@ -202,7 +202,7 @@ b, mutator = buildMutator(masters)
 smallH = mutator.getInstance( Location(stem=100) )
 ```
 
-![alt tag][images/mutatorScale-5.png]
+![alt tag](images/mutatorScale-5.png)
 
 Now we retrieved a scaled down ‘H’ glyph with weight identical to a unscaled ‘H’, and that’s the basic operation happening inside of a MutatorScaleEngine.
 
