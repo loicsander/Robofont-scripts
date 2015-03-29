@@ -8,6 +8,7 @@ Its function is to build an interpolation design space, based on MutatorMath, wi
 
 Nota Bene: It is the same idea as in my ScaleFast extension for Robofont, only this version of the code is better written and can be used via scripting. I intend to update ScaleFast with this in a not too distant future.
 
+![alt tag](images/mutatorScale-1.png)
 ![alt tag](images/mutatorScale-6.png)
 
 ## Overview
@@ -87,7 +88,7 @@ Quite often with glyph interpolation, we use Location values that correspond to 
 
 On top of MutatorMath, the only thing done my a MutatorScaleEngine is to use a interpolation space containing scaled glyphs, defining master Locations by their scaled stem values and asking for instances with unscaled stem values.
 
-Let’s say I have two masters, a Regular and a Bold. In the regular weight, an H’s vertical stem is 100 units wide, and in the bold weight, 200 units. If I’d like to obtain a regular small capital H with vertical stems of 100 units and scaled down 85% in width and 80% in height, here’s what I have to do:
+Let’s say I have two masters, a Regular and a Bold. In the regular weight, an H’s vertical stem is 100 units wide, and in the bold weight, 200 units. If I’d like to obtain a regular small capital H with vertical stems of 100 units, scaled down 85% in width and 80% in height, here’s what I have to do:
 
 ```python
 
@@ -121,7 +122,7 @@ Now we retrieved a scaled down ‘H’ glyph with weight identical to a unscaled
 
 ## Types of interpolation
 
-A MutatorScaleEngine will switch interpolation types depending on the fonts you provided and the stem values you’re asking for.
+A MutatorScaleEngine will switch from one interpolation type to another according to the fonts you provided and the stem values you’re asking for.
 
 The most basic mode is isotropic, it happens if you provide a single value for stems:
 
@@ -137,11 +138,9 @@ You can get better result if you work with anisotropic interpolation, providing 
 scaler.getScaledGlyph(‘H’, (100, 20))
 ```
 
-But you should be aware that this can lead to unwanted deformations and is far from being an ideal solutions. Still, used in reasonable amounts, it can produce almost final results. 
+But you should be aware that this can lead to ugly deformations if pushed too far; it’s not a ideal solution. Still, used with reason, it can produce close to final results. 
 
 *(When you go too far with anisotropic interpolation)*
 ![alt tag](images/mutatorScale-4.png)
 
 Last but not least, the scaling is best done with masters for both weight and contrast. This is the use case in which you will get results that require very little or no correction at all, most of the time. A MutatorScaleEngine determines by itself if conditions are met to interpolate on two axes rather than anisotropically.
-
-![alt tag](images/mutatorScale-1.png)
