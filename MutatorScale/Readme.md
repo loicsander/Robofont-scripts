@@ -1,6 +1,6 @@
 # MutatorScale
 
-[work in progress… eventually, this will replace the lengthy chatter on ScaleFast]
+*[work in progress… eventually, this will replace the lengthy chatter on ScaleFast]*
 
 Here’s an introduction to MutatorScale, a code extension to Letterror’s MutatorMath and a scripting tool meant to be used inside Robofont.
 
@@ -73,3 +73,139 @@ scaler.getScaledGlyph(‘H’, (100, 20))
 ```
 
 You’re asking for a scaled glyph ‘H’ that has 100 units for its vertical stems and 20 for its horizontal stems. If you ask for another glyph with these same values, you’re not asking to obtain that specific glyph with exactly these stem values but you’re asking for a scaled glyph, say ‘A’, with stems as they should consistently be next to an H with stem values of 100 and 20.
+
+## Going Deeper
+
+Here I’ll focus on what’s happening inside a MutatorScaleEngine.  As the name indicates, I got the idea from using MutatorMath and MutatorScale depends totally on MutatorMath’s mojo.
+
+To understand how glyphs are scaled down and corrected, you should first grasp how MutatorMath functions even if it’s just a general understanding.
+
+The whole point of MutatorMath is to define a design space for interpolation. The word *space* is meant quite literally here because one of the key objects of MutatorMath is a **Location**. 
+With well defined key Locations (= masters), you obtain an axis on which you can move and retrieve interpolated information.
+
+The simplest design space one could think of probably looks something like this:
+
+```
+myAxis
+0 – – – – – – – – – 10
+```
+
+Here’s an axis defined by two key Locations with values of 0 and 10. However far you go into mutatorMath, interpolating glyphs, kerning, whole fonts, etc. it always comes down to numbers on a line.
+
+The axis also has a name because we might have only one for now, but a MutatorMath design space can contain as many axes as you want.
+
+Defining such an axis is almost as easy as defining two locations, like this:
+
+```python
+Location(myAxis=0)
+Location(myAxis=10)
+```
+
+Now we have key Locations, but to turn these in masters, we need to link these Locations to data, and this data has to be able to function like a number, or simply, be a number.
+
+So, let’s represent the axis with masters, like this:
+
+```
+myAxis
+Locations      0 – – – – – – – – – 10
+               |                    |
+Master values  0 – – – – – – – – – 20
+```
+
+Now that an axis is properly defined, you can ask MutatorMath to provide you a value for any Location along that axis. This axis is quite simple, it maps Locations to numbers that double the value of a Location’s position.
+
+```
+myAxis
+Locations      0 – – – – – – – 8 – 10
+               |                    |
+Master values  0 – – – – – – – ? – 20
+```
+
+So if you now ask for the value of this Location(myAxis=8), MutatorMath will return 16. This returned value, 16, is called an instance.
+
+Here’s how you write the whole thing above:
+
+```python
+# Make a list of masters
+# Each master must be defined by 1. a Location, 2. a master (value)
+
+masters = [
+	(Location(myAxis=0),   0),
+	(Location(myAxis=10), 20)
+]
+
+# Here comes MutatorMath
+
+b, mutator = buildMutator(masters)
+
+# Now that a mutator is built, with the masters you provided, you can ask it for instances at a specific Location
+
+
+instance = mutator.getInstance( Location(myAxis=8) )
+
+> 16
+```
+
+Now let’s up our game. If I do the same, but using glyphs instead of numbers as master values, I can build the following:
+
+```
+myWeightAxis
+Locations      0 – – – – – – – - – 100
+               |                    |
+Master values  a – – – – – – – - –  a
+
+               R											B
+							 e                    o
+							 g                    l
+							 u                    d
+							 l
+							 a
+							 r                    
+```
+
+Now, if I build a mutator as I did above, getting an interpolated glyph is as simple as:
+
+```python
+interpolatedGlyph = mutator.getInstance( Location(myWeightAxis=50) )
+```
+
+Most of the time with glyph interpolation, we use Location values that correspond to some weight measuring system (0 to 1000, 100 Thin, 300 Light, 400 Regular, etc.). But the numbers you use for locations can be anything. In MutatorScale I used stem values because that’s the thing I wanted to keep track of. If you build a mutator with stem values, you can effectively ask for an interpolated glyph with specific stem values.
+
+From this starting point, the only additional thing done my a MutatorScaleEngine is to build a mutatorMath space of scaled glyphs, defining masters by their scaled stem values and asking for instances with unscaled stem values.
+
+Let’s say I have two masters, a Regular and a Bold. In the regular weight, an H’s vertical stem is 100 units wide, and in the bold weight, 200 units. If I’d like to obtain a regular small capital H with vertical stems of 100 units and scaled down half, here’s what I have to do:
+
+```python
+
+# Scale down master glyphs half
+regular_H.scale(0.5)
+bold_H.scale(0.5)
+
+# Calculate scaled down stem values
+scaled_regularStem = 100 * 0.5 # = 50
+scaled_boldStem = 200 * 0.5 # = 100
+
+# List masters with scaled glyph and scaled stem values
+
+masters = [
+	( Location(stem=scaled_regularStem), regular_H ),
+	( Location(stem=scaled_boldStem), bold_H )
+]
+
+# Build a mutator of these scaled elements
+
+b, mutator = buildMutator(masters)
+
+# Ask for an instance of a scaled glyphs with an unscaled stem value, 100 for regular
+
+smallH = mutator.getInstance( Location(stem=100) )
+```
+
+Now we retrieved a scaled down ‘H’ glyph with weight identical to a unscaled ‘H’, and that’s the basic operation happening inside of a MutatorScaleEngine. 
+
+## Interpolation types
+
+*[to do]*
+
+
+
