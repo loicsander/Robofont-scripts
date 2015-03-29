@@ -81,9 +81,9 @@ Here I’ll focus on what’s happening inside a MutatorScaleEngine.  As the nam
 To understand how glyphs are scaled down and corrected, you should first grasp how MutatorMath functions even if it’s just a general understanding.
 
 The whole point of MutatorMath is to define a design space for interpolation. The word *space* is meant quite literally here because one of the key objects of MutatorMath is a **Location**.
-With well defined key Locations (= masters), you obtain an axis on which you can move and retrieve interpolated information.
+With well defined key Locations (= masters), you obtain an axis on which you can move and retrieve interpolated data.
 
-The simplest design space one could think of probably looks something like this:
+A simple design space could look something like this:
 
 ```
 myAxis
@@ -92,8 +92,6 @@ myAxis
 
 Here’s an axis defined by two key Locations with values of 0 and 10. However far you go into mutatorMath, interpolating glyphs, kerning, whole fonts, etc. it always comes down to numbers on a line.
 
-The axis also has a name because we might have only one for now, but a MutatorMath design space can contain as many axes as you want.
-
 Defining such an axis is almost as easy as defining two locations, like this:
 
 ```python
@@ -101,7 +99,7 @@ Location(myAxis=0)
 Location(myAxis=10)
 ```
 
-Now we have key Locations, but to turn these in masters, we need to link these Locations to data, and this data has to be able to function like a number, or simply, be a number.
+Now we have key Locations, but to turn these into masters, we need to link these Locations to data, and this data has to be able to function like a number, or simply, be a number.
 
 So, let’s represent the axis with masters, like this:
 
@@ -229,6 +227,6 @@ But you should be aware that this can lead to unwanted deformations and is far f
 *(When you go too far with anisotropic interpolation)*
 ![alt tag](images/mutatorScale-4.png)
 
-Last but not least, you the scaling is best done with masters on both weight and contrast axes. This is the use case in which you will sometimes have results that require very little or no correction at all. A MutatorScaleEngine determines by itself if conditions are met to interpolate on two axes rather than anisotropically.
+Last but not least, the scaling is best done with masters for both weight and contrast. This is the use case in which you will get results that require very little or no correction at all, most of the time. A MutatorScaleEngine determines by itself if conditions are met to interpolate on two axes rather than anisotropically.
 
 ![alt tag](images/mutatorScale-1.png)
