@@ -56,13 +56,13 @@ Now if we ask:
 scaledGlyph = scaler.getScaledGlyph(‘H’, stems)
 ```
 
-We get a new scaled letter H. 
+We get a new scaled letter H.
 
 With **glyphName** (‘H’ or ‘a’), I’ve also provided a **stems** variable and it is a crucial part of the process, so I’ll elaborate on that.
 
 When fonts are provided to a MutatorScaleEngine, it does a quick analysis to be able to place them in an interpolation space. It measures reference stems for each font so that you can later ask for scaled glyphs with a specific stem value. Working with stem values is arbitrary and you can actually override this if you’d rather work with some other values that are more meaningful to you, but I’ll get into that later on.
 
-Stems are measured on uppercase I and H, to get both a vertical and horizontal stem value of reference. 
+Stems are measured on uppercase I and H, to get both a vertical and horizontal stem value of reference.
 
 As reference values are based on an H’s vertical and horizontal stems, you should use these as a reference when you scale glyphs and ask for specific stem values.
 
@@ -80,7 +80,7 @@ Here I’ll focus on what’s happening inside a MutatorScaleEngine.  As the nam
 
 To understand how glyphs are scaled down and corrected, you should first grasp how MutatorMath functions even if it’s just a general understanding.
 
-The whole point of MutatorMath is to define a design space for interpolation. The word *space* is meant quite literally here because one of the key objects of MutatorMath is a **Location**. 
+The whole point of MutatorMath is to define a design space for interpolation. The word *space* is meant quite literally here because one of the key objects of MutatorMath is a **Location**.
 With well defined key Locations (= masters), you obtain an axis on which you can move and retrieve interpolated information.
 
 The simplest design space one could think of probably looks something like this:
@@ -138,7 +138,8 @@ masters = [
 
 b, mutator = buildMutator(masters)
 
-# Now that a mutator is built, with the masters you provided, you can ask it for instances at a specific Location
+# Now that a mutator is built, with the masters you provided,
+# you can ask it for instances at a specific Location
 
 
 instance = mutator.getInstance( Location(myAxis=8) )
@@ -154,13 +155,13 @@ Locations      0 – – – – – – – - – 100
                |                    |
 Master values  a – – – – – – – - –  a
 
-               R											B
-							 e                    o
-							 g                    l
-							 u                    d
-							 l
-							 a
-							 r                    
+               R				    B
+			   e                    o
+			   g                    l
+			   u                    d
+               l
+               a
+               r
 ```
 
 Now, if I build a mutator as I did above, getting an interpolated glyph is as simple as:
@@ -173,17 +174,17 @@ Most of the time with glyph interpolation, we use Location values that correspon
 
 From this starting point, the only additional thing done my a MutatorScaleEngine is to build a mutatorMath space of scaled glyphs, defining masters by their scaled stem values and asking for instances with unscaled stem values.
 
-Let’s say I have two masters, a Regular and a Bold. In the regular weight, an H’s vertical stem is 100 units wide, and in the bold weight, 200 units. If I’d like to obtain a regular small capital H with vertical stems of 100 units and scaled down half, here’s what I have to do:
+Let’s say I have two masters, a Regular and a Bold. In the regular weight, an H’s vertical stem is 100 units wide, and in the bold weight, 200 units. If I’d like to obtain a regular small capital H with vertical stems of 100 units and scaled down 85% in width and 80% in height, here’s what I have to do:
 
 ```python
 
 # Scale down master glyphs half
-regular_H.scale(0.5)
-bold_H.scale(0.5)
+regular_H.scale((0.85, 0.8))
+bold_H.scale((0.85, 0.8))
 
 # Calculate scaled down stem values
-scaled_regularStem = 100 * 0.5 # = 50
-scaled_boldStem = 200 * 0.5 # = 100
+scaled_regularStem = 100 * 0.85 # = 85
+scaled_boldStem = 200 * 0.85 # = 170
 
 # List masters with scaled glyph and scaled stem values
 
@@ -201,7 +202,9 @@ b, mutator = buildMutator(masters)
 smallH = mutator.getInstance( Location(stem=100) )
 ```
 
-Now we retrieved a scaled down ‘H’ glyph with weight identical to a unscaled ‘H’, and that’s the basic operation happening inside of a MutatorScaleEngine. 
+![alt][images/mutatorScale-5.png]
+
+Now we retrieved a scaled down ‘H’ glyph with weight identical to a unscaled ‘H’, and that’s the basic operation happening inside of a MutatorScaleEngine.
 
 ## Interpolation types
 
