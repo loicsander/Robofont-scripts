@@ -83,94 +83,9 @@ To understand how glyphs are scaled down and corrected, you should first grasp h
 The whole point of MutatorMath is to define a design space for interpolation. The word *space* is meant quite literally here because one of the key objects of MutatorMath is a **Location**.
 With well defined key Locations (= masters), you obtain an axis on which you can move and retrieve interpolated data.
 
-A simple design space could look something like this:
+Quite often with glyph interpolation, we use Location values that correspond to some weight pacing system (0 to 1000, 100 Thin, 300 Light, 400 Regular, etc.). But the numbers you use for locations can be anything. In MutatorScale I used stem values because that’s the thing I wanted to keep track of. If you build a mutator with stem values, you can effectively ask for an interpolated glyph with specific stem values.
 
-```
-myAxis
-0 – – – – – – – – – 10
-```
-
-Here’s an axis defined by two key Locations with values of 0 and 10. However far you go into mutatorMath, interpolating glyphs, kerning, whole fonts, etc. it always comes down to numbers on a line.
-
-Defining such an axis is almost as easy as defining two locations, like this:
-
-```python
-Location(myAxis=0)
-Location(myAxis=10)
-```
-
-Now we have key Locations, but to turn these into masters, we need to link these Locations to data, and this data has to be able to function like a number, or simply, be a number.
-
-So, let’s represent the axis with masters, like this:
-
-```
-myAxis
-Locations      0 – – – – – – – – – 10
-               |                    |
-Master values  0 – – – – – – – – – 20
-```
-
-Now that an axis is properly defined, you can ask MutatorMath to provide you a value for any Location along that axis. This axis is quite simple, it maps Locations to numbers that double the value of a Location’s position.
-
-```
-myAxis
-Locations      0 – – – – – – – 8 – 10
-               |                    |
-Master values  0 – – – – – – – ? – 20
-```
-
-So if you now ask for the value of this Location(myAxis=8), MutatorMath will return 16. This returned value, 16, is called an instance.
-
-Here’s how you write the whole thing above:
-
-```python
-# Make a list of masters
-# Each master must be defined by 1. a Location, 2. a master (value)
-
-masters = [
-	(Location(myAxis=0),   0),
-	(Location(myAxis=10), 20)
-]
-
-# Here comes MutatorMath
-
-b, mutator = buildMutator(masters)
-
-# Now that a mutator is built, with the masters you provided,
-# you can ask it for instances at a specific Location
-
-
-instance = mutator.getInstance( Location(myAxis=8) )
-
-> 16
-```
-
-Now let’s up our game. If I do the same, but using glyphs instead of numbers as master values, I can build the following:
-
-```
-myWeightAxis
-Locations      0 – – – – – – – - – 100
-               |                    |
-Master values  a – – – – – – – - –  a
-
-               R				    B
-			   e                    o
-			   g                    l
-			   u                    d
-               l
-               a
-               r
-```
-
-Now, if I build a mutator as I did above, getting an interpolated glyph is as simple as:
-
-```python
-interpolatedGlyph = mutator.getInstance( Location(myWeightAxis=50) )
-```
-
-Most of the time with glyph interpolation, we use Location values that correspond to some weight measuring system (0 to 1000, 100 Thin, 300 Light, 400 Regular, etc.). But the numbers you use for locations can be anything. In MutatorScale I used stem values because that’s the thing I wanted to keep track of. If you build a mutator with stem values, you can effectively ask for an interpolated glyph with specific stem values.
-
-From this starting point, the only additional thing done my a MutatorScaleEngine is to build a mutatorMath space of scaled glyphs, defining masters by their scaled stem values and asking for instances with unscaled stem values.
+On top of MutatorMath, the only thing done my a MutatorScaleEngine is to use a interpolation space containing scaled glyphs, defining master Locations by their scaled stem values and asking for instances with unscaled stem values.
 
 Let’s say I have two masters, a Regular and a Bold. In the regular weight, an H’s vertical stem is 100 units wide, and in the bold weight, 200 units. If I’d like to obtain a regular small capital H with vertical stems of 100 units and scaled down 85% in width and 80% in height, here’s what I have to do:
 
