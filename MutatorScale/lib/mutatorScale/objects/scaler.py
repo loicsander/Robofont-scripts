@@ -7,10 +7,10 @@ from mutatorMath.objects.mutator import buildMutator
 
 from time import time
 
-from mutatorScale.objects.fonts import MutatorScaleFont
-from mutatorScale.objects.glyphs import errorGlyph
-from mutatorScale.utilities.font import makeListFontName
-from mutatorScale.utilities.numbers import mapValue
+from meus.mutatorScale.objects.fonts import MutatorScaleFont
+from meus.mutatorScale.objects.glyphs import errorGlyph
+from meus.mutatorScale.utilities.font import makeListFontName
+from meus.mutatorScale.utilities.numbers import mapValue
 
 operationalTime = []
 
@@ -54,7 +54,6 @@ class MutatorScaleEngine:
     def __init__(self, masterFonts=[], stemsWithSlantedSection=False):
         self.masters = {}
         self._currentScale = None
-        self._anisotropic = False
         self.stemsWithSlantedSection = stemsWithSlantedSection
         for font in masterFonts:
             self.addMaster(font)
@@ -77,32 +76,6 @@ class MutatorScaleEngine:
 
     def __contains__(self, fontName):
         return fontName in self.masters
-
-    @property
-    def anisotropic(self):
-        return self._anisotropic
-
-    def setAnisotropic(self, value):
-        self._anisotropic = value
-
-    @property
-    def mode(self):
-        '''
-        Returns the current interpolation mode,
-        determined both by what masters allow and the user-defined value of self.anisotropic.
-        '''
-        masters = self.masters
-        mode = 'isotropic'
-
-        hstems = [master.hstem for name, master in masters.items()]
-        twoAxis = self._checkForTwoAxes(hstems)
-
-        if twoAxis == True:
-            mode = 'two-axes'
-        elif twoAxis == False and self.anisotropic == True:
-            mode = 'anisotropic'
-
-        return mode
 
     def set(self, scalingParameters):
         '''
@@ -144,20 +117,12 @@ class MutatorScaleEngine:
         if self.masters.has_key(name):
             self.masters.pop(name, 0)
 
-    def getScaledGlyph(self, glyphName, targetStems):
+    def getScaledGlyph(self, glyphName, stemTarget):
         '''
         Returns an interpolated & scaled glyph according to set parameters and given masters.
         '''
         masters = self.masters.values()
-        mode = self.mode
-
-        try:
-            targetVstem, targetHstem = targetStems
-        except:
-            targetVstem, targetHstem = targetStems, targetStems
-
-        # gather master elements, fonts, then glyphs.
-
+        twoAxes = self.checkForTwoAxes(masters)
         mutatorMasters = []
         yScales = []
 
@@ -179,7 +144,7 @@ class MutatorScaleEngine:
                 if glyphName in master:
                     masterGlyph = master[glyphName]
 
-                    if mode == 'two-axes':
+                    if twoAxes == True:
                         axis = {
                             'vstem': master.vstem * xScale,
                             'hstem': master.hstem * yScale
@@ -192,7 +157,7 @@ class MutatorScaleEngine:
                     mutatorMasters.append((Location(**axis), masterGlyph))
 
             medianYscale = sum(yScales) / len(yScales)
-            targetLocation = self._getTargetLocation(targetVstem, targetHstem, masters, mode, (xScale, medianYscale))
+            targetLocation = self._getTargetLocation(stemTarget, masters, twoAxes, (xScale, medianYscale))
 
             instanceGlyph = self._getInstanceGlyph(targetLocation, mutatorMasters)
             instanceGlyph.round()
@@ -216,25 +181,36 @@ class MutatorScaleEngine:
         except:
             return
 
-    def _getTargetLocation(self, vstem, hstem, masters, mode, (xScale, yScale)):
+    def _getTargetLocation(self, stemTarget, masters, twoAxes, (xScale, yScale)):
         '''
         Returns a proper Location object for a scaled glyph instance,
         the essential part lies in the conversion of stem values,
         so that in anisotropic mode, a MutatorScaleEngine can attempt to produce
         a glyph with proper stem widths without requiring two-axes interpolation.
         '''
-        if mode == 'anisotropic':
-            vStems = [master.vstem*xScale for master in masters]
-            hStems = [master.hstem*yScale for master in masters]
-            (minVStem, minStemIndex), (maxVStem, maxStemIndex) = self._getExtremes(vStems)
-            vStemSpan = (minVStem, maxVStem)
-            hStemSpan = hStems[minStemIndex], hStems[maxStemIndex]
-            newHstem = mapValue(hstem, hStemSpan, vStemSpan)
-            return Location(stem=(vstem, newHstem))
-        elif mode == 'two-axes':
-            return Location(vstem=vstem, hstem=hstem)
+
+        targetVstem, targetHstem = None, None
+
+        try: targetVstem, targetHstem = stemTarget
+        except: targetVstem = stemTarget
+
+        if targetHstem is not None:
+
+            if twoAxes == False:
+                vStems = [master.vstem*xScale for master in masters]
+                hStems = [master.hstem*yScale for master in masters]
+                (minVStem, minStemIndex), (maxVStem, maxStemIndex) = self._getExtremes(vStems)
+                vStemSpan = (minVStem, maxVStem)
+                hStemSpan = hStems[minStemIndex], hStems[maxStemIndex]
+                newHstem = mapValue(targetHstem, hStemSpan, vStemSpan)
+                return Location(stem=(targetVstem, newHstem))
+
+            elif twoAxes == True:
+                return Location(vstem=targetVstem, hstem=targetHstem)
+
         else:
-            return Location(stem=vstem)
+
+            return Location(stem=targetVstem)
 
     def _getExtremes(self, values):
         '''
@@ -252,7 +228,12 @@ class MutatorScaleEngine:
             return smallest, largest
         return
 
-    def _checkForTwoAxes(self, values):
+    def checkForTwoAxes(self, masters=None):
+
+        if masters is None:
+            masters = self.masters.values()
+        values = [master.hstem for master in masters]
+
         '''
         Checking if the conditions are met to have two-axis interpolation:
         1. At least two identical values (to bind a new axis to the first axis)
