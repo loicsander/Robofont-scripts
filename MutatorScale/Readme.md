@@ -178,7 +178,7 @@ Let’s say I have two masters, a Regular and a Bold. In the regular weight, an 
 
 ```python
 
-# Scale down master glyphs half
+# Scale down master glyphs to 0.85 width and 0.8 height
 regular_H.scale((0.85, 0.8))
 bold_H.scale((0.85, 0.8))
 
@@ -202,7 +202,7 @@ b, mutator = buildMutator(masters)
 smallH = mutator.getInstance( Location(stem=100) )
 ```
 
-![alt][images/mutatorScale-5.png]
+![alt tag][images/mutatorScale-5.png]
 
 Now we retrieved a scaled down ‘H’ glyph with weight identical to a unscaled ‘H’, and that’s the basic operation happening inside of a MutatorScaleEngine.
 
