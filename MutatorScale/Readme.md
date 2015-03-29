@@ -208,7 +208,17 @@ Now we retrieved a scaled down ‘H’ glyph with weight identical to a unscaled
 
 ## Interpolation types
 
-*[to do]*
+The quality of results you get out of this process depends greatly on the specificities of the fonts you interpolate and the type of interpolation they allow.
 
+A MutatorScaleEngine can interpolate three different ways. The simpler interpolation, isotropic, describes a progression of interpolated values that move at the same pace between masters. To make this understandable, the simplest example is that of a point in any geometric element, made of two values, x and y.
+
+To interpolate between two points, you interpolate their coordinate values simultaneously. If we have two points with values x:100, y:200 for the first one and x:150, y:300 for the second one, here’s how interpolation will look in between:
+
+```
+X
+**100** 110 120 130 140 **150**
+Y
+**200** 220 240	260	280 **300**
+```
 
 
