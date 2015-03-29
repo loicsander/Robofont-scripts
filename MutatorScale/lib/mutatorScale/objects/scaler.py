@@ -82,13 +82,20 @@ class MutatorScaleEngine:
         Defining the scaling parameters.
         '''
 
+        scale = (1, 1)
+
+        if scalingParameters.has_key('width'):
+            width = scalingParameters['width']
+            scale = (width, 1)
+        else:
+            width = 1
+
         if scalingParameters.has_key('scale'):
             scale = scalingParameters['scale']
             if isinstance(scale, (float, int)):
                 scale = (scale, scale)
 
-        elif scalingParameters.has_key('width') and scalingParameters.has_key('targetHeight') and scalingParameters.has_key('referenceHeight'):
-            width = scalingParameters['width']
+        elif  scalingParameters.has_key('targetHeight') and scalingParameters.has_key('referenceHeight'):
             targetHeight = scalingParameters['targetHeight']
             referenceHeight = scalingParameters['referenceHeight']
             scale = (width, targetHeight, referenceHeight)
