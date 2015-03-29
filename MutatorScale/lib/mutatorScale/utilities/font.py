@@ -61,8 +61,6 @@ def getRefStems(font, slantedSection=False):
 
             intersections = IntersectGlyphWithLine(glyph, (refPoint1, refPoint2))
 
-            print glyphName, intersections
-
             (x1,y1), (x2,y2) = (intersections[0], intersections[-1])
 
             stemWidth = hypot(x2-x1, y2-y1)
