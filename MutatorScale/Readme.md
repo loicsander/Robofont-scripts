@@ -122,7 +122,7 @@ Now we retrieved a scaled down ‘H’ glyph with weight identical to a unscaled
 
 ## Types of interpolation
 
-A MutatorScaleEngine will switch from one interpolation type to another according to the fonts you provided and the stem values you’re asking for.
+A MutatorScaleEngine will switch from one interpolation type to another according to the fonts you provide and the stem values you’re asking for.
 
 The most basic mode is isotropic, it happens if you provide a single value for stems:
 
@@ -138,7 +138,7 @@ You can get better result if you work with anisotropic interpolation, providing 
 scaler.getScaledGlyph(‘H’, (100, 20))
 ```
 
-But you should be aware that this can lead to ugly deformations if pushed too far; it’s not a ideal solution. Still, used with reason, it can produce close to final results with some designs. 
+But you should be aware that this can lead to ugly deformations if pushed too far; it’s not an ideal solution. Still, used with reason, it can produce close to final results with some designs. 
 
 *(When you go too far with anisotropic interpolation)*
 ![alt tag](images/mutatorScale-4.png)

@@ -29,7 +29,7 @@ class ClockwiseTestPointPen(AbstractPointPen):
         total = 0
 
         for index1 in xrange(pointCount):
-            index2 = (index1 + 1) % length
+            index2 = (index1 + 1) % pointCount
             x1, y1 = points[index1]
             x2, y2 = points[index2]
             total += (x1*y2)-(x2*y1)

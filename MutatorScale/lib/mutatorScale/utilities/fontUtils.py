@@ -55,10 +55,13 @@ def getRefStems(font, slantedSection=False):
             elif i == 1:
                 intersections = intersect(glyph, xCenter, False)
 
-            (x1,y1), (x2,y2) = (intersections[0], intersections[-1])
+            if len(intersections) > 1:
+                (x1,y1), (x2,y2) = (intersections[0], intersections[-1])
 
-            stemWidth = hypot(x2-x1, y2-y1)
-            stems.append(round(stemWidth))
+                stemWidth = hypot(x2-x1, y2-y1)
+                stems.append(round(stemWidth))
+            else:
+                stems.append(None)
 
         elif glyphName not in font:
             stems.append(None)
@@ -135,10 +138,12 @@ def intersect(glyph, where, isHorizontal):
 
             if length == 2:
                 pt1, pt2 = segment
-                returnedSegments = splitLine(pt1, pt2, where, isHorizontal)
+                returnedSegments = splitLine(pt1, pt2, where, int(isHorizontal))
             elif length == 4:
                 pt1, pt2, pt3, pt4 = segment
-                returnedSegments = splitCubic(pt1, pt2, pt3, pt4, where, isHorizontal)
+                returnedSegments = splitCubic(pt1, pt2, pt3, pt4, where, int(isHorizontal))
+
+            print len(returnedSegments)
 
             if len(returnedSegments) > 1:
                 intersectionPoints = findDuplicatePoints(returnedSegments)

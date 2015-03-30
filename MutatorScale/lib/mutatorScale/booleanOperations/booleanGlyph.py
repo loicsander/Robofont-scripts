@@ -166,7 +166,7 @@ class BooleanGlyph(object):
         return SegmentToPointPen(self.getPointPen())
 
     def getPointPen(self):
-        from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen
+        # from defcon.pens.glyphObjectPointPen import GlyphObjectPointPen
         return BooleanGlyphDataPointPen(self)
 
     ## boolean operations
