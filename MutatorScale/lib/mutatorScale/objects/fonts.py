@@ -4,6 +4,9 @@ from __future__ import division
 from mutatorScale.objects.glyphs import MathGlyph
 from mutatorScale.utilities.fontUtils import makeListFontName, getRefStems, getSlantAngle
 
+from time import time
+operationalTime = []
+
 class ScaleFont(object):
     '''
     Object acting partly like a font, i.e. a collection of glyphs.
@@ -11,8 +14,8 @@ class ScaleFont(object):
     '''
 
     def __init__(self, font, scale=None):
-        self.font = font
-        self.glyphs = {glyph.name:glyph for glyph in font}
+        start = time()
+        self.glyphs = {glyph.name:glyph for glyph in font if (not glyph.isEmpty() and not 'space' in glyph.name)}
         self.heights = {heightName:getattr(font.info, heightName) for heightName in ['capHeight','ascender','xHeight','descender']}
         self.name = '%s > %s' % (font.info.familyName, font.info.styleName)
         italicAngle = font.info.italicAngle
@@ -22,6 +25,8 @@ class ScaleFont(object):
         self.scale = scale
         if scale is not None:
             self.setScale(scale)
+        stop = time()
+        operationalTime.append((stop-start)*1000)
 
     def __repr__(self):
         return '<%s %s>' % (self.__class__.__name__, self.name, self.scale)
@@ -31,6 +36,9 @@ class ScaleFont(object):
 
     def __contains__(self, glyphName):
         return glyphName in self.glyphs
+
+    def keys(self):
+        return self.glyphs.keys()
 
     def getXScale(self):
         if self.scale is not None:
@@ -52,29 +60,53 @@ class ScaleFont(object):
         – or a tuple in the form (width/x, targetHeight, referenceHeight)
         '''
 
-        if len(scale) == 2:
+        if len(scale) == 1:
+            self.scale = (scale, scale)
+
+        elif len(scale) == 2:
             self.scale = scale
 
         elif len(scale) == 3:
             x, targetHeight, referenceHeight = scale
-            xy = None
 
             try:
                 xy = targetHeight / referenceHeight
 
             except:
+
+                # try parsing referenceHeight to a numeric value
                 if referenceHeight in self.heights:
                     referenceHeightValue = self.heights[referenceHeight]
-                    xy = targetHeight / referenceHeightValue
+                elif referenceHeight in self.glyphs:
+                    referenceHeightValue = self.getGlyphHeight(referenceHeight)
+                    if referenceHeightValue is None:
+                        referenceHeightValue = 1
+                else:
+                    referenceHeightValue = referenceHeight
 
-                elif referenceHeight in self.font:
-                    g = self.font[referenceHeight]
-                    if g.box is not None:
-                        referenceHeightValue = g.box[3] - g.box[1]
-                        xy = targetHeight / referenceHeightValue
+                # try parsing targetHeight to a numeric value
+                if targetHeight in self.heights:
+                    targetHeightValue = self.heights[targetHeight]
+                elif targetHeight in self.glyphs:
+                    targetHeightValue = self.getGlyphHeight(targetHeight)
+                    if targetHeightValue is None:
+                        targetHeightValue = referenceHeightValue
+                else:
+                    targetHeightValue = targetHeight
+
+                try:
+                    xy = targetHeightValue / referenceHeightValue
+                except:
+                    xy = 1
+
             finally:
-                if xy is not None:
-                    self.scale = (x * xy, xy)
+                self.scale = (x * xy, xy)
+
+    def getGlyphHeight(self, glyphName):
+        glyph = self.glyphs[glyphName]
+        if glyph.box is not None:
+            return glyph.box[3] - glyph.box[1]
+        return
 
     def getGlyph(self, glyphName):
         if glyphName in self.glyphs:
@@ -117,13 +149,12 @@ class MutatorScaleFont(ScaleFont):
     def __init__(self, font, stems=None, scale=(1, 1), stemsWithSlantedSection=False):
         super(MutatorScaleFont, self).__init__(font, scale)
         self.stemsWithSlantedSection = stemsWithSlantedSection
-        self.processDimensions(stems)
+        self.processDimensions(font, stems)
 
     def __repr__(self):
         return '<%s %s refStems:%s,%s>' % (self.__class__.__name__, self.name, self._refVstem, self._refHstem)
 
-    def processDimensions(self, stems):
-        font = self.font
+    def processDimensions(self, font, stems=None):
         refVstem, refHstem = getRefStems(font, self.stemsWithSlantedSection)
         if stems is None:
             self._refVstem, self._refHstem = refVstem, refHstem

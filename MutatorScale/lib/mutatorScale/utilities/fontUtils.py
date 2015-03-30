@@ -3,7 +3,10 @@ from __future__ import division
 
 from robofab.world import RGlyph
 from math import atan2, tan, hypot, cos, degrees
-from mojo.tools import IntersectGlyphWithLine
+from fontTools.misc.bezierTools import splitLine, splitCubic
+from mutatorScale.booleanOperations.booleanGlyph import BooleanGlyph
+from mutatorScale.pens.utilityPens import CollectSegmentsPen
+
 
 def makeListFontName(font):
     '''
@@ -18,6 +21,7 @@ def makeListFontName(font):
         styleName = font.info.styleName = 'Unnamed'
     return ' > '.join([familyName, styleName])
 
+
 def getRefStems(font, slantedSection=False):
     '''
     Looks for stem values to serve as reference for a font in an interpolation scheme,
@@ -25,21 +29,19 @@ def getRefStems(font, slantedSection=False):
     The method intersets the thick stem of a capital I and thin stem of a capital H.
     '''
     stems = []
-    angle = getSlantAngle(font)
+    angle = getSlantAngle(font, True)
 
     for i, glyphName in enumerate(['I','H']):
 
         if glyphName in font:
 
             baseGlyph = font[glyphName]
-            glyph = RGlyph()
-            pen = glyph.getPen()
-            baseGlyph.draw(pen)
-            glyph.removeOverlap()
-            if glyphName == 'I':
-                width = 2000
-            elif glyphName == 'H':
-                width = baseGlyph.width
+
+            # removing overlap
+            glyph = singleContourGlyph(baseGlyph)
+            width = glyph.width
+
+            glyph.skew(-angle)
 
             xMin, yMin, xMax, yMax = glyph.box
             xCenter = width / 2
@@ -47,24 +49,15 @@ def getRefStems(font, slantedSection=False):
 
             # glyph I, cut thick stem
             if i == 0:
-                if slantedSection == False:
-                    sectionAngle = 0
-                else:
-                    sectionAngle = angle
-                refPoint1 = (0, yCenter + (xCenter * tan(sectionAngle)))
-                refPoint2 = (width, yCenter - (xCenter * tan(sectionAngle)))
+                intersections = intersect(glyph, yCenter, True)
 
             # glyph H, cut thin stem
             elif i == 1:
-                refPoint1 = (xCenter + ((yMax - yMin) * tan(angle)), yMax)
-                refPoint2 = (xCenter, yMin)
-
-            intersections = IntersectGlyphWithLine(glyph, (refPoint1, refPoint2))
+                intersections = intersect(glyph, xCenter, False)
 
             (x1,y1), (x2,y2) = (intersections[0], intersections[-1])
 
             stemWidth = hypot(x2-x1, y2-y1)
-            if i == 1: stemWidth = stemWidth * cos(angle)
             stems.append(round(stemWidth))
 
         elif glyphName not in font:
@@ -78,16 +71,17 @@ def getSlantAngle(font, returnDegrees=False):
     Returns the probable slant/italic angle of a font measuring the slant of a capital I.
     '''
     if 'I' in font:
-        glyph = font['I']
-        xMin, yMin, xMax, yMax = glyph.box
-        width = xMax - xMin
+        testGlyph = font['I']
+        xMin, yMin, xMax, yMax = testGlyph.box
         hCenter = (yMax - yMin) / 2
         delta = 10
         intersections = []
+
         for i in range(2):
-            refPoint1 = (0, hCenter + (i*delta))
-            refPoint2 = (width, hCenter + (i*delta))
-            intersections.append(IntersectGlyphWithLine(glyph, (refPoint1, refPoint2)))
+            horizontal = hCenter + (i * delta)
+            glyph = singleContourGlyph(testGlyph)
+            intersections.append(intersect(glyph, horizontal, True))
+
         if len(intersections) > 1:
             if len(intersections[0]) > 1 and len(intersections[1]) > 1:
                 (x1,y1), (x2,y2) = (intersections[0][0], intersections[1][0])
@@ -95,5 +89,97 @@ def getSlantAngle(font, returnDegrees=False):
                 if returnDegrees == False:
                     return angle
                 elif returnDegrees == True:
-                    return degrees(angle)
+                    return round(degrees(angle), 2)
     return 0
+
+def singleContourGlyph(glyph):
+
+    singleContourGlyph = RGlyph()
+    singleContourGlyph.width = glyph.width
+    pointPen = singleContourGlyph.getPointPen()
+
+    if len(glyph.contours) > 1:
+
+        booleanGlyphs = []
+
+        for c in glyph.contours:
+            b = BooleanGlyph()
+            pen = b.getPen()
+            c.draw(pen)
+            booleanGlyphs.append(b)
+
+            finalBooleanGlyph = reduce(lambda g1, g2: g1 | g2, booleanGlyphs)
+            finalBooleanGlyph.drawPoints(pointPen)
+    else:
+        glyph.drawPoints(pointPen)
+
+    return singleContourGlyph
+
+
+def intersect(glyph, where, isHorizontal):
+    '''
+    Intersection of a glyph with a horizontal or vertical line.
+    Intersects each segment of a glyph using fontTools splitCubic and splitLine methods.
+    '''
+#    print [point for point in glyph.contours[0].points]
+    pen = CollectSegmentsPen()
+    glyph.draw(pen)
+    nakedGlyph = pen.getSegments()
+    glyphIntersections = []
+
+    for i, contour in enumerate(nakedGlyph):
+
+        for segment in contour:
+
+            length = len(segment)
+
+            if length == 2:
+                pt1, pt2 = segment
+                returnedSegments = splitLine(pt1, pt2, where, isHorizontal)
+            elif length == 4:
+                pt1, pt2, pt3, pt4 = segment
+                returnedSegments = splitCubic(pt1, pt2, pt3, pt4, where, isHorizontal)
+
+            if len(returnedSegments) > 1:
+                intersectionPoints = findDuplicatePoints(returnedSegments)
+                if len(intersectionPoints):
+                    box = boundingBox(segment)
+                    intersectionPoints = [point for point in intersectionPoints if inRect(point, box)]
+                    glyphIntersections.extend(intersectionPoints)
+
+    return glyphIntersections
+
+
+def findDuplicatePoints(segments):
+    counter = {}
+    for seg in segments:
+        for (x, y) in seg:
+            p = round(x, 4), round(y, 4)
+            if counter.has_key(p):
+                counter[p] += 1
+            elif not counter.has_key(p):
+                counter[p] = 1
+    return [key for key in counter if counter[key] > 1]
+
+
+def inRect(point, box):
+    xMin, yMin, xMax, yMax = box
+    x, y = point
+    xIn = xMin <= x <= xMax
+    yIn = yMin <= y <= yMax
+    return xIn == yIn == True
+
+
+def boundingBox(points):
+    xMin, xMax, yMin, yMax = None, None, None, None
+    for (x, y) in points:
+        for xRef in [xMin, xMax]:
+            if xRef is None: xMin, xMax = x, x
+        for yRef in [yMin, yMax]:
+            if yRef is None: yMin, yMax = y, y
+        if x > xMax: xMax = x
+        if x < xMin: xMin = x
+        if y > yMax: yMax = y
+        if y < yMin: yMin = y
+    box = [round(value, 4) for value in [xMin, yMin, xMax, yMax]]
+    return tuple(box)

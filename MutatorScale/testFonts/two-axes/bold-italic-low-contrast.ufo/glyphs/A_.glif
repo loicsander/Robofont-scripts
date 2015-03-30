@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<glyph name="A" format="1">
+  <advance width="795.0"/>
+  <unicode hex="0041"/>
+  <outline>
+    <contour>
+      <point x="642.239890335" y="295.0" type="line"/>
+      <point x="645.934166657" y="190.0" type="line"/>
+      <point x="229.934166657" y="190.0" type="line"/>
+      <point x="315.239890335" y="295.0" type="line"/>
+    </contour>
+    <contour>
+      <point x="578.89294734" y="552.0" type="line"/>
+      <point x="244.305723679" y="105.0" type="line"/>
+      <point x="342.305723679" y="105.0" type="line"/>
+      <point x="302.0" y="0.0" type="line"/>
+      <point x="10.0" y="0.0" type="line"/>
+      <point x="50.3057236787" y="105.0" type="line"/>
+      <point x="130.305723679" y="105.0" type="line"/>
+      <point x="627.898026277" y="750.0" type="line"/>
+      <point x="737.898026277" y="750.0" type="line"/>
+      <point x="740.305723679" y="105.0" type="line"/>
+      <point x="825.305723679" y="105.0" type="line"/>
+      <point x="785.0" y="0.0" type="line"/>
+      <point x="392.0" y="0.0" type="line"/>
+      <point x="432.305723679" y="105.0" type="line"/>
+      <point x="524.305723679" y="105.0" type="line"/>
+      <point x="532.89294734" y="552.0" type="line"/>
+    </contour>
+  </outline>
+</glyph>

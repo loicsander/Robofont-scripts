@@ -77,6 +77,15 @@ class MutatorScaleEngine:
     def __contains__(self, fontName):
         return fontName in self.masters
 
+    def hasGlyph(self, glyphName):
+        masters = self.masters.values()
+        return bool(reduce(lambda a, b: a * b, [glyphName in master for master in masters]))
+
+    def getReferenceGlyphs(self):
+        masters = self.masters.values()
+        glyphs = reduce(lambda a, b: list(set(a) & set(b)), [master.keys() for master in masters])
+        return glyphs
+
     def set(self, scalingParameters):
         '''
         Defining the scaling parameters.
@@ -124,7 +133,7 @@ class MutatorScaleEngine:
         if self.masters.has_key(name):
             self.masters.pop(name, 0)
 
-    def getScaledGlyph(self, glyphName, stemTarget):
+    def getScaledGlyph(self, glyphName, stemTarget, slantCorrection=False):
         '''
         Returns an interpolated & scaled glyph according to set parameters and given masters.
         '''
@@ -132,6 +141,7 @@ class MutatorScaleEngine:
         twoAxes = self.checkForTwoAxes(masters)
         mutatorMasters = []
         yScales = []
+        angles = []
 
         '''
         Gather master glyphs for interpolation:
@@ -142,6 +152,9 @@ class MutatorScaleEngine:
         '''
 
         if len(masters) > 1:
+
+            medianYscale = 1
+            medianAngle = 0
 
             for master in masters:
 
@@ -157,16 +170,38 @@ class MutatorScaleEngine:
                             'hstem': master.hstem * yScale
                             }
                     else:
+
+                        if slantCorrection == True:
+                            # if interpolation is an/isotropic
+                            # skew master glyphs to upright angle to minimize deformations
+                            angle = master.italicAngle
+
+                            if angle:
+                                masterGlyph.skewX(angle)
+                                angles.append(angle)
+
                         axis = {
                             'stem': master.vstem * xScale
                         }
 
                     mutatorMasters.append((Location(**axis), masterGlyph))
 
-            medianYscale = sum(yScales) / len(yScales)
-            targetLocation = self._getTargetLocation(stemTarget, masters, twoAxes, (xScale, medianYscale))
+            if len(angles) and slantCorrection == True:
+                # calculate a median slant angle
+                # in case there are variations among masters
+                # shouldn’t happen, most of the time
+                medianAngle = sum(angles) / len(angles)
 
+            medianYscale = sum(yScales) / len(yScales)
+
+            targetLocation = self._getTargetLocation(stemTarget, masters, twoAxes, (xScale, medianYscale))
             instanceGlyph = self._getInstanceGlyph(targetLocation, mutatorMasters)
+
+            if medianAngle and slantCorrection == True:
+                # if masters were skew to upright position
+                # skew instance back to probable slant angle
+                instanceGlyph.skew(-medianAngle)
+
             instanceGlyph.round()
 
             return instanceGlyph
