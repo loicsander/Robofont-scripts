@@ -1,6 +1,6 @@
 from mutatorScale.objects.scaler import MutatorScaleEngine
 
-# To test this, open some interpolatable fonts (test fonts in TestFonts)
+# To test this, open some interpolatable fonts (if you don’t have any (duh?), use those in the TestFonts folder)
 
 fonts = [font for font in AllFonts() if font.info.familyName != 'Output']
 
