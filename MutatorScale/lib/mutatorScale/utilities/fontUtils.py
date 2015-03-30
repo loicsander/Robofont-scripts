@@ -3,7 +3,7 @@ from __future__ import division
 
 from robofab.world import RGlyph
 from math import atan2, tan, hypot, cos, degrees
-from fontTools.misc.bezierTools import splitLine, splitCubic
+from fontTools.misc.bezierTools import splitCubic
 from mutatorScale.booleanOperations.booleanGlyph import BooleanGlyph
 from mutatorScale.pens.utilityPens import CollectSegmentsPen
 
@@ -54,6 +54,8 @@ def getRefStems(font, slantedSection=False):
             # glyph H, cut thin stem
             elif i == 1:
                 intersections = intersect(glyph, xCenter, False)
+
+#            print glyphName, intersections
 
             if len(intersections) > 1:
                 (x1,y1), (x2,y2) = (intersections[0], intersections[-1])
@@ -143,7 +145,7 @@ def intersect(glyph, where, isHorizontal):
                 pt1, pt2, pt3, pt4 = segment
                 returnedSegments = splitCubic(pt1, pt2, pt3, pt4, where, int(isHorizontal))
 
-            print len(returnedSegments)
+            # print len(returnedSegments)
 
             if len(returnedSegments) > 1:
                 intersectionPoints = findDuplicatePoints(returnedSegments)
@@ -188,3 +190,43 @@ def boundingBox(points):
         if y < yMin: yMin = y
     box = [round(value, 4) for value in [xMin, yMin, xMax, yMax]]
     return tuple(box)
+
+def splitLine(pt1, pt2, where, isHorizontal):
+    """Split the line between pt1 and pt2 at position 'where', which
+    is an x coordinate if isHorizontal is False, a y coordinate if
+    isHorizontal is True. Return a list of two line segments if the
+    line was successfully split, or a list containing the original
+    line.
+
+        >>> printSegments(splitLine((0, 0), (100, 100), 50, True))
+        ((0, 0), (50.0, 50.0))
+        ((50.0, 50.0), (100, 100))
+        >>> printSegments(splitLine((0, 0), (100, 100), 100, True))
+        ((0, 0), (100, 100))
+        >>> printSegments(splitLine((0, 0), (100, 100), 0, True))
+        ((0, 0), (0.0, 0.0))
+        ((0.0, 0.0), (100, 100))
+        >>> printSegments(splitLine((0, 0), (100, 100), 0, False))
+        ((0, 0), (0.0, 0.0))
+        ((0.0, 0.0), (100, 100))
+    """
+    pt1x, pt1y = pt1
+    pt2x, pt2y = pt2
+
+    ax = (pt2x - pt1x)
+    ay = (pt2y - pt1y)
+
+    bx = pt1x
+    by = pt1y
+
+    a = (ax, ay)[isHorizontal]
+
+    if a == 0:
+        return [(pt1, pt2)]
+
+    t = float(where - (bx, by)[isHorizontal]) / a
+    if 0 <= t < 1:
+        midPt = ax * t + bx, ay * t + by
+        return [(pt1, midPt), (midPt, pt2)]
+    else:
+        return [(pt1, pt2)]
