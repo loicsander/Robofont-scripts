@@ -133,7 +133,7 @@ class MutatorScaleEngine:
         if self.masters.has_key(name):
             self.masters.pop(name, 0)
 
-    def getScaledGlyph(self, glyphName, stemTarget, slantCorrection=False):
+    def getScaledGlyph(self, glyphName, stemTarget, slantCorrection=True):
         '''
         Returns an interpolated & scaled glyph according to set parameters and given masters.
         '''
