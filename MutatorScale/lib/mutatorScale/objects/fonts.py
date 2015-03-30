@@ -15,7 +15,8 @@ class ScaleFont(object):
 
     def __init__(self, font, scale=None):
         start = time()
-        self.glyphs = {glyph.name:glyph for glyph in font if (not glyph.isEmpty() and not 'space' in glyph.name)}
+        self.glyphs = font
+#        self.glyphs = {glyph.name:glyph for glyph in font if (not glyph.isEmpty() and not 'space' in glyph.name)}
         self.heights = {heightName:getattr(font.info, heightName) for heightName in ['capHeight','ascender','xHeight','descender']}
         self.name = '%s > %s' % (font.info.familyName, font.info.styleName)
         italicAngle = font.info.italicAngle
@@ -39,6 +40,11 @@ class ScaleFont(object):
 
     def keys(self):
         return self.glyphs.keys()
+
+    def glyphsNotEmpty(self):
+        glyphs = self.glyphs
+        glyphNames = [glyph.name for glyph in glyphs if (not glyph.isEmpty() and not 'space' in glyph.name)]
+        return glyphNames
 
     def getXScale(self):
         if self.scale is not None:
@@ -135,6 +141,7 @@ class ScaleFont(object):
             baseGlyph, matrix = component
             xx, yx, xy, yy, x, y = matrix
             xx, yx, xy, yy = 1, 0, 0, 1
+            x, y = x * scale[0], y * scale[1]
             glyph.components[i] = (baseGlyph, (xx, yx, xy, yy, x, y))
         # Reverting to initial slant angle
         if italicAngle:

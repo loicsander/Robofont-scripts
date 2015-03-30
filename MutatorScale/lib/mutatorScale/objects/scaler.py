@@ -83,7 +83,7 @@ class MutatorScaleEngine:
 
     def getReferenceGlyphs(self):
         masters = self.masters.values()
-        glyphs = reduce(lambda a, b: list(set(a) & set(b)), [master.keys() for master in masters])
+        glyphs = reduce(lambda a, b: list(set(a) & set(b)), [master.glyphsNotEmpty() for master in masters])
         return glyphs
 
     def set(self, scalingParameters):

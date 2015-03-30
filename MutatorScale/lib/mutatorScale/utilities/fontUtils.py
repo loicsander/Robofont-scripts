@@ -55,8 +55,6 @@ def getRefStems(font, slantedSection=False):
             elif i == 1:
                 intersections = intersect(glyph, xCenter, False)
 
-#            print glyphName, intersections
-
             if len(intersections) > 1:
                 (x1,y1), (x2,y2) = (intersections[0], intersections[-1])
 
@@ -126,7 +124,6 @@ def intersect(glyph, where, isHorizontal):
     Intersection of a glyph with a horizontal or vertical line.
     Intersects each segment of a glyph using fontTools splitCubic and splitLine methods.
     '''
-#    print [point for point in glyph.contours[0].points]
     pen = CollectSegmentsPen()
     glyph.draw(pen)
     nakedGlyph = pen.getSegments()
@@ -144,8 +141,6 @@ def intersect(glyph, where, isHorizontal):
             elif length == 4:
                 pt1, pt2, pt3, pt4 = segment
                 returnedSegments = splitCubic(pt1, pt2, pt3, pt4, where, int(isHorizontal))
-
-            # print len(returnedSegments)
 
             if len(returnedSegments) > 1:
                 intersectionPoints = findDuplicatePoints(returnedSegments)
@@ -190,6 +185,9 @@ def boundingBox(points):
         if y < yMin: yMin = y
     box = [round(value, 4) for value in [xMin, yMin, xMax, yMax]]
     return tuple(box)
+
+# had to add that splitLine method from Robofont’s version of fontTools
+# using fontTools 2.4’s method didn’t work, don’t know why.
 
 def splitLine(pt1, pt2, where, isHorizontal):
     """Split the line between pt1 and pt2 at position 'where', which
