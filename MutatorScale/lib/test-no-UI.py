@@ -5,14 +5,14 @@ from mutatorScale.utilities.fontUtils import intersect
 from robofab.world import RFont
 
 paths = [
-'testFonts/two-axes/regular-low-contrast.ufo',
-'testFonts/two-axes/bold-low-contrast.ufo'
+    'testFonts/two-axes/regular-low-contrast.ufo',
+    'testFonts/two-axes/bold-low-contrast.ufo'
 ]
-outputPath = 'testFonts/two-axes/scaled-italic-low-contrast.ufo'
+outputPath = 'testFonts/two-axes/scaled-low-contrast.ufo'
 
 fonts = []
 for p in paths:
-fonts.append(RFont(p))
+    fonts.append(RFont(p))
 
 scaler = MutatorScaleEngine(fonts)
 scaler.set({
