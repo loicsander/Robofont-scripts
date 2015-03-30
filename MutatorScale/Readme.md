@@ -6,7 +6,7 @@ It consists of a little set of objects — I wouldn’t go as far as to call it 
 
 Its function is to build an interpolation design space, based on MutatorMath, with which it is rendered easier to scale glyphs while compensating for the loss of weight and/or contrast by interpolating. Such operations imply that you have at least two interpolatable fonts to begin with.
 
-Nota Bene: It is the same idea as in my ScaleFast extension for Robofont, only this version of the code is better written and can be used via scripting. I intend to update ScaleFast with this in a not too distant future.
+Nota Bene: It is the same idea as in my ScaleFast extension for Robofont, only this version of the code is a bit cleaner, probably better written, and can be used via scripting. I intend to update ScaleFast with this in a not too distant future.
 
 ![alt tag](images/mutatorScale-1.png)
 ![alt tag](images/mutatorScale-6.png)
@@ -39,9 +39,9 @@ scaler.set({
 
 This way may seem less straightforward in terms of code but is closer to design. You provide the required meaningful proportions that allow the MutatorScaleEngine to compute scaling values.
 
-**width** corresponds to simple horizontal scaling and should be a float value akin to a percentage (100% == 1).
+**width** corresponds to simple horizontal scaling and should be a float value akin to a percentage (100% == 1.0).
 
-**referenceHeight** can be either a string or an number (float or int), but if it is a string, it should be a height reference the master fonts know about: vertical metrics.
+**referenceHeight** can be either a string or a number (float or int), but if it is a string, it should be a height reference the master fonts will know about: vertical metrics.
 
 **targetHeight** is the height you wish to see your scaled glyphs have; should be a number (float or int).
 
@@ -59,9 +59,9 @@ scaledGlyph = scaler.getScaledGlyph(‘H’, stems)
 
 We get a new scaled letter H.
 
-With **glyphName** (‘H’ or ‘a’), I’ve also provided a **stems** variable and it is a crucial part of the process, so I’ll elaborate on that.
+With **glyphName** (‘H’, ‘a’, etc.), I’ve also provided a **stems** variable and it is a crucial part of the process, so I’ll elaborate on that.
 
-When fonts are provided to a MutatorScaleEngine, it does a quick analysis to be able to place them in an interpolation space. It measures reference stems for each font so that you can later ask for scaled glyphs with a specific stem value. Working with stem values is arbitrary and you can actually override this if you’d rather work with some other values that are more meaningful to you, but I’ll get into that later on.
+When a MutatorScaleEngine is given master fonts, it does a quick analysis to be able to place them in an interpolation space. It measures reference stems for each font so that you can later ask for scaled glyphs with a specific stem value. Working with stem values is arbitrary and you can actually override this if you’d rather work with some other values that are more meaningful to you, but I’ll get into that later on.
 
 Stems are measured on uppercase I and H, to get both a vertical and horizontal stem value of reference.
 
@@ -77,7 +77,7 @@ You’re asking for a scaled glyph ‘H’ that has 100 units for its vertical s
 
 ## Going Deeper
 
-Here I’ll focus on what’s happening inside a MutatorScaleEngine.  As the name indicates, I got the idea from using MutatorMath and MutatorScale depends totally on MutatorMath’s mojo.
+Here I’ll focus on what’s happening inside a MutatorScaleEngine.  As the name indicates, I got the idea from playing around with MutatorMath, and MutatorScale depends totally on MutatorMath’s mojo.
 
 To understand how glyphs are scaled down and corrected, you should first grasp how MutatorMath functions even if it’s just a general understanding.
 
@@ -86,9 +86,11 @@ With well defined key Locations (= masters), you obtain an axis on which you can
 
 Quite often with glyph interpolation, we use Location values that correspond to some weight pacing system (0 to 1000, 100 Thin, 300 Light, 400 Regular, etc.). But the numbers you use for locations can be anything. In MutatorScale I used stem values because that’s the thing I wanted to keep track of. If you build a mutator with stem values, you can effectively ask for an interpolated glyph with specific stem values.
 
-On top of MutatorMath, the only thing done my a MutatorScaleEngine is to use a interpolation space containing scaled glyphs, defining master Locations by their scaled stem values and asking for instances with unscaled stem values.
+On top of MutatorMath, the only thing done my a MutatorScaleEngine is to use an interpolation space containing scaled glyphs, defining these as master Locations by their scaled stem values, and allowing you to retrieve instance glyphs with unscaled stem values.
 
-Let’s say I have two masters, a Regular and a Bold. In the regular weight, an H’s vertical stem is 100 units wide, and in the bold weight, 200 units. If I’d like to obtain a regular small capital H with vertical stems of 100 units, scaled down 85% in width and 80% in height, here’s what I have to do:
+Let’s say I have two masters, a Regular and a Bold. In the regular weight, an H’s vertical stem is 100 units wide, and in the bold weight, 200 units. If I’d like to obtain a regular small capital H with vertical stems of 100 units, scaled down 85% in width and 80% in height, here’s what I have to do around MutatorMath:
+
+![alt tag](images/mutatorScale-5.png)
 
 ```python
 
@@ -116,8 +118,6 @@ b, mutator = buildMutator(masters)
 smallH = mutator.getInstance( Location(stem=100) )
 ```
 
-![alt tag](images/mutatorScale-5.png)
-
 Now we retrieved a scaled down ‘H’ glyph with weight identical to a unscaled ‘H’, and that’s the basic operation happening inside of a MutatorScaleEngine. 
 
 ## Types of interpolation
@@ -130,7 +130,7 @@ The most basic mode is isotropic, it happens if you provide a single value for s
 scaler.getScaledGlyph(‘H’, 100)
 ```
 
-Although it’s a start — and in some cases, a finish — it will often fall short of achieving the desired result. Mostly because serif/thin thickness will be too meagre.
+Although it’s a start — and in occasional cases, a finish — it will often fall short of achieving the desired result. Mostly because serifs/thins will be too meagre.
 
 You can get better result if you work with anisotropic interpolation, providing two values:
 
@@ -138,7 +138,7 @@ You can get better result if you work with anisotropic interpolation, providing 
 scaler.getScaledGlyph(‘H’, (100, 20))
 ```
 
-But you should be aware that this can lead to ugly deformations if pushed too far; it’s not a ideal solution. Still, used with reason, it can produce close to final results. 
+But you should be aware that this can lead to ugly deformations if pushed too far; it’s not a ideal solution. Still, used with reason, it can produce close to final results with some designs. 
 
 *(When you go too far with anisotropic interpolation)*
 ![alt tag](images/mutatorScale-4.png)
