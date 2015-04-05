@@ -686,7 +686,7 @@ class DerivativeGlyphsBuilder:
             glyph = font[glyphName]
 
         glyph.prepareUndo('deriveFromBase')
-        glyphWidth = 0
+        derivativeGlyphWidth = 0
         xAdvance = 0
         margins = {'left':[], 'right':[]}
 
@@ -725,10 +725,8 @@ class DerivativeGlyphsBuilder:
             contributeWidth = baseGlyphRecord['width']
 
             xCenter, yCenter = baseDimensions['center']
-            xShift, yShift = 0, 0
+            xShift, yShift = xAdvance, 0
             h1, h2 = 0, 0
-
-            xShift += xAdvance
 
             xOffset, yOffset = baseGlyphRecord['offset']
             xShift += xOffset
@@ -776,7 +774,6 @@ class DerivativeGlyphsBuilder:
                 xShift += (w1 - w2)
 
             slantOffset = yShift * tan(radians(italicAngle))
-            xShift -= slantOffset
 
             if not contributeWidth:
                 xShift -= xAdvance
@@ -788,10 +785,10 @@ class DerivativeGlyphsBuilder:
             tempGlyph.scale(baseGlyphRecord['flip'], (xCenter, yCenter))
 
             if baseGlyphRecord['asComponent']:
-                glyph.appendComponent(baseGlyphName, (xShift, yShift))
+                glyph.appendComponent(baseGlyphName, (xShift - slantOffset, yShift))
 
             elif not baseGlyphRecord['asComponent']:
-                glyph.appendGlyph(tempGlyph, (xShift, yShift))
+                glyph.appendGlyph(tempGlyph, (xShift - slantOffset, yShift))
 
             if contributeWidth:
                 baseWidth += (xShift - xAdvance)
@@ -808,9 +805,10 @@ class DerivativeGlyphsBuilder:
 
             if contributeWidth:
                 xAdvance += baseWidth
-                glyphWidth += baseWidth
+                derivativeGlyphWidth += baseWidth
 
-        glyph.width = glyphWidth
+        glyph.width = derivativeGlyphWidth
+
         if len(margins['left']):
             glyph.angledLeftMargin = margins['left'][0]
         if len(margins['right']):
