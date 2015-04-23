@@ -1,0 +1,60 @@
+[
+    [
+        "Flatten", 
+        "Jitter", 
+        "Spike"
+    ], 
+    {
+        "Jitter": {
+            "fileName": "jitterPen", 
+            "arguments": {
+                "deviation": 13.052905082702637, 
+                "jitterPace": 14.3
+            }, 
+            "limits": {
+                "deviation": [
+                    0.0, 
+                    50.0
+                ], 
+                "jitterPace": [
+                    0.0, 
+                    100.0
+                ]
+            }, 
+            "filterObject": "JitterPen"
+        }, 
+        "Flatten": {
+            "modulePath": "robofab.pens.filterPen", 
+            "arguments": {
+                "approximateSegmentLength": 74.72, 
+                "segmentLines": true, 
+                "filterDoubles": true
+            }, 
+            "limits": {
+                "approximateSegmentLength": [
+                    1.0, 
+                    100.0
+                ]
+            }, 
+            "filterObject": "FlattenPen"
+        }, 
+        "Spike": {
+            "modulePath": "robofab.pens.filterPen", 
+            "arguments": {
+                "spikeLength": 16.01, 
+                "segmentLength": 17.93
+            }, 
+            "limits": {
+                "spikeLength": [
+                    0.0, 
+                    100.0
+                ], 
+                "segmentLength": [
+                    0.0, 
+                    100.0
+                ]
+            }, 
+            "filterObject": "spikeGlyph"
+        }
+    }
+]
