@@ -50,6 +50,9 @@ class FiltersManager(object):
     def __len__(self):
         return len(self.filterNames)
 
+    def isGroup(self, filterName):
+        return self.filters[filterName].has_key('subfilters')
+
     def get(self):
         return self.filterNames
 
@@ -58,6 +61,13 @@ class FiltersManager(object):
 
     def setFilterArgument(self, filterName, argument, value):
         self.filters[filterName]['arguments'][argument] = value
+
+    def addFilterGroup(self, filterName, filterNamesList):
+        if filterName not in self.filterNames:
+            self.filterNames.append(filterName)
+        filterDict = { 'subfilters': filterNamesList }
+        self.filters[filterName] = filterDict
+        self.update()
 
     def addFilter(self, filterName, filterDict):
         if filterName not in self.filterNames:
@@ -88,6 +98,36 @@ class FiltersManager(object):
             self._saveFiltersList()
 
     def _filterToReprFactory(self, filterName, filterDict):
+        setupStrings = []
+        filterObjects = []
+
+        if filterDict.has_key('subfilters'):
+            filters = [(_filterName_, self.filters[_filterName_]) for _filterName_ in filterDict['subfilters']]
+        else:
+            filters = [(filterName, filterDict)]
+
+        for filterName_, filterDict_ in filters:
+
+            importString = self.makeImportStrings(filterName_, filterDict_)
+            filterObjectName = filterDict_['filterObject']
+            argumentNames = filterDict_['arguments'].keys()
+
+            if importString is not None:
+                setupStrings.append(importString)
+                filterObjects.append((filterObjectName, argumentNames))
+
+        for setupString in setupStrings:
+            exec setupString
+
+        glyphFilterArguments = ','.join('({0},({1}))'.format(filterName, argumentsName) for filterName, argumentsName in filterObjects)
+        buildFilterString = 'newFilter = GlyphFilter({0})'.format(glyphFilterArguments)
+        key = makeKey(filterName)
+        buildFactoryString = 'addRepresentationFactory("{0}", newFilter)'.format(key)
+        for execString in [buildFilterString, buildFactoryString]:
+            exec execString
+
+    def makeImportStrings(self, filterName, filterDict):
+
         importString = None
 
         if filterDict.has_key('modulePath'):
@@ -97,13 +137,8 @@ class FiltersManager(object):
             fileName = filterDict['fileName']
             importString = 'from filterObjects.{fileName} import {filterObject}'.format(**filterDict)
 
-        if importString is not None:
-            extractArgumentsString = 'arguments = filterDict["arguments"] if filterDict.has_key("arguments") else {}'
-            buildFilterString = 'newFilter = GlyphFilter({filterObject})'.format(**filterDict)
-            key = makeKey(filterName)
-            buildFactoryString = 'addRepresentationFactory("{0}", newFilter)'.format(key)
-            for execString in [importString, extractArgumentsString, buildFilterString, buildFactoryString]:
-                exec execString
+        return importString
+
 
     def _duplicateSourceFile(self, sourcePath, fileName):
         sourceFile = file(sourcePath).read()

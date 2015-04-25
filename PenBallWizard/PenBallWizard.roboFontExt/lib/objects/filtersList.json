@@ -8,7 +8,7 @@
         "Jitter": {
             "fileName": "jitterPen", 
             "arguments": {
-                "deviation": 13.052905082702637, 
+                "deviation": 3.896195411682129, 
                 "jitterPace": 14.3
             }, 
             "limits": {
@@ -26,7 +26,7 @@
         "Flatten": {
             "modulePath": "robofab.pens.filterPen", 
             "arguments": {
-                "approximateSegmentLength": 74.72, 
+                "approximateSegmentLength": 79.06490325927734, 
                 "segmentLines": true, 
                 "filterDoubles": true
             }, 
@@ -41,8 +41,8 @@
         "Spike": {
             "modulePath": "robofab.pens.filterPen", 
             "arguments": {
-                "spikeLength": 16.01, 
-                "segmentLength": 17.93
+                "spikeLength": 26.874736785888672, 
+                "segmentLength": 27.4122314453125
             }, 
             "limits": {
                 "spikeLength": [

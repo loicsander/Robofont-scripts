@@ -16,25 +16,37 @@ class GlyphFilter(object):
     and then acts like a filter function returning a filtered glyph.
 
     >>> from robofab.pens.filterPen import FlattenPen
-    >>> filter = GlyphFilter(FlattenPen, approximateSegmentLength=25)
-    >>> filteredGlyph = filter(glyph)
+    >>> filter = GlyphFilter(FlattenPen)
+    >>> filteredGlyph = filter(glyph, glyph.getParent(), approximateSegmentLength=25)
     """
-    def __init__(self, filterObject):
-        self.filterObject = filterObject
+    def __init__(self, *filterTuples):
+        self.filterObjects = []
+        self.filterArguments = {}
+        for filterObject, filterArguments in filterTuples:
+            self.filterObjects.append(filterObject)
+            self.filterArguments[filterObject] = filterArguments
 
-    def __call__(self, glyph, font, **arguments):
+    def __call__(self, glyph, font=None, **globalArguments):
+        filterObjects = self.filterObjects
+
+        for filterObject in filterObjects:
+            filterArguments = self.filterArguments[filterObject]
+            arguments = {argumentName: argumentValue for argumentName, argumentValue in globalArguments.items() if argumentName in filterArguments}
+            glyph = self.processGlyph(filterObject, glyph, font=None, **arguments)
+        return glyph
+
+    def processGlyph(self, filterObject, glyph, font, **arguments):
+        filteredGlyph = RGlyph()
         try:
-            filteredGlyph = RGlyph()
             filteredGlyph.width = glyph.width
             drawingPen = filteredGlyph.getPen()
-            filterPen = self.filterObject(drawingPen, **arguments)
+            filterPen = filterObject(drawingPen, **arguments)
             glyph.draw(filterPen)
         except:
             try:
-                sourceGlyph = RGlyph()
-                sourceGlyph.appendGlyph(glyph)
-                sourceGlyph.width = glyph.width
-                filteredGlyph = self.filterObject(sourceGlyph, **arguments)
+                filteredGlyph.appendGlyph(glyph)
+                filteredGlyph.width = glyph.width
+                filteredGlyph = filterObject(filteredGlyph, **arguments)
             except:
                 filteredGlyph = ErrorGlyph()
 
@@ -67,9 +79,9 @@ if __name__ == '__main__':
                 pen.closePath()
 
             def test_GlyphFilterInit(self):
-                thresholdFilter = GlyphFilter(ThresholdPen, threshold=20)
+                thresholdFilter = GlyphFilter(ThresholdPen)
                 testGlyph = self.testGlyph
-                filteredGlyph = thresholdFilter(testGlyph, testGlyph.getParent())
+                filteredGlyph = thresholdFilter(testGlyph, testGlyph.getParent(), threshold=20)
 
         unittest.main()
 

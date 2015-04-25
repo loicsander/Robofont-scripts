@@ -1,7 +1,8 @@
 #coding=utf-8
-__version__ = 0.1
+__version__ = 0.2
 
 import shutil
+from collections import OrderedDict
 
 from robofab.world import RFont
 from defconAppKit.tools.textSplitter import splitText
@@ -10,6 +11,8 @@ from vanilla.dialogs import getFile
 from mojo.UI import MultiLineView
 from mojo.events import addObserver, removeObserver
 
+import objects.manager
+reload(objects.manager)
 from objects.manager import FiltersManager, makeKey
 
 class PenBallWizard(object):
@@ -34,13 +37,13 @@ class PenBallWizard(object):
         self.w.filtersPanel = Group((0, 0, 300, -0))
         self.w.filtersPanel.filtersList = List((0, 0, -0, -40), filtersList, selectionCallback=self.filterSelectionChanged, doubleClickCallback=self.filterEdit, allowsMultipleSelection=False, allowsEmptySelection=False, rowHeight=22)
         self.w.filtersPanel.options = Group((0, -40, -0, 0))
-        self.w.filtersPanel.addFilter = SquareButton((0, -40, 150, 40), 'Add filter', sizeStyle='small', callback=self.addFilter)
-        self.w.filtersPanel.removeFilter = SquareButton((-150, -40, 150, 40), 'Remove filter', sizeStyle='small', callback=self.removeFilter)
-        self.w.filtersPanel.removeFilter.enable(False)
+        self.w.filtersPanel.addFilter = SquareButton((0, -40, 100, 40), 'Add filter', sizeStyle='small', callback=self.addFilter)
+        self.w.filtersPanel.addFilterGroup = SquareButton((100, -40, 100, 40), 'Add group', sizeStyle='small', callback=self.addFilterGroup)
+        self.w.filtersPanel.removeFilter = SquareButton((-100, -40, 100, 40), 'Remove filter', sizeStyle='small', callback=self.removeFilter)
         self.w.textInput = EditText((300, 0, -90, 22), '', callback=self.stringInput)
         self.w.generate = SquareButton((-90, 0, 90, 22), 'Generate', callback=self.generateGlyphs, sizeStyle='small')
         self.w.preview = MultiLineView((300, 22, -0, -0))
-        self.w.switchFillStroke = SquareButton((-75, -40, 60, 25), 'Fill', callback=self.switchFillStroke, sizeStyle='small')
+        self.w.switchFillStroke = SquareButton((-75, -40, 60, 25), 'Stroke', callback=self.switchFillStroke, sizeStyle='small')
         displayStates = self.w.preview.getDisplayStates()
         for key in ['Show Metrics','Upside Down','Stroke','Beam','Inverse','Water Fall','Single Line']:
             displayStates[key] = False
@@ -59,9 +62,10 @@ class PenBallWizard(object):
     def generateGlyphs(self, sender):
         font = self.currentFont
         newFont = RFont(showUI=False)
+        filterName = self.currentFilterKey
         if font is not None:
             glyphs = [font[glyphName] for glyphName in font.selection if glyphName in font]
-            key, arguments = self.getFilterTokens()
+            key, arguments = self.getFilterTokens(filterName)
             if key is not None:
                 filteredGlyphs = []
                 for glyph in glyphs:
@@ -77,13 +81,13 @@ class PenBallWizard(object):
         newFont.showUI()
 
 
-    def getFilterTokens(self):
-        if self.currentFilterKey is not None:
-            key = makeKey(self.currentFilterKey)
-            currentFilter = self.getCurrentFilter()
-            arguments = currentFilter['arguments'] if currentFilter.has_key('arguments') else {}
-            return key, arguments
-        return None, None
+    def getFilterTokens(self, filterName):
+        # if self.currentFilterKey is not None:
+        key = makeKey(filterName)
+        currentFilter = self.getFilter(filterName)
+        arguments = currentFilter['arguments'] if currentFilter.has_key('arguments') else {}
+        return key, arguments
+        # return None, None
 
     def updateFiltersList(self):
         filtersList = self.filters.get()
@@ -103,24 +107,26 @@ class PenBallWizard(object):
         font = self.currentFont
         if font is not None:
             glyphs = [font[glyphName] for glyphName in self.glyphNames if glyphName in font]
-            key, arguments = self.getFilterTokens()
-            if key is not None:
-                filteredGlyphs = []
-                for glyph in glyphs:
-                    if len(glyph.components) > 0:
-                        for comp in glyph.components:
-                            baseGlyphName = comp.baseGlyph
-                            baseGlyph = font[baseGlyphName]
-                            baseFilteredGlyph = baseGlyph.getRepresentation(key, **arguments)
-                            self.cachedFont.insertGlyph(baseFilteredGlyph, baseGlyphName)
-                    filteredGlyph = glyph.getRepresentation(key, **arguments)
-                    if filteredGlyph is not None:
-                        self.cachedFont.insertGlyph(filteredGlyph, glyph.name)
-                        filteredGlyphs.append(self.cachedFont[glyph.name])
-                return filteredGlyphs
-            self.cachedFont = self.currentFont
-            return glyphs
+            filterName = self.currentFilterKey
+            filteredGlyphs = self.filterGlyphs(filterName, glyphs, self.cachedFont)
+            return filteredGlyphs
         return []
+
+    def filterGlyphs(self, filterName, glyphs, font):
+        key, arguments = self.getFilterTokens(filterName)
+        filteredGlyphs = []
+        for glyph in glyphs:
+            if len(glyph.components) > 0:
+                for comp in glyph.components:
+                    baseGlyphName = comp.baseGlyph
+                    baseGlyph = font[baseGlyphName]
+                    baseFilteredGlyph = baseGlyph.getRepresentation(key, **arguments)
+                    font.insertGlyph(baseFilteredGlyph, baseGlyphName)
+            filteredGlyph = glyph.getRepresentation(key, **arguments)
+            if filteredGlyph is not None:
+                font.insertGlyph(filteredGlyph, glyph.name)
+                filteredGlyphs.append(font[glyph.name])
+        return filteredGlyphs
 
     def updatePreview(self):
         glyphs = self.processGlyphs()
@@ -167,7 +173,10 @@ class PenBallWizard(object):
 
     def filterEdit(self, sender):
         filterName = self.currentFilterKey
-        self.buildFilterSheet(filterName)
+        if self.filters.isGroup(filterName):
+            self.buildFilterGroupSheet(filterName)
+        else:
+            self.buildFilterSheet(filterName)
         self.filterSheet.open()
 
     def buildFilterSheet(self, filterName='', makeNew=False):
@@ -255,6 +264,47 @@ class PenBallWizard(object):
         if filterName == '':
             self.currentFilterKey = ''
 
+    def buildFilterGroupSheet(self, filterName='', makeNew=False):
+        sheetFields = {
+            'subfilters': []
+        }
+        if filterName != '':
+            filterDict = self.filters[filterName]
+            for key in filterDict:
+                sheetFields[key] = filterDict[key]
+
+        self.filterSheet = Sheet((0, 0, 400, 350), self.w)
+        self.filterSheet.new = makeNew
+        applyTitle = 'Add Filter Group' if filterName == '' else 'Update Filder Group'
+        self.filterSheet.apply = SquareButton((-175, -37, 160, 22), applyTitle, callback=self.processFilterGroup, sizeStyle='small')
+        self.filterSheet.cancel = SquareButton((-265, -37, 80, 22), 'Cancel', callback=self.closeFilterSheet, sizeStyle='small')
+
+        y = 20
+        self.filterSheet.nameTitle = TextBox((15, y, 100, 22), 'Filter Name')
+        self.filterSheet.name = EditText((125, y, -15, 22), filterName)
+        y += 22
+
+        subfilterNames = sheetFields['subfilters']
+        subfiltersList = [{'name': subfilterName, 'null': ''} for subfilterName in subfilterNames]
+
+        columns = [
+            {'title': 'name', 'editable': True, 'width': 169},
+            {'title': 'null', 'editable': True, 'width': 0}
+        ]
+
+        buttonSize = 20
+        gutter = 7
+
+        y += 20
+        self.filterSheet.subfilters = List((15 + buttonSize + gutter, y, -15, -52), subfiltersList, columnDescriptions=columns, showColumnTitles=False, allowsMultipleSelection=False, allowsEmptySelection=False)
+        self.filterSheet.addSubfilter = SquareButton((15, -52-(buttonSize*2)-gutter, buttonSize, buttonSize), '+', sizeStyle='small', callback=self.addSubfilter)
+        self.filterSheet.removeSubfilter = SquareButton((15, -52-buttonSize, buttonSize, buttonSize), '-', sizeStyle='small', callback=self.removeSubfilter)
+        if len(subfilterNames) == 0:
+            self.filterSheet.removeSubfilter.enable(False)
+
+        if filterName == '':
+            self.currentFilterKey = ''
+
     def addArgument(self, sender):
         argumentsList = self.filterSheet.arguments.get()
         argumentsList.append({'argument': 'rename me', 'value': 50, 'min': 0, 'max': 100})
@@ -269,6 +319,22 @@ class PenBallWizard(object):
         selection = self.filterSheet.arguments.getSelection()[0]
         argumentsList.pop(selection)
         self.filterSheet.arguments.set(argumentsList)
+
+    def addSubfilter(self, sender):
+        subfiltersList = self.filterSheet.subfilters.get()
+        subfilterDict = {'name': '{enter filter name}', 'null': ''}
+        subfiltersList.append(subfilterDict)
+        if len(subfiltersList) > 0:
+            self.filterSheet.removeSubfilter.enable(True)
+        self.filterSheet.subfilters.set(subfiltersList)
+
+    def removeSubfilter(self, sender):
+        subfiltersList = self.filterSheet.subfilters.get()
+        if len(subfiltersList) == 0:
+            self.filterSheet.removeSubfilter.enable(False)
+        selection = self.filterSheet.subfiltersList.getSelection()[0]
+        subfiltersList.pop(selection)
+        self.filterSheet.arguments.set(subfiltersList)
 
     def getFile(self, sender):
         path = getFile(fileTypes=['py'], allowsMultipleSelection=False, resultCallback=self.loadFilePath, parentWindow=self.filterSheet)
@@ -331,8 +397,27 @@ class PenBallWizard(object):
                     self.updateOptions()
                     self.updatePreview()
 
+    def processFilterGroup(self, sender):
+        subfiltersNamesList = [item['name'] for item in self.filterSheet.subfilters.get() if item['name'] in self.filters and not self.filters.isGroup(item['name'])]
+        subfiltersList = [self.filters[item] for item in subfiltersNamesList]
+        filterName = self.filterSheet.name.get()
+        filterDict = {
+            'subfilters': subfiltersNamesList,
+            'arguments': {argument: value for subfilter in subfiltersList for argument, value in subfilter['arguments'].items()}
+        }
+        if len(subfiltersList):
+            self.filters.addFilter(filterName, filterDict)
+            self.closeFilterSheet(sender)
+            self.updateFiltersList()
+            self.updateOptions()
+            self.updatePreview()
+
     def addFilter(self, sender):
         self.buildFilterSheet(makeNew=True)
+        self.filterSheet.open()
+
+    def addFilterGroup(self, sender):
+        self.buildFilterGroupSheet(makeNew=True)
         self.filterSheet.open()
 
     def removeFilter(self, sender):
@@ -342,17 +427,21 @@ class PenBallWizard(object):
 
     def filterSelectionChanged(self, sender):
         selectedFilterName = self.getSelectedFilterName()
-        if selectedFilterName in ['Flatten', 'Jitter']:
-            self.w.filtersPanel.removeFilter.enable(False)
-        else:
-            self.w.filtersPanel.removeFilter.enable(True)
         self.cachedFont = RFont(showUI=False)
         self.currentFilterKey = selectedFilterName
         self.updateOptions()
         self.updatePreview()
 
+    def getFilter(self, filterName):
+        return self.filters[filterName]
+
     def getCurrentFilter(self):
-        return self.filters[self.currentFilterKey]
+        currentFilter = self.filters[self.currentFilterKey]
+        if currentFilter.has_key('subfilters'):
+            arguments = currentFilter['arguments']
+            orderedArguments = OrderedDict([(argumentName, arguments[argumentName]) for subfilterName in currentFilter['subfilters'] for argumentName in self.filters[subfilterName]['arguments']])
+            currentFilter['arguments'] = orderedArguments
+        return currentFilter
 
     def getSelectedFilterName(self):
         filtersList = self.w.filtersPanel.filtersList
@@ -364,11 +453,11 @@ class PenBallWizard(object):
         self.fill = not self.fill
         displayStates = self.w.preview.getDisplayStates()
         if self.fill == True:
-            sender.setTitle('Fill')
+            sender.setTitle('Stroke')
             displayStates['Fill'] = True
             displayStates['Stroke'] = False
         elif self.fill == False:
-            sender.setTitle('Stroke')
+            sender.setTitle('Fill')
             displayStates['Fill'] = False
             displayStates['Stroke'] = True
         self.w.preview.setDisplayStates(displayStates)
