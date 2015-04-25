@@ -1,32 +1,13 @@
 [
     [
         "Flatten", 
-        "Jitter", 
         "Spike"
     ], 
     {
-        "Jitter": {
-            "fileName": "jitterPen", 
-            "arguments": {
-                "deviation": 3.896195411682129, 
-                "jitterPace": 14.3
-            }, 
-            "limits": {
-                "deviation": [
-                    0.0, 
-                    50.0
-                ], 
-                "jitterPace": [
-                    0.0, 
-                    100.0
-                ]
-            }, 
-            "filterObject": "JitterPen"
-        }, 
         "Flatten": {
             "modulePath": "robofab.pens.filterPen", 
             "arguments": {
-                "approximateSegmentLength": 79.06490325927734, 
+                "approximateSegmentLength": 59.974609375, 
                 "segmentLines": true, 
                 "filterDoubles": true
             }, 

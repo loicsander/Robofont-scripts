@@ -1,6 +1,7 @@
 #coding=utf-8
 import json
 import os
+import imp
 
 from defcon import addRepresentationFactory
 from glyphFilter import GlyphFilter
@@ -10,10 +11,6 @@ FACTORYKEYPREFIX = 'glyphFilter.'
 
 def makeKey(filterName):
     return '{0}{1}'.format(FACTORYKEYPREFIX, filterName)
-
-def getFileName(path):
-    fileName = path.split('/')
-    return fileName[-1][:-3]
 
 class FiltersManager(object):
     """
@@ -98,7 +95,6 @@ class FiltersManager(object):
             self._saveFiltersList()
 
     def _filterToReprFactory(self, filterName, filterDict):
-        setupStrings = []
         filterObjects = []
 
         if filterDict.has_key('subfilters'):
@@ -108,42 +104,47 @@ class FiltersManager(object):
 
         for filterName_, filterDict_ in filters:
 
-            importString = self.makeImportStrings(filterName_, filterDict_)
-            filterObjectName = filterDict_['filterObject']
-            argumentNames = filterDict_['arguments'].keys()
+            filterFunction = None
+            functionName = filterDict_['filterObject']
+            argumentNames = filterDict_['arguments'].keys() if filterDict_.has_key('arguments') else []
 
-            if importString is not None:
-                setupStrings.append(importString)
-                filterObjects.append((filterObjectName, argumentNames))
+            if filterDict_.has_key('modulePath'):
+                path = filterDict_['modulePath']
+                filterFunction = self._loadFilterFromModule(path, functionName)
 
-        for setupString in setupStrings:
-            exec setupString
+            elif filterDict_.has_key('filePath'):
+                path = filterDict_['filePath']
+                filterFunction = self._loadFilterFromPath(path, functionName)
 
-        glyphFilterArguments = ','.join('({0},({1}))'.format(filterName, argumentsName) for filterName, argumentsName in filterObjects)
-        buildFilterString = 'newFilter = GlyphFilter({0})'.format(glyphFilterArguments)
+            if filterFunction is not None:
+                filterObjects.append((filterFunction, argumentNames))
+
+        newFilter = GlyphFilter(*filterObjects)
         key = makeKey(filterName)
-        buildFactoryString = 'addRepresentationFactory("{0}", newFilter)'.format(key)
-        for execString in [buildFilterString, buildFactoryString]:
-            exec execString
+        addRepresentationFactory(key, newFilter)
 
-    def makeImportStrings(self, filterName, filterDict):
+    def _loadFilterFromPath(self, path, functionName):
+        """
+        _loadFilterFromPath("path/to/a/python/file/withAPen.py", "myFilterPen")
+        """
+        f = open(path, "r")
+        try:
+            module = imp.load_source("ExternalPenBallWizard", path, f)
+            result = getattr(module, functionName)
+        except:
+            result = None
+        f.close()
+        return result
 
-        importString = None
-
-        if filterDict.has_key('modulePath'):
-            importString = 'from {modulePath} import {filterObject}'.format(**filterDict)
-
-        elif filterDict.has_key('fileName'):
-            fileName = filterDict['fileName']
-            importString = 'from filterObjects.{fileName} import {filterObject}'.format(**filterDict)
-
-        return importString
-
-
-    def _duplicateSourceFile(self, sourcePath, fileName):
-        sourceFile = file(sourcePath).read()
-        copiedFile = file('filterObjects/{0}.py'.format(fileName), 'w+')
-        copiedFile.write(sourceFile)
+    def _loadFilterFromModule(self, module, functionName):
+        """
+        _loadFilterFromModule("robofab.pens.filterPen", "FlattenPen")
+        """
+        try:
+            module = __import__(module, fromlist=[functionName])
+            return getattr(module, functionName)
+        except:
+            return None
 
     def _loadFiltersList(self):
         filtersFile = open('/'.join((LOCALPATH, 'filtersList.json')), 'r')

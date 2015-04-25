@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.2
+__version__ = 0.21
 
 import shutil
 from collections import OrderedDict
@@ -181,7 +181,7 @@ class PenBallWizard(object):
 
     def buildFilterSheet(self, filterName='', makeNew=False):
         sheetFields = {
-            'fileName': '',
+            'filePath': '',
             'modulePath': '',
             'filterObject': '',
             'limits': {},
@@ -211,10 +211,10 @@ class PenBallWizard(object):
         filePath = self.filterSheet.importPath[1]
 
         modulePath.pathInput = EditText((10, 10, -10, -10), sheetFields['modulePath'])
-        filePath.pathInput = EditText((10, 10, -110, -10), sheetFields['fileName'])
+        filePath.pathInput = EditText((10, 10, -110, -10), sheetFields['filePath'])
         if len(sheetFields['modulePath']) > 0:
             self.filterSheet.importPath.set(0)
-        elif len(sheetFields['fileName']) > 0:
+        elif len(sheetFields['filePath']) > 0:
             self.filterSheet.importPath.set(1)
         filePath.fileInput = SquareButton((-100, 10, 90, -10), u'Add File…', sizeStyle='small', callback=self.getFile)
         y += 75
@@ -341,11 +341,7 @@ class PenBallWizard(object):
 
     def loadFilePath(self, paths):
         path = paths[0]
-        fileName = path.split('/')[-1]
-        folder = '/'.join(__file__.split('/')[:-1])
-        dest = '{0}/filterObjects/{1}'.format(folder, fileName)
-        shutil.copyfile(path, dest)
-        self.filterSheet.importPath[1].pathInput.set(fileName[:-3])
+        self.filterSheet.importPath[1].pathInput.set(path)
 
     def closeFilterSheet(self, sender):
         self.filterSheet.close()
@@ -358,7 +354,7 @@ class PenBallWizard(object):
 
         if len(filterName) > 0:
             index = self.filterSheet.importPath.get()
-            mode = ['modulePath','fileName'][index]
+            mode = ['modulePath','filePath'][index]
             filterDict[mode] = importString = self.filterSheet.importPath[index].pathInput.get()
 
             if len(importString) > 0:
