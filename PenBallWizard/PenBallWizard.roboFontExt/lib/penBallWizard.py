@@ -194,7 +194,7 @@ class PenBallWizard(object):
 
         self.filterSheet = Sheet((0, 0, 400, 350), self.w)
         self.filterSheet.new = makeNew
-        applyTitle = 'Add Filter' if filterName == '' else 'Update Filder'
+        applyTitle = 'Add Filter' if filterName == '' else 'Update Filter'
         self.filterSheet.apply = SquareButton((-115, -37, 100, 22), applyTitle, callback=self.processFilter, sizeStyle='small')
         self.filterSheet.cancel = SquareButton((-205, -37, 80, 22), 'Cancel', callback=self.closeFilterSheet, sizeStyle='small')
 
