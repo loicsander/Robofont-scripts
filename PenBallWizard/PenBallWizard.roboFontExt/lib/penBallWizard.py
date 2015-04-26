@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.21
+__version__ = 0.3
 
 import shutil
 from collections import OrderedDict
@@ -59,7 +59,7 @@ class PenBallWizard(object):
         self.updateOptions()
 
         self.w.bind('close', self.end)
-        self.w.bind('open', self.launchWindow)
+        self.launchWindow()
         self.w.open()
 
     def generateGlyphs(self, sender):
@@ -184,9 +184,8 @@ class PenBallWizard(object):
 
     def buildFilterSheet(self, filterName='', makeNew=False):
         sheetFields = {
-            'filePath': '',
-            'modulePath': '',
-            'filterObject': '',
+            'file': ['',''],
+            'module': ['',''],
             'limits': {},
             'arguments': {},
         }
@@ -207,24 +206,27 @@ class PenBallWizard(object):
         y += 22
 
         tabs = ['module','file']
+        selectedTab = 0 if len(sheetFields['module'][0]) >= len(sheetFields['file'][0]) else 1
+
+        if selectedTab:
+            filterObjectName = sheetFields['file'][1]
+        elif not selectedTab:
+            filterObjectName = sheetFields['module'][1]
 
         y += 20
         self.filterSheet.importPath = Tabs((15, y, -15, 75), tabs)
-        modulePath = self.filterSheet.importPath[0]
-        filePath = self.filterSheet.importPath[1]
+        self.filterSheet.importPath.set(selectedTab)
+        modulePathTab = self.filterSheet.importPath[0]
+        filePathTab = self.filterSheet.importPath[1]
 
-        modulePath.pathInput = EditText((10, 10, -10, -10), sheetFields['modulePath'])
-        filePath.pathInput = EditText((10, 10, -110, -10), sheetFields['filePath'])
-        if len(sheetFields['modulePath']) > 0:
-            self.filterSheet.importPath.set(0)
-        elif len(sheetFields['filePath']) > 0:
-            self.filterSheet.importPath.set(1)
-        filePath.fileInput = SquareButton((-100, 10, 90, -10), u'Add File…', sizeStyle='small', callback=self.getFile)
+        modulePathTab.pathInput = EditText((10, 10, -10, -10), sheetFields['module'][0])
+        filePathTab.pathInput = EditText((10, 10, -110, -10), sheetFields['file'][0])
+        filePathTab.fileInput = SquareButton((-100, 10, 90, -10), u'Add File…', sizeStyle='small', callback=self.getFile)
         y += 75
 
         y += 10
         self.filterSheet.filterObjectTitle = TextBox((15, y, 100, 22), 'Filter Object (pen, function)')
-        self.filterSheet.filterObject = EditText((125, y, -15, 22), sheetFields['filterObject'])
+        self.filterSheet.filterObject = EditText((125, y, -15, 22), filterObjectName)
         y += 22
 
         y += 20
@@ -357,13 +359,14 @@ class PenBallWizard(object):
 
         if len(filterName) > 0:
             index = self.filterSheet.importPath.get()
-            mode = ['modulePath','filePath'][index]
-            filterDict[mode] = importString = self.filterSheet.importPath[index].pathInput.get()
+            mode = ['module','file'][index]
+            importString = self.filterSheet.importPath[index].pathInput.get()
 
             if len(importString) > 0:
-                filterDict['filterObject'] = filterObject = self.filterSheet.filterObject.get()
+                filterObjectName = self.filterSheet.filterObject.get()
+                filterDict[mode] = (importString, filterObjectName)
 
-                if len(filterObject) > 0:
+                if len(filterObjectName) > 0:
 
                     for argItem in argumentsList:
                         if argItem.has_key('argument'):
@@ -418,6 +421,10 @@ class PenBallWizard(object):
     def addFilterGroup(self, sender):
         self.buildFilterGroupSheet(makeNew=True)
         self.filterSheet.open()
+
+    def addExternalFilter(self, filterName, filterDict):
+        self.filters.addFilter(filterName, filterDict)
+        self.updateFiltersList()
 
     def removeFilter(self, sender):
         filterName = self.currentFilterKey
@@ -481,9 +488,8 @@ class PenBallWizard(object):
         self.cachedFont = RFont(showUI=False)
         self.updatePreview()
 
-    def launchWindow(self, notification):
-        externalFilterList = []
-        postEvent("PenBallWizardSubscribeFilter", filterList=externalFilterList)
+    def launchWindow(self):
+        postEvent("PenBallWizardSubscribeFilter", subscribeFilter=self.addExternalFilter)
 
     def end(self, notification):
         self.filters.update()

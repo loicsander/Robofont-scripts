@@ -1,41 +1,13 @@
 [
     [
-        "Flatten", 
         "Spike"
     ], 
     {
-        "Flatten": {
-            "modulePath": "robofab.pens.filterPen", 
-            "arguments": {
-                "approximateSegmentLength": 59.974609375, 
-                "segmentLines": true, 
-                "filterDoubles": true
-            }, 
-            "limits": {
-                "approximateSegmentLength": [
-                    1.0, 
-                    100.0
-                ]
-            }, 
-            "filterObject": "FlattenPen"
-        }, 
         "Spike": {
-            "modulePath": "robofab.pens.filterPen", 
-            "arguments": {
-                "spikeLength": 26.874736785888672, 
-                "segmentLength": 27.4122314453125
-            }, 
-            "limits": {
-                "spikeLength": [
-                    0.0, 
-                    100.0
-                ], 
-                "segmentLength": [
-                    0.0, 
-                    100.0
-                ]
-            }, 
-            "filterObject": "spikeGlyph"
+            "module": [
+                "robofab.pens.filterPen", 
+                "spikeGlyph"
+            ]
         }
     }
 ]

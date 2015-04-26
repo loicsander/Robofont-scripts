@@ -105,19 +105,21 @@ class FiltersManager(object):
         for filterName_, filterDict_ in filters:
 
             filterFunction = None
-            functionName = filterDict_['filterObject']
             argumentNames = filterDict_['arguments'].keys() if filterDict_.has_key('arguments') else []
 
-            if filterDict_.has_key('modulePath'):
-                path = filterDict_['modulePath']
-                filterFunction = self._loadFilterFromModule(path, functionName)
+            if filterDict_.has_key('filterObject'):
+                filterObject = filterDict_['filterObject']
 
-            elif filterDict_.has_key('filePath'):
-                path = filterDict_['filePath']
-                filterFunction = self._loadFilterFromPath(path, functionName)
+            elif filterDict_.has_key('module'):
+                path, filterObjectName = filterDict_['module']
+                filterObject = self._loadFilterFromModule(path, filterObjectName)
 
-            if filterFunction is not None:
-                filterObjects.append((filterFunction, argumentNames))
+            elif filterDict_.has_key('file'):
+                path, filterObjectName = filterDict_['file']
+                filterObject = self._loadFilterFromPath(path, filterObjectName)
+
+            if filterObject is not None:
+                filterObjects.append((filterObject, argumentNames))
 
         newFilter = GlyphFilter(*filterObjects)
         key = makeKey(filterName)
@@ -159,7 +161,9 @@ class FiltersManager(object):
         filtersFile.close()
 
     def _saveFiltersList(self):
-        filterList = ( self.filterNames, self.filters )
+        filters = {filterName: filterDict for filterName, filterDict in self.filters.items() if not filterDict.has_key('filterObject')}
+        filtersName = [filterName for filterName in self.filterNames if filterName in filters.keys()]
+        filterList = ( filtersName, filters )
         with open('/'.join((LOCALPATH, 'filtersList.json')), 'w') as f:
             j = json.dumps(filterList, indent=4)
             f.write(j)
