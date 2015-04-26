@@ -9,7 +9,7 @@ from defconAppKit.tools.textSplitter import splitText
 from vanilla import Window, List, Slider, CheckBox, EditText, SquareButton, Group, TextBox, Sheet, Tabs
 from vanilla.dialogs import getFile
 from mojo.UI import MultiLineView
-from mojo.events import addObserver, removeObserver
+from mojo.events import addObserver, removeObserver, postEvent
 
 import objects.manager
 reload(objects.manager)
@@ -31,6 +31,8 @@ class PenBallWizard(object):
 
         self.observers = [
             ('fontChanged', 'fontBecameCurrent'),
+            ('fontChanged', 'fontDidOpen'),
+            ('fontChanged', 'fontDidClose'),
         ]
 
         self.w = Window((600, 400), 'PenBall Wizard v{0}'.format(__version__), minSize=(500, 400))
@@ -57,6 +59,7 @@ class PenBallWizard(object):
         self.updateOptions()
 
         self.w.bind('close', self.end)
+        self.w.bind('open', self.launchWindow)
         self.w.open()
 
     def generateGlyphs(self, sender):
@@ -477,6 +480,10 @@ class PenBallWizard(object):
         self.currentFont = notification['font']
         self.cachedFont = RFont(showUI=False)
         self.updatePreview()
+
+    def launchWindow(self, notification):
+        externalFilterList = []
+        postEvent("PenBallWizardSubscribeFilter", filterList=externalFilterList)
 
     def end(self, notification):
         self.filters.update()
