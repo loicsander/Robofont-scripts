@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.3
+__version__ = 0.31
 
 import shutil
 from collections import OrderedDict
@@ -66,7 +66,7 @@ class PenBallWizard(object):
         font = self.currentFont
         newFont = RFont(showUI=False)
         filterName = self.currentFilterKey
-        if font is not None:
+        if font is not None and filterName is not None:
             glyphs = [font[glyphName] for glyphName in font.selection if glyphName in font]
             key, arguments = self.getFilterTokens(filterName)
             if key is not None:
@@ -81,16 +81,16 @@ class PenBallWizard(object):
                     filteredGlyph = glyph.getRepresentation(key, **arguments)
                     if filteredGlyph is not None:
                         newFont.insertGlyph(filteredGlyph, glyph.name)
-        newFont.showUI()
+            newFont.showUI()
 
 
     def getFilterTokens(self, filterName):
-        # if self.currentFilterKey is not None:
-        key = makeKey(filterName)
-        currentFilter = self.getFilter(filterName)
-        arguments = currentFilter['arguments'] if currentFilter.has_key('arguments') else {}
-        return key, arguments
-        # return None, None
+        if filterName is not None:
+            key = makeKey(filterName)
+            currentFilter = self.getFilter(filterName)
+            arguments = currentFilter['arguments'] if currentFilter.has_key('arguments') else {}
+            return key, arguments
+        return None, None
 
     def updateFiltersList(self):
         filtersList = self.filters.get()
@@ -118,17 +118,18 @@ class PenBallWizard(object):
     def filterGlyphs(self, filterName, glyphs, font):
         key, arguments = self.getFilterTokens(filterName)
         filteredGlyphs = []
-        for glyph in glyphs:
-            if len(glyph.components) > 0:
-                for comp in glyph.components:
-                    baseGlyphName = comp.baseGlyph
-                    baseGlyph = font[baseGlyphName]
-                    baseFilteredGlyph = baseGlyph.getRepresentation(key, **arguments)
-                    font.insertGlyph(baseFilteredGlyph, baseGlyphName)
-            filteredGlyph = glyph.getRepresentation(key, **arguments)
-            if filteredGlyph is not None:
-                font.insertGlyph(filteredGlyph, glyph.name)
-                filteredGlyphs.append(font[glyph.name])
+        if (key, arguments) != (None, None):
+            for glyph in glyphs:
+                if len(glyph.components) > 0:
+                    for comp in glyph.components:
+                        baseGlyphName = comp.baseGlyph
+                        baseGlyph = font[baseGlyphName]
+                        baseFilteredGlyph = baseGlyph.getRepresentation(key, **arguments)
+                        font.insertGlyph(baseFilteredGlyph, baseGlyphName)
+                filteredGlyph = glyph.getRepresentation(key, **arguments)
+                if filteredGlyph is not None:
+                    font.insertGlyph(filteredGlyph, glyph.name)
+                    filteredGlyphs.append(font[glyph.name])
         return filteredGlyphs
 
     def updatePreview(self):
@@ -439,7 +440,9 @@ class PenBallWizard(object):
         self.updatePreview()
 
     def getFilter(self, filterName):
-        return self.filters[filterName]
+        if filterName in self.filters:
+            return self.filters[filterName]
+        return None
 
     def getCurrentFilter(self):
         currentFilter = self.filters[self.currentFilterKey]
@@ -452,8 +455,10 @@ class PenBallWizard(object):
     def getSelectedFilterName(self):
         filtersList = self.w.filtersPanel.filtersList
         filterNamesList = filtersList.get()
-        selection = filtersList.getSelection()[0]
-        return filterNamesList[selection]
+        if len(filterNamesList):
+            selection = filtersList.getSelection()[0]
+            return filterNamesList[selection]
+        return None
 
     def switchFillStroke(self, sender):
         self.fill = not self.fill
