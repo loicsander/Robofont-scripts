@@ -3,11 +3,31 @@ import json
 import os
 import imp
 
+from robofab.pens.reverseContourPointPen import ReverseContourPointPen
 from defcon import addRepresentationFactory
+# import glyphFilter
+# reload(glyphFilter)
 from glyphFilter import GlyphFilter
 
 LOCALPATH = '/'.join(__file__.split('/')[:-1])
 FACTORYKEYPREFIX = 'glyphFilter.'
+
+def copyContours(glyph):
+    from robofab.world import RGlyph
+    glyphCopy = RGlyph()
+    glyphCopy.width = glyph.width
+    pen = glyphCopy.getPen()
+    glyph.draw(pen)
+    return glyphCopy
+
+def reverseContours(glyph):
+    from robofab.world import RGlyph
+    glyphCopy = RGlyph()
+    glyphCopy.width = glyph.width
+    pointPen = glyphCopy.getPointPen()
+    reversePen = ReverseContourPointPen(pointPen)
+    glyph.drawPoints(reversePen)
+    return glyphCopy
 
 def makeKey(filterName):
     return '{0}{1}'.format(FACTORYKEYPREFIX, filterName)
@@ -24,8 +44,22 @@ class FiltersManager(object):
     Linking to a file is an implicit request to move said file to a /pens folder next to this .py file.
 
     """
+
+    internalGlyphMethods = {
+        'copy': {
+            'filterObject': copyContours,
+            'arguments': {},
+        },
+        'reverse': {
+            'filterObject': reverseContours,
+            'arguments': {},
+        }
+    }
+
     def __init__(self):
         self._loadFiltersList()
+        for key in self.internalGlyphMethods:
+            self.filters[key] = self.internalGlyphMethods[key]
         for filterName, filterDict in self.filters.items():
             self._filterToReprFactory(filterName, filterDict)
 
@@ -38,11 +72,10 @@ class FiltersManager(object):
     def __getitem__(self, key):
         if self.filters.has_key(key):
             return self.filters[key]
-        else:
-            raise KeyError(key)
+        return None
 
     def __contains__(self, key):
-        return key in self.filterNames
+        return key in self.filters.keys()
 
     def __len__(self):
         return len(self.filterNames)
@@ -98,14 +131,15 @@ class FiltersManager(object):
         filterObjects = []
 
         if filterDict.has_key('subfilters'):
-            filters = [(_filterName_, self.filters[_filterName_]) for _filterName_ in filterDict['subfilters']]
+            filters = [(_filterName_, self.filters[_filterName_], _mode_, _initial_) for _filterName_, _mode_, _initial_ in filterDict['subfilters']]
         else:
-            filters = [(filterName, filterDict)]
+            filters = [(filterName, filterDict, None, False)]
 
-        for filterName_, filterDict_ in filters:
+        for filterName_, filterDict_, _mode_, initialSource in filters:
 
             filterFunction = None
             argumentNames = filterDict_['arguments'].keys() if filterDict_.has_key('arguments') else []
+            mode = _mode_
 
             if filterDict_.has_key('filterObject'):
                 filterObject = filterDict_['filterObject']
@@ -119,7 +153,7 @@ class FiltersManager(object):
                 filterObject = self._loadFilterFromPath(path, filterObjectName)
 
             if filterObject is not None:
-                filterObjects.append((filterObject, argumentNames))
+                filterObjects.append((filterObject, argumentNames, mode, initialSource))
 
         newFilter = GlyphFilter(*filterObjects)
         key = makeKey(filterName)
