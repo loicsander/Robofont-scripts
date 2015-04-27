@@ -19,4 +19,4 @@ Here are the possible arguments for the mode option:
 + ‘intersection’: (see [BooleanOperations](http://doc.robofont.com/api/robofab-extras/boolean-glyph/))
 + ‘difference’: [BooleanOperations](http://doc.robofont.com/api/robofab-extras/boolean-glyph/))
 
-The ``initial``` value is used to tell a specific filter to use the original glyph instead of the filtered one if some filters have already been used in the process.
+The ```initial``` value is used to tell a specific filter to use the original glyph instead of the filtered one if some filters have already been used in the process.
