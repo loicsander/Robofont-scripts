@@ -79,9 +79,6 @@ class GlyphFilter(object):
             except:
                 filteredGlyph = ErrorGlyph()
 
-        if len(filteredGlyph) == 0:
-            filteredGlyph = ErrorGlyph('None')
-
         return filteredGlyph
 
     def cleanGlyph(self, glyph):
