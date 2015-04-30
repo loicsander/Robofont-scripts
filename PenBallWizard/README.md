@@ -14,7 +14,7 @@ from mojo.events import addObserver
 
 def myFilterFunction(glyph, arg1=True, arg2=20):
     # does stuff on a glyph
-    returns filteredGlyph
+    return filteredGlyph
 
 class MyExtension:
 
