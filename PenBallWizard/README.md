@@ -14,6 +14,8 @@ If you provide pens, they should work according to this pattern: ```pen = MyFilt
 ![alt tag](images/penBallWizard-singlefilter.jpg)
 ![alt tag](images/penBallWizard-1.jpg)
 
+*****
+
 **Group filter**
 Filters can be defined as a succession of filters:
 
