@@ -25,7 +25,7 @@ class MyExtension:
         subscribeFilter = notification['subscribeFilter']
         # provide a filter name
         # and a dictionnary with the filterObject and arguments
-				subscribeFilter('MyFilter', {
+        subscribeFilter('MyFilter', {
             'filterObject': myFilterFunction,
             'arguments': {
                 'arg1': True,
