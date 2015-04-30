@@ -9,12 +9,12 @@ If you provide pens, they should work according to this pattern: ```pen = MyFilt
 
 ## Usage
 
-### Single filter
+**Single filter**
 
 ![alt tag](images/penBallWizard-singlefilter.jpg)
 ![alt tag](images/penBallWizard-1.jpg)
 
-### Group filter
+**Group filter**
 Filters can be defined as a succession of filters:
 
 ![alt tag](images/penBallWizard-groupfilter.jpg)
