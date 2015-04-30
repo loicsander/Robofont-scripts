@@ -1,9 +1,42 @@
 PenBall Wizard
 ================
 
+# Overview
+
 This extension is a helper for the wielding of [robofab pens](http://www.robofab.org/objects/pen.html) and functions that transform a glyphs outline. The interface is thought to manage ‘filters’, and see a preview of their effects. A filter is added either by indicating a module importation string that links to existing & installed pens or functions, or by pointing to a file from which a pen or function will be imported on the fly. For each new filter, you also indicate the name of the pen or function as well as possible arguments, which will result in UI controls for each argument.
 
 If you provide pens, they should work according to this pattern: ```pen = MyFilterPen(otherPen, **arguments)```, if you want to use a pen that doesn’t receive another pen as argument, you should provide an intermediary function that handles the pen and returns a filtered glyph.
+
+Alternatively, filters can be added by other extensions inside Robofont. An extension that has a pen or filter functions can add it to the filters list when a PenBallWizard is started. This is done by suscribing to the ```"PenBallWizardSubscribeFilter"``` event. The callback dictionary will contain a method allowing you to add your filter object to PenBallWizard’s list:
+
+```python
+from mojo.events import addObserver
+
+def myFilterFunction(glyph, arg1=True, arg2=20):
+    # does stuff on a glyph
+    returns filteredGlyph
+
+class MyExtension:
+
+    def __init__(self):
+        addObserver(self, 'addFilterToPenBallWizard', 'PenBallWizardSubscribeFilter')
+
+    def addFilterToPenBallWizard(self, notification):
+        subscribeFilter = notification['subscribeFilter']
+        # provide a filter name
+        # and a dictionnary with the filterObject and arguments
+				subscribeFilter('MyFilter', {
+            'filterObject': myFilterFunction,
+            'arguments': {
+                'arg1': True,
+                'arg2': 20
+            }
+        })
+
+
+```
+
+# Usage
 
 ## Single filter
 
