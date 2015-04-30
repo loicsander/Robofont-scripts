@@ -34,7 +34,7 @@ The ```initial``` value is used to tell a specific filter to use the original gl
 
 ## Exchanging filters between extensions
 
-Alternatively, filters can be added by other extensions inside Robofont. An extension that has a pen or filter functions can add it to the filters list when a PenBallWizard is started. This is done by suscribing to the ```"PenBallWizardSubscribeFilter"``` event. The callback dictionary will contain a method allowing you to add your filter object to PenBallWizard’s list:
+Alternatively, filters can be added by other extensions inside Robofont. An extension that has a pen or filter function can add it to the filters list when a PenBallWizard window is initiated. This is done by suscribing to the ```'PenBallWizardSubscribeFilter'``` event. The callback dictionary will contain a method allowing you to add your filter object to PenBallWizard’s list:
 
 ```python
 from mojo.events import addObserver
