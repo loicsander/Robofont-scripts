@@ -1,5 +1,6 @@
  #coding=utf-8
 import json
+import inspect
 
 from booleanOperations.booleanGlyph import BooleanGlyph
 from fontTools.pens.basePen import BasePen
@@ -66,17 +67,25 @@ class GlyphFilter(object):
     def processGlyph(self, filterObject, glyph, font, **arguments):
         filteredGlyph = RGlyph()
         filteredGlyph.width = glyph.width
-        try:
-            drawingPen = filteredGlyph.getPen()
-            filterPen = filterObject(drawingPen, **arguments)
-            glyph.draw(filterPen)
-        except:
+
+        if inspect.isfunction(filterObject):
             try:
                 filteredGlyph.appendGlyph(glyph)
                 filteredGlyph = filterObject(filteredGlyph, **arguments)
                 if filteredGlyph is None:
                     filteredGlyph = glyph
-            except:
+            except Exception as e:
+                print u'PenBallWizard — GlyphFilter Error (function): {0}'.format(e)
+                filteredGlyph = ErrorGlyph()
+
+        else:
+            try:
+                drawingPen = filteredGlyph.getPen()
+                filterPen = filterObject(drawingPen, **arguments)
+                glyph.draw(filterPen)
+
+            except Exception as e:
+                print u'PenBallWizard — GlyphFilter Error (pen): {0}'.format(e)
                 filteredGlyph = ErrorGlyph()
 
         return filteredGlyph

@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.37
+__version__ = 0.38
 
 import shutil
 from collections import OrderedDict
