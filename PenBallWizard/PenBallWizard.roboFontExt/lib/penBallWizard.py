@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.36
+__version__ = 0.37
 
 import shutil
 from collections import OrderedDict
@@ -409,7 +409,7 @@ class PenBallWizard(object):
         filterName = self.filterSheet.name.get()
         filterDict = {
             'subfilters': [(subfilter['filterName'], subfilter['mode'] if subfilter.has_key('mode') and len(subfilter['mode']) else None, subfilter['initial']) for subfilter in subfilters],
-            'arguments': {argument: value for subfilter in subfiltersList for argument, value in subfilter['arguments'].items()}
+            'arguments': {argument: value for subfilter in [_subfilter for _subfilter in subfiltersList if _subfilter.has_key('arguments')] for argument, value in subfilter['arguments'].items() }
         }
         if len(subfiltersList):
             self.filters.addFilter(filterName, filterDict)
@@ -452,7 +452,8 @@ class PenBallWizard(object):
         currentFilter = self.filters[self.currentFilterKey]
         if currentFilter.has_key('subfilters'):
             arguments = currentFilter['arguments']
-            orderedArguments = OrderedDict([(argumentName, arguments[argumentName]) for subfilterName, _, __ in currentFilter['subfilters'] for argumentName in self.filters[subfilterName]['arguments']])
+            argumentedSubfilters = [subfilterName for subfilterName, _, __ in currentFilter['subfilters'] if self.filters[subfilterName].has_key('arguments')]
+            orderedArguments = OrderedDict([(argumentName, arguments[argumentName]) for subfilterName in argumentedSubfilters for argumentName in self.filters[subfilterName]['arguments'] if arguments.has_key(argumentName)])
             currentFilter['arguments'] = orderedArguments
         return currentFilter
 
