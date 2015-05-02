@@ -34,12 +34,8 @@ class GlyphFilter(object):
 
     def __call__(self, glyph, font=None, **globalArguments):
         filterObjects = self.filterObjects
-        outputGlyph = RGlyph()
-        pen = outputGlyph.getPen()
-        outputGlyph.width = glyph.width
-        glyph.draw(pen)
         outputGlyph = self.cleanGlyph(outputGlyph)
-        initialGlyph = glyph
+        initialGlyph = self.cleanGlyph(outputGlyph)
 
         for filterObject in filterObjects:
             filterArguments = self.filterArguments[filterObject]
