@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.38
+__version__ = 0.39
 
 import shutil
 from collections import OrderedDict
@@ -11,8 +11,8 @@ from vanilla.dialogs import getFile
 from mojo.UI import MultiLineView
 from mojo.events import addObserver, removeObserver, postEvent
 
-# import objects.manager
-# reload(objects.manager)
+import objects.manager
+reload(objects.manager)
 from objects.manager import FiltersManager, makeKey
 
 class PenBallWizard(object):
@@ -35,7 +35,7 @@ class PenBallWizard(object):
             ('fontChanged', 'fontDidClose'),
         ]
 
-        self.w = Window((600, 400), 'PenBall Wizard v{0}'.format(__version__), minSize=(500, 400))
+        self.w = Window((100, 100, 800, 500), 'PenBall Wizard v{0}'.format(__version__), minSize=(500, 400))
         self.w.filtersPanel = Group((0, 0, 300, -0))
         self.w.filtersPanel.filtersList = List((0, 0, -0, -40), filtersList, selectionCallback=self.filterSelectionChanged, doubleClickCallback=self.filterEdit, allowsMultipleSelection=False, allowsEmptySelection=False, rowHeight=22)
         self.w.filtersPanel.options = Group((0, -40, -0, 0))
@@ -411,7 +411,7 @@ class PenBallWizard(object):
             'subfilters': [(subfilter['filterName'], subfilter['mode'] if subfilter.has_key('mode') and len(subfilter['mode']) else None, subfilter['initial']) for subfilter in subfilters],
             'arguments': {argument: value for subfilter in [_subfilter for _subfilter in subfiltersList if _subfilter.has_key('arguments')] for argument, value in subfilter['arguments'].items() }
         }
-        if len(subfiltersList):
+        if len(subfiltersList) > 0:
             self.filters.addFilter(filterName, filterDict)
             self.closeFilterSheet(sender)
             self.updateFiltersList()

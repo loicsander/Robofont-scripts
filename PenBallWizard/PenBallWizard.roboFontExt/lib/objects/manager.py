@@ -1,12 +1,13 @@
 #coding=utf-8
 import json
 import os
+import sys
 import imp
 
 from robofab.pens.reverseContourPointPen import ReverseContourPointPen
 from defcon import addRepresentationFactory
-# import glyphFilter
-# reload(glyphFilter)
+import glyphFilter
+reload(glyphFilter)
 from glyphFilter import GlyphFilter
 
 LOCALPATH = '/'.join(__file__.split('/')[:-1])
@@ -153,6 +154,8 @@ class FiltersManager(object):
                 filterObject = self._loadFilterFromPath(path, filterObjectName)
 
             if filterObject is not None:
+                if not filterDict_.has_key('filterObject'):
+                    filterDict_['filterObject'] = filterObject
                 filterObjects.append((filterObject, argumentNames, mode, initialSource))
 
         newFilter = GlyphFilter(*filterObjects)
@@ -163,14 +166,21 @@ class FiltersManager(object):
         """
         _loadFilterFromPath("path/to/a/python/file/withAPen.py", "myFilterPen")
         """
-        f = open(path, "r")
         try:
-            module = imp.load_source("ExternalPenBallWizard", path, f)
-            result = getattr(module, functionName)
-        except:
-            result = None
-        f.close()
-        return result
+            f = open(path, "r")
+            try:
+                moduleName = "externalPenBallWizard{0}".format(path.split('/')[-1][:-3])
+                if moduleName not in sys.modules:
+                    module = imp.load_source(moduleName, path, f)
+                else:
+                    module = __import__(moduleName, fromlist=[functionName])
+                result = getattr(module, functionName)
+            except:
+                result = None
+            f.close()
+            return result
+        except IOError as e:
+            print 'Couldn’t load file {0}'.format(e)
 
     def _loadFilterFromModule(self, module, functionName):
         """
@@ -195,7 +205,10 @@ class FiltersManager(object):
         filtersFile.close()
 
     def _saveFiltersList(self):
-        filters = {filterName: filterDict for filterName, filterDict in self.filters.items() if not filterDict.has_key('filterObject')}
+        filters = {filterName: filterDict for filterName, filterDict in self.filters.items() if filterDict.has_key('module') or filterDict.has_key('file')}
+        for fil in filters.values():
+            if fil.has_key('filterObject'):
+                fil.pop('filterObject', 0)
         filtersName = [filterName for filterName in self.filterNames if filterName in filters.keys()]
         filterList = ( filtersName, filters )
         with open('/'.join((LOCALPATH, 'filtersList.json')), 'w') as f:
