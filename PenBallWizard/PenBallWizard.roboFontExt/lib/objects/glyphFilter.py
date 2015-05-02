@@ -34,8 +34,8 @@ class GlyphFilter(object):
 
     def __call__(self, glyph, font=None, **globalArguments):
         filterObjects = self.filterObjects
-        outputGlyph = self.cleanGlyph(outputGlyph)
-        initialGlyph = self.cleanGlyph(outputGlyph)
+        outputGlyph = self.cleanGlyph(glyph)
+        initialGlyph = self.cleanGlyph(glyph)
 
         for filterObject in filterObjects:
             filterArguments = self.filterArguments[filterObject]
@@ -50,7 +50,8 @@ class GlyphFilter(object):
             if mode is None:
                 outputGlyph = filteredGlyph
             elif mode == 'add':
-                outputGlyph.appendGlyph(filteredGlyph)
+                pen = outputGlyph.getPen()
+                filteredGlyph.draw(pen)
             elif mode == 'union':
                 outputGlyph = BooleanGlyph(outputGlyph) | BooleanGlyph(filteredGlyph)
             elif mode == 'difference':
