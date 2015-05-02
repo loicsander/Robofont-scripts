@@ -20,7 +20,7 @@ class CleanPointPen(AbstractPointPen):
 
     def endPath(self):
         onCurves = [1 for point in self.currentContour if point['segmentType'] is not None]
-        if len(onCurves) > 2:
+        if len(onCurves) >= 2:
             self.contours.append(self.currentContour)
 
     def extract(self, pointPen):

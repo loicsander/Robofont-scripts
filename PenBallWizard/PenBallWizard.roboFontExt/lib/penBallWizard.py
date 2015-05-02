@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.39
+__version__ = 0.4
 
 import shutil
 from collections import OrderedDict
@@ -33,6 +33,8 @@ class PenBallWizard(object):
             ('fontChanged', 'fontBecameCurrent'),
             ('fontChanged', 'fontDidOpen'),
             ('fontChanged', 'fontDidClose'),
+            ('updatePreview', 'keyUp'),
+            ('updatePreview', 'mouseUp')
         ]
 
         self.w = Window((100, 100, 800, 500), 'PenBall Wizard v{0}'.format(__version__), minSize=(500, 400))
@@ -104,7 +106,16 @@ class PenBallWizard(object):
         key = sender.name
         if self.currentFilterKey is not None:
             self.filters.setFilterArgument(self.currentFilterKey, key, value)
+        self.dirtyGlyphs()
         self.updatePreview()
+
+    def dirtyGlyphs(self):
+        font = self.currentFont
+        self.cachedFont = RFont(showUI=False)
+        if font is not None:
+            for glyphName in self.glyphNames:
+                if glyphName in font:
+                    font[glyphName].dirty = True
 
     def processGlyphs(self):
         font = self.currentFont
@@ -132,14 +143,7 @@ class PenBallWizard(object):
                     filteredGlyphs.append(font[glyph.name])
         return filteredGlyphs
 
-    def dirtyGlyphs(self):
-        font = self.currentFont
-        if font is not None:
-            for glyphName in self.glyphNames:
-                g = font[glyphName]
-                g.dirty = True
-
-    def updatePreview(self):
+    def updatePreview(self, notification=None):
         glyphs = self.processGlyphs()
         self.w.preview.setFont(self.cachedFont)
         self.w.preview.set(glyphs)
@@ -399,8 +403,8 @@ class PenBallWizard(object):
 
                     self.closeFilterSheet(sender)
                     self.updateFiltersList()
-                    self.dirtyGlyphs()
                     self.updateOptions()
+                    self.dirtyGlyphs()
                     self.updatePreview()
 
     def processFilterGroup(self, sender):
@@ -415,8 +419,8 @@ class PenBallWizard(object):
             self.filters.addFilter(filterName, filterDict)
             self.closeFilterSheet(sender)
             self.updateFiltersList()
-            self.dirtyGlyphs()
             self.updateOptions()
+            self.dirtyGlyphs()
             self.updatePreview()
 
     def addFilter(self, sender):
@@ -496,7 +500,6 @@ class PenBallWizard(object):
         if notification.has_key('font'):
             self.currentFont = notification['font']
             self.cachedFont = RFont(showUI=False)
-            self.dirtyGlyphs()
             self.updatePreview()
 
     def launchWindow(self):
