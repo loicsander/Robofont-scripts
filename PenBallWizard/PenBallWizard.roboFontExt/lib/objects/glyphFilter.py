@@ -65,7 +65,7 @@ class GlyphFilter(object):
                 except:
                     processedGlyph = ErrorGlyph('boolean')
         outputGlyph = RGlyph()
-        outputGlyph.width = glyph.width
+        outputGlyph.width = processedGlyph.width
         outputPen = outputGlyph.getPen()
         processedGlyph.draw(outputPen)
         return outputGlyph
@@ -98,6 +98,7 @@ class GlyphFilter(object):
 
     def cleanGlyph(self, glyph):
         cleanGlyph = RGlyph()
+        cleanGlyph.width = glyph.width
         pen = cleanGlyph.getPointPen()
         cleanPen = CleanPointPen()
         glyph.drawPoints(cleanPen)
