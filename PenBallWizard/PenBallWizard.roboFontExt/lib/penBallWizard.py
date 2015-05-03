@@ -1,12 +1,12 @@
 #coding=utf-8
-__version__ = 0.43
+__version__ = 0.44
 
 import shutil
 from collections import OrderedDict
 
 from robofab.world import RFont
 from defconAppKit.tools.textSplitter import splitText
-from vanilla import Window, List, Slider, CheckBox, EditText, SquareButton, Group, TextBox, Sheet, Tabs, CheckBoxListCell
+from vanilla import Window, List, Slider, CheckBox, EditText, SquareButton, Group, TextBox, Sheet, Tabs, CheckBoxListCell, RadioGroup
 from vanilla.dialogs import getFile
 from mojo.UI import MultiLineView
 from mojo.events import addObserver, removeObserver, postEvent
@@ -46,7 +46,7 @@ class PenBallWizard(object):
         self.w.filtersPanel.addFilterGroup = SquareButton((100, -40, 100, 40), 'Add group', sizeStyle='small', callback=self.addFilterGroup)
         self.w.filtersPanel.removeFilter = SquareButton((-100, -40, 100, 40), 'Remove filter', sizeStyle='small', callback=self.removeFilter)
         self.w.textInput = EditText((300, 0, -90, 22), '', callback=self.stringInput)
-        self.w.generate = SquareButton((-90, 0, 90, 22), 'Generate', callback=self.generateGlyphs, sizeStyle='small')
+        self.w.generate = SquareButton((-90, 0, 90, 22), 'Generate', callback=self.generateGlyphsToFont, sizeStyle='small')
         self.w.preview = MultiLineView((300, 22, -0, -0))
         self.w.switchFillStroke = SquareButton((-75, -40, 60, 25), 'Stroke', callback=self.switchFillStroke, sizeStyle='small')
         displayStates = self.w.preview.getDisplayStates()
@@ -65,7 +65,7 @@ class PenBallWizard(object):
         self.launchWindow()
         self.w.open()
 
-    def generateGlyphs(self, sender):
+    def generateGlyphsToFont(self, sender):
         font = self.currentFont
         newFont = RFont(showUI=False)
         filterName = self.currentFilterKey
@@ -73,7 +73,6 @@ class PenBallWizard(object):
             glyphs = [font[glyphName] for glyphName in font.selection if glyphName in font]
             key, arguments = self.getFilterTokens(filterName)
             if key is not None:
-                filteredGlyphs = []
                 for glyph in glyphs:
                     if len(glyph.components) > 0:
                         for comp in glyph.components:
@@ -85,6 +84,20 @@ class PenBallWizard(object):
                     if filteredGlyph is not None:
                         newFont.insertGlyph(filteredGlyph, glyph.name)
             newFont.showUI()
+
+    def generateGlyphsToLayer(self, layerName):
+        font = self.currentFont
+        filterName = self.currentFilterKey
+        if font is not None and filterName is not None:
+            glyphs = [font[glyphName] for glyphName in font.selection if glyphName in font]
+            key, arguments = self.getFilterTokens(filterName)
+            if key is not None:
+                for glyph in glyphs:
+                    if len(glyph.components) == 0:
+                        layerGlyph = glyph.getLayer(layerName)
+                        filteredGlyph = glyph.getRepresentation(key, **arguments)
+                        if filteredGlyph is not None:
+                            layerGlyph.appendGlyph(filteredGlyph)
 
 
     def getFilterTokens(self, filterName):
@@ -199,6 +212,10 @@ class PenBallWizard(object):
             self.buildFilterSheet(filterName)
         self.filterSheet.open()
 
+    # def buildGenerationSheet(self, sender):
+    #     self.generationSheet = Sheet((0, 0, 400, 350), self.w)
+    #     self.generationSheet.title = TextBox((15, 15, -15, 22), u'Generate selected glyphs to:')
+
     def buildFilterSheet(self, filterName='', makeNew=False):
         sheetFields = {
             'file': ['',''],
@@ -290,7 +307,7 @@ class PenBallWizard(object):
 
         currentFilter = self.filters[filterName]
         subfilters = currentFilter['subfilters'] if currentFilter is not None and currentFilter.has_key('subfilters') else []
-        subfilterItems = [{'filterName': subfilterName, 'mode': subfilterMode if subfilterMode is not None else '', 'initial': useInitial} for subfilterName, subfilterMode, useInitial in subfilters]
+        subfilterItems = [{'filterName': subfilterName, 'mode': subfilterMode if subfilterMode is not None else '', 'source': source} for subfilterName, subfilterMode, source in subfilters]
 
         self.filterSheet = Sheet((0, 0, 400, 350), self.w)
         self.filterSheet.new = makeNew
@@ -304,9 +321,9 @@ class PenBallWizard(object):
         y += 22
 
         columns = [
-            {'title': 'filterName', 'editable': True, 'width': 150},
-            {'title': 'mode', 'editable': True, 'width': 100},
-            {'title': 'initial', 'cell': CheckBoxListCell(), 'width': 79}
+            {'title': 'filterName', 'editable': True, 'width': 140},
+            {'title': 'mode', 'editable': True, 'width': 89},
+            {'title': 'source', 'editable': True, 'width': 100}
         ]
 
         buttonSize = 20
@@ -339,7 +356,7 @@ class PenBallWizard(object):
 
     def addSubfilter(self, sender):
         subfiltersList = self.filterSheet.subfilters.get()
-        subfilterDict = {'filterName': '{enter filter name}', 'mode': '', 'initial': False}
+        subfilterDict = {'filterName': '{enter filter name}', 'mode': '', 'source': False}
         subfiltersList.append(subfilterDict)
         if len(subfiltersList) > 0:
             self.filterSheet.removeSubfilter.enable(True)
@@ -413,11 +430,11 @@ class PenBallWizard(object):
                     self.updatePreview()
 
     def processFilterGroup(self, sender):
-        subfilters = [item for item in self.filterSheet.subfilters.get() if item['filterName'] in self.filters and not self.filters.isGroup(item['filterName'])]
-        subfiltersList = [self.filters[subfilter['filterName']] for subfilter in subfilters]
+        subfilters = [item for item in self.filterSheet.subfilters.get() if (item.has_key('filterName') and item['filterName'] in self.filters and not self.filters.isGroup(item['filterName'])) or not item.has_key('filterName')]
+        subfiltersList = [self.filters[subfilter['filterName'] if subfilter.has_key('filterName') else 'copy'] for subfilter in subfilters]
         filterName = self.filterSheet.name.get()
         filterDict = {
-            'subfilters': [(subfilter['filterName'], subfilter['mode'] if subfilter.has_key('mode') and len(subfilter['mode']) else None, subfilter['initial']) for subfilter in subfilters],
+            'subfilters': [(subfilter['filterName'] if subfilter.has_key('filterName') else 'copy', subfilter['mode'] if subfilter.has_key('mode') else '', subfilter['source'] if subfilter.has_key('source') else '') for subfilter in subfilters],
             'arguments': {argument: value for subfilter in [_subfilter for _subfilter in subfiltersList if _subfilter.has_key('arguments')] for argument, value in subfilter['arguments'].items() }
         }
         if len(subfiltersList) > 0:

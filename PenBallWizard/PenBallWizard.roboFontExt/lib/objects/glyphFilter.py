@@ -52,7 +52,7 @@ class GlyphFilter(object):
                 glyphToProcess = outputGlyph
             arguments = {argumentName: argumentValue for argumentName, argumentValue in globalArguments.items() if argumentName in filterArguments}
             filteredGlyph = self.processGlyph(filterObject, glyphToProcess, font=None, **arguments)
-            if mode is None:
+            if not mode:
                 outputGlyph = filteredGlyph
             elif mode == 'add':
                 pen = outputGlyph.getPen()
