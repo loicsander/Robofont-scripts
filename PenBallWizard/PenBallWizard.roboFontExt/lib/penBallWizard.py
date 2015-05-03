@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.41
+__version__ = 0.42
 
 import shutil
 from collections import OrderedDict
@@ -11,9 +11,12 @@ from vanilla.dialogs import getFile
 from mojo.UI import MultiLineView
 from mojo.events import addObserver, removeObserver, postEvent
 
-import objects.manager
-reload(objects.manager)
+# import objects.manager
+# reload(objects.manager)
 from objects.manager import FiltersManager, makeKey
+import parameterObjects.vanillaParameterObjects
+reload(parameterObjects.vanillaParameterObjects)
+from parameterObjects.vanillaParameterObjects import ParameterSliderTextInput, VanillaSingleValueParameter
 
 class PenBallWizard(object):
 
@@ -155,7 +158,7 @@ class PenBallWizard(object):
             currentFilter = self.getCurrentFilter()
             arguments = currentFilter['arguments'] if currentFilter.has_key('arguments') else {}
             limits = currentFilter['limits'] if currentFilter.has_key('limits') else {}
-            height = (len(arguments) * 40) + 40
+            height = (len(arguments) * 30) + 60
             self.w.filtersPanel.filtersList.setPosSize((0, 0, -0, -height))
             self.w.filtersPanel.options = Group((0, -height, -0, -40))
             for i, (arg, value) in enumerate(arguments.items()):
@@ -171,8 +174,11 @@ class PenBallWizard(object):
                 elif isinstance(value, (str, unicode)):
                     setattr(self.w.filtersPanel.options, attrName, EditText((15, 15 + (i*30), -15, 22), value, callback=self.setArgumentValue, sizeStyle='small'))
                 elif isinstance(value, (int, float)):
-                    setattr(self.w.filtersPanel.options, attrName+'Title', TextBox((15, 18 + (i*30), 150, 22), arg, sizeStyle='small'))
-                    setattr(self.w.filtersPanel.options, attrName, Slider((168, 15 + (i*30), -15, 22), minValue=mini, maxValue=maxi, value=value, callback=self.setArgumentValue))
+                    parameter = VanillaSingleValueParameter(arg, value, limits=(mini, maxi))
+                    setattr(self.w.filtersPanel.options, attrName, ParameterSliderTextInput(parameter, (15, 15 + (i*30), -15, 22), title=arg, callback=self.setArgumentValue))
+#                    setattr(self.w.filtersPanel.options, attrName+'Title', TextBox((15, 18 + (i*30), 150, 22), arg, sizeStyle='small'))
+#                    setattr(self.w.filtersPanel.options, attrName, Slider((168, 15 + (i*30), -15, 22), minValue=mini, maxValue=maxi, value=value, callback=self.setArgumentValue))
+
                 control = getattr(self.w.filtersPanel.options, attrName)
                 control.name = arg
                 control.type = valueType
