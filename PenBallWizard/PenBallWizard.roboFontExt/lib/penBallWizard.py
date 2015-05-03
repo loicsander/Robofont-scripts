@@ -11,8 +11,8 @@ from vanilla.dialogs import getFile
 from mojo.UI import MultiLineView
 from mojo.events import addObserver, removeObserver, postEvent
 
-import objects.manager
-reload(objects.manager)
+# import objects.manager
+# reload(objects.manager)
 from objects.manager import FiltersManager, makeKey
 from parameterObjects.vanillaParameterObjects import ParameterSliderTextInput, VanillaSingleValueParameter
 

@@ -6,8 +6,8 @@ import imp
 
 from robofab.pens.reverseContourPointPen import ReverseContourPointPen
 from defcon import addRepresentationFactory, removeRepresentationFactory
-import glyphFilter
-reload(glyphFilter)
+# import glyphFilter
+# reload(glyphFilter)
 from glyphFilter import GlyphFilter
 
 LOCALPATH = '/'.join(__file__.split('/')[:-1])
