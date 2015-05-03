@@ -6,19 +6,40 @@ from robofab.world import RGlyph
 
 _LETTERFORMS = {
         'interpolation':[
-            (296, 322), (201, 322),
-            (201, 352), (231, 352),
-            (231, 397), (201, 397),
-            (201, 427), (296, 427),
-            (296, 397), (266, 397),
-            (266, 352), (296, 352)
+            [
+                (296, 322), (201, 322),
+                (201, 352), (231, 352),
+                (231, 397), (201, 397),
+                (201, 427), (296, 427),
+                (296, 397), (266, 397),
+                (266, 352), (296, 352)
+            ]
         ],
         'none':[
-            (231, 322), (201, 322),
-            (201, 427), (236, 427),
-            (266, 374), (266, 427),
-            (296, 427), (296, 322),
-            (261, 322), (231, 375)
+            [
+                (231, 322), (201, 322),
+                (201, 427), (236, 427),
+                (266, 374), (266, 427),
+                (296, 427), (296, 322),
+                (261, 322), (231, 375)
+            ]
+        ],
+        'boolean':[
+            [
+                (271, 401), (236, 401),
+                (236, 386), (271, 386),
+                (276, 393),
+            ],[
+                (290, 322),
+                (201, 322), (201, 427),
+                (290, 427), (309, 408),
+                (309, 392), (294, 375),
+                (309, 357), (309, 341),
+            ],[
+                (271, 364), (236, 364),
+                (236, 348), (271, 348),
+                (276, 356)
+            ]
         ]
     }
 
@@ -57,14 +78,15 @@ class ErrorGlyph(RGlyph):
             points = self._getLetter(errorName)
             self._drawPoints(points)
 
-    def _drawPoints(self, points):
+    def _drawPoints(self, contours):
         pen = self.pen
-        for i, point in enumerate(points):
-            if i == 0:
-                pen.moveTo(point)
-            else:
-                pen.lineTo(point)
-        pen.closePath()
+        for points in contours:
+            for i, point in enumerate(points):
+                if i == 0:
+                    pen.moveTo(point)
+                else:
+                    pen.lineTo(point)
+            pen.closePath()
 
     def _getErrorSign(self):
         points = []
@@ -82,7 +104,7 @@ class ErrorGlyph(RGlyph):
                 a -= pi/2
             elif i%3 != 0:
                 a += pi/2
-        return points
+        return [points]
 
     def _getLetter(self, errorName):
         errorName = errorName.lower()

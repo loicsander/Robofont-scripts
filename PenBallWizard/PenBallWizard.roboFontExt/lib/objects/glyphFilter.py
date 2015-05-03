@@ -52,13 +52,14 @@ class GlyphFilter(object):
             elif mode == 'add':
                 pen = outputGlyph.getPen()
                 filteredGlyph.draw(pen)
-            elif mode == 'union':
-                outputGlyph = BooleanGlyph(outputGlyph) | BooleanGlyph(filteredGlyph)
-            elif mode == 'difference':
-                outputGlyph = BooleanGlyph(outputGlyph) % BooleanGlyph(filteredGlyph)
-            elif mode == 'intersection':
-                outputGlyph = BooleanGlyph(outputGlyph) & BooleanGlyph(filteredGlyph)
-        # outputGlyph = self.cleanGlyph(outputGlyph)
+            elif mode in ['union','difference','intersection']:
+                try:
+                    b1 = BooleanGlyph(outputGlyph)
+                    b2 = BooleanGlyph(filteredGlyph)
+                    action = getattr(b1, mode)
+                    outputGlyph = action(b2)
+                except:
+                    outputGlyph = ErrorGlyph('boolean')
         return outputGlyph
 
     def processGlyph(self, filterObject, glyph, font, **arguments):

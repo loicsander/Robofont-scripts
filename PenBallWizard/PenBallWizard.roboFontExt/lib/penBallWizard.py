@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.4
+__version__ = 0.41
 
 import shutil
 from collections import OrderedDict
@@ -498,6 +498,7 @@ class PenBallWizard(object):
 
     def fontChanged(self, notification):
         if notification.has_key('font'):
+            self.stringInput(self.w.textInput)
             self.currentFont = notification['font']
             self.cachedFont = RFont(showUI=False)
             self.updatePreview()
