@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.44
+__version__ = 0.45
 
 import shutil
 from collections import OrderedDict
@@ -43,7 +43,7 @@ class PenBallWizard(object):
         self.w.filtersPanel.filtersList = List((0, 0, -0, -40), filtersList, selectionCallback=self.filterSelectionChanged, doubleClickCallback=self.filterEdit, allowsMultipleSelection=False, allowsEmptySelection=False, rowHeight=22)
         self.w.filtersPanel.options = Group((0, -40, -0, 0))
         self.w.filtersPanel.addFilter = SquareButton((0, -40, 100, 40), 'Add filter', sizeStyle='small', callback=self.addFilter)
-        self.w.filtersPanel.addFilterGroup = SquareButton((100, -40, 100, 40), 'Add group', sizeStyle='small', callback=self.addFilterGroup)
+        self.w.filtersPanel.addFilterGroup = SquareButton((100, -40, 100, 40), 'Add operation', sizeStyle='small', callback=self.addFilterGroup)
         self.w.filtersPanel.removeFilter = SquareButton((-100, -40, 100, 40), 'Remove filter', sizeStyle='small', callback=self.removeFilter)
         self.w.textInput = EditText((300, 0, -90, 22), '', callback=self.stringInput)
         self.w.generate = SquareButton((-90, 0, 90, 22), 'Generate', callback=self.generateGlyphsToFont, sizeStyle='small')
@@ -435,7 +435,8 @@ class PenBallWizard(object):
         filterName = self.filterSheet.name.get()
         filterDict = {
             'subfilters': [(subfilter['filterName'] if subfilter.has_key('filterName') else 'copy', subfilter['mode'] if subfilter.has_key('mode') else '', subfilter['source'] if subfilter.has_key('source') else '') for subfilter in subfilters],
-            'arguments': {argument: value for subfilter in [_subfilter for _subfilter in subfiltersList if _subfilter.has_key('arguments')] for argument, value in subfilter['arguments'].items() }
+            'arguments': {argument: value for subfilter in [_subfilter for _subfilter in subfiltersList if _subfilter.has_key('arguments')] for argument, value in subfilter['arguments'].items() },
+            'limits': {argument: value for subfilter in [_subfilter for _subfilter in subfiltersList if _subfilter.has_key('limits')] for argument, value in subfilter['limits'].items() }
         }
         if len(subfiltersList) > 0:
             self.filters.addFilter(filterName, filterDict)
