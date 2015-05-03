@@ -5,13 +5,14 @@ import sys
 import imp
 
 from robofab.pens.reverseContourPointPen import ReverseContourPointPen
-from defcon import addRepresentationFactory
+from defcon import addRepresentationFactory, removeRepresentationFactory
 import glyphFilter
 reload(glyphFilter)
 from glyphFilter import GlyphFilter
 
 LOCALPATH = '/'.join(__file__.split('/')[:-1])
 FACTORYKEYPREFIX = 'glyphFilter.'
+_addedRepresentationFactories = []
 
 def copyContours(glyph):
     from robofab.world import RGlyph
@@ -132,15 +133,14 @@ class FiltersManager(object):
         filterObjects = []
 
         if filterDict.has_key('subfilters'):
-            filters = [(_filterName_, self.filters[_filterName_], _mode_, _initial_) for _filterName_, _mode_, _initial_ in filterDict['subfilters']]
+            filters = [(_filterName_, self.filters[_filterName_], _mode_, _source_) for _filterName_, _mode_, _source_ in filterDict['subfilters']]
         else:
             filters = [(filterName, filterDict, None, False)]
 
-        for filterName_, filterDict_, _mode_, initialSource in filters:
+        for filterName_, filterDict_, mode_, source_ in filters:
 
             filterFunction = None
             argumentNames = filterDict_['arguments'].keys() if filterDict_.has_key('arguments') else []
-            mode = _mode_
 
             if filterDict_.has_key('filterObject'):
                 filterObject = filterDict_['filterObject']
@@ -156,10 +156,14 @@ class FiltersManager(object):
             if filterObject is not None:
                 if not filterDict_.has_key('filterObject'):
                     filterDict_['filterObject'] = filterObject
-                filterObjects.append((filterObject, argumentNames, mode, initialSource))
+                filterObjects.append((filterObject, argumentNames, mode_, source_))
 
         newFilter = GlyphFilter(*filterObjects)
         key = makeKey(filterName)
+        if key in _addedRepresentationFactories:
+            removeRepresentationFactory(key)
+        elif key not in _addedRepresentationFactories:
+            _addedRepresentationFactories.append(key)
         addRepresentationFactory(key, newFilter)
 
     def _loadFilterFromPath(self, path, functionName):

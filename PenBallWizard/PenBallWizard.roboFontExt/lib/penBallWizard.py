@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.42
+__version__ = 0.43
 
 import shutil
 from collections import OrderedDict
@@ -11,11 +11,9 @@ from vanilla.dialogs import getFile
 from mojo.UI import MultiLineView
 from mojo.events import addObserver, removeObserver, postEvent
 
-# import objects.manager
-# reload(objects.manager)
+import objects.manager
+reload(objects.manager)
 from objects.manager import FiltersManager, makeKey
-import parameterObjects.vanillaParameterObjects
-reload(parameterObjects.vanillaParameterObjects)
 from parameterObjects.vanillaParameterObjects import ParameterSliderTextInput, VanillaSingleValueParameter
 
 class PenBallWizard(object):
@@ -109,16 +107,17 @@ class PenBallWizard(object):
         key = sender.name
         if self.currentFilterKey is not None:
             self.filters.setFilterArgument(self.currentFilterKey, key, value)
-        self.dirtyGlyphs()
+            self.resetRepresentations(self.currentFilterKey)
         self.updatePreview()
 
-    def dirtyGlyphs(self):
+    def resetRepresentations(self, filterName):
+        key, arguments = self.getFilterTokens(filterName)
         font = self.currentFont
         self.cachedFont = RFont(showUI=False)
         if font is not None:
             for glyphName in self.glyphNames:
                 if glyphName in font:
-                    font[glyphName].dirty = True
+                    font[glyphName].naked().destroyAllRepresentations()
 
     def processGlyphs(self):
         font = self.currentFont
@@ -410,7 +409,7 @@ class PenBallWizard(object):
                     self.closeFilterSheet(sender)
                     self.updateFiltersList()
                     self.updateOptions()
-                    self.dirtyGlyphs()
+                    self.resetRepresentations(filterName)
                     self.updatePreview()
 
     def processFilterGroup(self, sender):
@@ -426,7 +425,7 @@ class PenBallWizard(object):
             self.closeFilterSheet(sender)
             self.updateFiltersList()
             self.updateOptions()
-            self.dirtyGlyphs()
+            self.resetRepresentations(filterName)
             self.updatePreview()
 
     def addFilter(self, sender):

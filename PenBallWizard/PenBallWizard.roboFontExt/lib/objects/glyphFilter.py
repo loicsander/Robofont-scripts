@@ -25,25 +25,30 @@ class GlyphFilter(object):
         self.filterObjects = []
         self.filterArguments = {}
         self.modes = {}
-        self.initialSources = {}
-        for filterObject, filterArguments, mode, initialSource in filterTuples:
+        self.sources = {}
+        for filterObject, filterArguments, mode, source in filterTuples:
             self.filterObjects.append(filterObject)
             self.filterArguments[filterObject] = filterArguments
             self.modes[filterObject] = mode
-            self.initialSources[filterObject] = initialSource
+            self.sources[filterObject] = source
 
     def __call__(self, glyph, font=None, **globalArguments):
         filterObjects = self.filterObjects
         outputGlyph = self.cleanGlyph(glyph)
-        initialGlyph = self.cleanGlyph(glyph)
+        # initialGlyph = self.cleanGlyph(glyph)
 
         for filterObject in filterObjects:
             filterArguments = self.filterArguments[filterObject]
             mode = self.modes[filterObject]
-            initialSource = self.initialSources[filterObject]
-            if initialSource == True:
-                glyphToProcess = initialGlyph
-            else:
+            source = self.sources[filterObject]
+            if source:
+                if source == True:
+                    source = 'foreground'
+                try:
+                    glyphToProcess = self.cleanGlyph(glyph.getLayer(source))
+                except:
+                    glyphToProcess = ErrorGlyph('none')
+            elif not source:
                 glyphToProcess = outputGlyph
             arguments = {argumentName: argumentValue for argumentName, argumentValue in globalArguments.items() if argumentName in filterArguments}
             filteredGlyph = self.processGlyph(filterObject, glyphToProcess, font=None, **arguments)
