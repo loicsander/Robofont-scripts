@@ -11,16 +11,16 @@ If you provide pens, they should work according to this pattern: ```pen = MyFilt
 
 **Single filter**
 
-![alt tag](images/penBallWizard-singlefilter.jpg)
-![alt tag](images/penBallWizard-1.jpg)
+![alt tag](images/penBallWizard-1.png)
+![alt tag](images/penBallWizard-2.png)
 
 *****
 
-**Group filter**
-Filters can be defined as a succession of filters:
+**Operations filter**
+Filters can be defined as a succession of filters and/or boolean operations:
 
-![alt tag](images/penBallWizard-groupfilter.jpg)
-![alt tag](images/penBallWizard-2.jpg)
+![alt tag](images/penBallWizard-3.png)
+![alt tag](images/penBallWizard-4.png)
 
 When defining a filter group, you call existing single filters by name and you have a couple of options for each filter in the process. By default, at each step, the glyph is filtered and returned to be passed to the next filter. The ```mode``` option allows you to define how the glyph is passed on to the next step. 
 
@@ -30,7 +30,11 @@ Here are the possible arguments for the mode option:
 + ‘intersection’: (see [BooleanOperations](http://doc.robofont.com/api/robofab-extras/boolean-glyph/))
 + ‘difference’: [BooleanOperations](http://doc.robofont.com/api/robofab-extras/boolean-glyph/))
 
-The ```initial``` value is used to tell a specific filter to use the original glyph instead of the previously filtered one (if some filters have already been used in the process).
+![alt tag](images/penBallWizard-5.png)
+![alt tag](images/penBallWizard-6.png)
+
+The ```source``` value is used to changed the source glyph, possibly for each step. If the cell remains empty, each operation receives the previously filtered glyph. However, you can change that by providing layer names. It allows you to either use the original glyph by asking for 'foreground' (used to be ```initial = True```), but you can also get glyphs from other layers of the initial glyph.
+This functionality makes it easy to create a filter that is only a succession of boolean operations between layers, for instance.
 
 ## Exchanging filters between extensions
 
