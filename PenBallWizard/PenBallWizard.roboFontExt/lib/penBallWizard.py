@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.45
+__version__ = 0.46
 
 import shutil
 from collections import OrderedDict
@@ -50,9 +50,9 @@ class PenBallWizard(object):
         self.w.preview = MultiLineView((300, 22, -0, -0))
         self.w.switchFillStroke = SquareButton((-75, -40, 60, 25), 'Stroke', callback=self.switchFillStroke, sizeStyle='small')
         displayStates = self.w.preview.getDisplayStates()
-        for key in ['Show Metrics','Upside Down','Stroke','Beam','Inverse','Water Fall','Single Line']:
+        for key in ['Show Metrics','Upside Down','Stroke','Beam','Inverse','Water Fall','Multi Line']:
             displayStates[key] = False
-        for key in ['Fill','Multi Line']:
+        for key in ['Fill','Single Line']:
             displayStates[key] = True
         self.w.preview.setDisplayStates(displayStates)
 
@@ -356,7 +356,7 @@ class PenBallWizard(object):
 
     def addSubfilter(self, sender):
         subfiltersList = self.filterSheet.subfilters.get()
-        subfilterDict = {'filterName': '{enter filter name}', 'mode': '', 'source': False}
+        subfilterDict = {'filterName': '{enter filter name}', 'mode': '', 'source': ''}
         subfiltersList.append(subfilterDict)
         if len(subfiltersList) > 0:
             self.filterSheet.removeSubfilter.enable(True)

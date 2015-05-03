@@ -34,8 +34,7 @@ class GlyphFilter(object):
 
     def __call__(self, glyph, font=None, **globalArguments):
         filterObjects = self.filterObjects
-        outputGlyph = self.cleanGlyph(glyph)
-        # initialGlyph = self.cleanGlyph(glyph)
+        processedGlyph = self.cleanGlyph(glyph)
 
         for filterObject in filterObjects:
             filterArguments = self.filterArguments[filterObject]
@@ -49,22 +48,26 @@ class GlyphFilter(object):
                 except:
                     glyphToProcess = ErrorGlyph('none')
             elif not source:
-                glyphToProcess = outputGlyph
+                glyphToProcess = processedGlyph
             arguments = {argumentName: argumentValue for argumentName, argumentValue in globalArguments.items() if argumentName in filterArguments}
             filteredGlyph = self.processGlyph(filterObject, glyphToProcess, font=None, **arguments)
             if not mode:
-                outputGlyph = filteredGlyph
+                processedGlyph = filteredGlyph
             elif mode == 'add':
-                pen = outputGlyph.getPen()
+                pen = processedGlyph.getPen()
                 filteredGlyph.draw(pen)
             elif mode in ['union','difference','intersection']:
                 try:
-                    b1 = BooleanGlyph(outputGlyph)
+                    b1 = BooleanGlyph(processedGlyph)
                     b2 = BooleanGlyph(filteredGlyph)
                     action = getattr(b1, mode)
-                    outputGlyph = action(b2)
+                    processedGlyph = action(b2)
                 except:
-                    outputGlyph = ErrorGlyph('boolean')
+                    processedGlyph = ErrorGlyph('boolean')
+        outputGlyph = RGlyph()
+        outputGlyph.width = glyph.width
+        outputPen = outputGlyph.getPen()
+        processedGlyph.draw(outputPen)
         return outputGlyph
 
     def processGlyph(self, filterObject, glyph, font, **arguments):
@@ -95,7 +98,6 @@ class GlyphFilter(object):
 
     def cleanGlyph(self, glyph):
         cleanGlyph = RGlyph()
-        cleanGlyph.width = glyph.width
         pen = cleanGlyph.getPointPen()
         cleanPen = CleanPointPen()
         glyph.drawPoints(cleanPen)
