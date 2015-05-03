@@ -205,13 +205,13 @@ class FiltersManager(object):
         filtersFile.close()
 
     def _saveFiltersList(self):
-        filters = {filterName: filterDict for filterName, filterDict in self.filters.items() if filterDict.has_key('module') or filterDict.has_key('file')}
+        filters = {filterName: filterDict for filterName, filterDict in self.filters.items() if filterDict.has_key('module') or filterDict.has_key('file') or filterDict.has_key('subfilters')}
         for fil in filters.values():
             if fil.has_key('filterObject'):
                 fil.pop('filterObject', 0)
         filtersName = [filterName for filterName in self.filterNames if filterName in filters.keys()]
         filterList = ( filtersName, filters )
-        with open('/'.join((LOCALPATH, 'filtersList.json')), 'w') as f:
+        with open('/'.join((LOCALPATH, 'filtersList.json')), 'w+') as f:
             j = json.dumps(filterList, indent=4)
             f.write(j)
             f.close()
