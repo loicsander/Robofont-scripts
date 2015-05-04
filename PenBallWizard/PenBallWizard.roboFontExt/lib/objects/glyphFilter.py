@@ -6,7 +6,7 @@ from booleanOperations.booleanGlyph import BooleanGlyph
 from fontTools.pens.basePen import BasePen
 from robofab.world import RGlyph
 from errorGlyph import ErrorGlyph
-from cleanPen import CleanPointPen
+from cleanPen import FilterPointPen
 
 def getFileName(path):
     fileName = path.split('/')
@@ -50,7 +50,7 @@ class GlyphFilter(object):
             elif not source:
                 glyphToProcess = processedGlyph
             arguments = {argumentName: argumentValue for argumentName, argumentValue in globalArguments.items() if argumentName in filterArguments}
-            filteredGlyph = self.processGlyph(filterObject, glyphToProcess, font=None, **arguments)
+            filteredGlyph = self.processGlyph(filterObject, glyphToProcess, font=font, **arguments)
             if not mode:
                 processedGlyph = filteredGlyph
             elif mode == 'add':
@@ -62,30 +62,41 @@ class GlyphFilter(object):
                     b2 = BooleanGlyph(filteredGlyph)
                     action = getattr(b1, mode)
                     processedGlyph = action(b2)
-                except:
+                except Exception as e:
+                    print u'PenBallWizard — GlyphFilter booleanOperation Error: {0}'.format(e)
                     processedGlyph = ErrorGlyph('boolean')
+
         outputGlyph = RGlyph()
+
+        if processedGlyph.name != '_error_':
+            outputGlyph.name = glyph.name
+        elif processedGlyph.name == '_error_':
+            outputGlyph.name = '_error_'
+
         outputGlyph.width = processedGlyph.width
+        outputGlyph.unicode = glyph.unicode
+
         outputPen = outputGlyph.getPen()
         processedGlyph.draw(outputPen)
+        if outputGlyph.width is None:
+            outputGlyph = ErrorGlyph('none')
         return outputGlyph
 
     def processGlyph(self, filterObject, glyph, font, **arguments):
-        filteredGlyph = RGlyph()
-        filteredGlyph.width = glyph.width
 
         if inspect.isfunction(filterObject):
             try:
-                filteredGlyph.appendGlyph(glyph)
-                filteredGlyph = filterObject(filteredGlyph, **arguments)
+                filteredGlyph = filterObject(glyph, **arguments)
                 if filteredGlyph is None:
                     filteredGlyph = glyph
+
             except Exception as e:
                 print u'PenBallWizard — GlyphFilter Error (function): {0}'.format(e)
                 filteredGlyph = ErrorGlyph()
-
         else:
             try:
+                filteredGlyph = RGlyph()
+                filteredGlyph.width = glyph.width
                 drawingPen = filteredGlyph.getPen()
                 filterPen = filterObject(drawingPen, **arguments)
                 glyph.draw(filterPen)
@@ -100,9 +111,10 @@ class GlyphFilter(object):
         cleanGlyph = RGlyph()
         cleanGlyph.width = glyph.width
         pen = cleanGlyph.getPointPen()
-        cleanPen = CleanPointPen()
+        cleanPen = FilterPointPen()
         glyph.drawPoints(cleanPen)
         cleanPen.extract(pen)
+        cleanGlyph.name = glyph.name
         return cleanGlyph
 
 if __name__ == '__main__':

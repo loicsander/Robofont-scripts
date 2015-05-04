@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.47
+__version__ = 0.48
 
 import shutil
 from collections import OrderedDict
@@ -11,8 +11,8 @@ from vanilla.dialogs import getFile
 from mojo.UI import MultiLineView
 from mojo.events import addObserver, removeObserver, postEvent
 
-# import objects.manager
-# reload(objects.manager)
+import objects.manager
+reload(objects.manager)
 from objects.manager import FiltersManager, makeKey
 from parameterObjects.vanillaParameterObjects import ParameterSliderTextInput, VanillaSingleValueParameter
 
@@ -156,9 +156,10 @@ class PenBallWizard(object):
                 if len(glyph.components) > 0:
                     for comp in glyph.components:
                         baseGlyphName = comp.baseGlyph
-                        baseGlyph = font[baseGlyphName]
+                        baseGlyph = glyph.getParent()[baseGlyphName]
                         baseFilteredGlyph = baseGlyph.getRepresentation(key, **arguments)
-                        font.insertGlyph(baseFilteredGlyph, baseGlyphName)
+                        if baseFilteredGlyph is not None:
+                            font.insertGlyph(baseFilteredGlyph, baseGlyphName)
                 filteredGlyph = glyph.getRepresentation(key, **arguments)
                 if filteredGlyph is not None:
                     font.insertGlyph(filteredGlyph, glyph.name)
