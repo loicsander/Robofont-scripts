@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.46
+__version__ = 0.47
 
 import shutil
 from collections import OrderedDict
@@ -21,6 +21,7 @@ class PenBallWizard(object):
     def __init__(self):
         self.filters = FiltersManager()
         self.glyphNames = []
+        self.observedGlyphs = []
         self.cachedFont = RFont(showUI=False)
         self.currentFont = CurrentFont()
         filtersList = self.filters.get()
@@ -34,8 +35,6 @@ class PenBallWizard(object):
             ('fontChanged', 'fontBecameCurrent'),
             ('fontChanged', 'fontDidOpen'),
             ('fontChanged', 'fontDidClose'),
-            ('updatePreview', 'keyUp'),
-            ('updatePreview', 'mouseUp')
         ]
 
         self.w = Window((100, 100, 800, 500), 'PenBall Wizard v{0}'.format(__version__), minSize=(500, 400))
@@ -135,9 +134,17 @@ class PenBallWizard(object):
     def processGlyphs(self):
         font = self.currentFont
         if font is not None:
-            glyphs = [font[glyphName] for glyphName in self.glyphNames if glyphName in font]
+            sourceGlyphs = []
+            for glyphName in self.glyphNames:
+                if glyphName in font:
+                    glyph = font[glyphName]
+                    if glyph not in self.observedGlyphs:
+                        glyph.addObserver(self, 'glyphChanged', 'Glyph.Changed')
+                        self.observedGlyphs.append(glyph)
+                    sourceGlyphs.append(glyph)
+            # sourceGlyphs = [font[glyphName] for glyphName in self.glyphNames if glyphName in font]
             filterName = self.currentFilterKey
-            filteredGlyphs = self.filterGlyphs(filterName, glyphs, self.cachedFont)
+            filteredGlyphs = self.filterGlyphs(filterName, sourceGlyphs, self.cachedFont)
             return filteredGlyphs
         return []
 
@@ -521,16 +528,28 @@ class PenBallWizard(object):
 
     def fontChanged(self, notification):
         if notification.has_key('font'):
+            self.releaseObservedGlyphs()
             self.stringInput(self.w.textInput)
             self.currentFont = notification['font']
             self.cachedFont = RFont(showUI=False)
             self.updatePreview()
+
+    def releaseObservedGlyphs(self):
+        for glyph in self.observedGlyphs:
+            glyph.removeObserver(self, 'Glyph.Changed')
+        self.observedGlyphs = []
+
+    def glyphChanged(self, notification):
+        glyph = notification.object
+        glyph.destroyAllRepresentations()
+        self.updatePreview()
 
     def launchWindow(self):
         postEvent("PenBallWizardSubscribeFilter", subscribeFilter=self.addExternalFilter)
 
     def end(self, notification):
         self.filters.update()
+        self.releaseObservedGlyphs()
         for callback, event in self.observers:
             removeObserver(self, event)
 
