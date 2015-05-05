@@ -1,10 +1,11 @@
 from fontTools.pens.basePen import BasePen
 from robofab.pens.pointPen import AbstractPointPen
 
-class CleanPointPen(AbstractPointPen):
+class FilterPointPen(AbstractPointPen):
 
     def __init__(self):
         self.contours = []
+        self.components = []
 
     def beginPath(self):
         self.currentContour = []
@@ -23,47 +24,40 @@ class CleanPointPen(AbstractPointPen):
         if len(onCurves) >= 2:
             self.contours.append(self.currentContour)
 
+    def addComponent(self, baseGlyphName, transformation):
+        self.components.append((baseGlyphName, transformation))
+
     def extract(self, pointPen):
+        for baseGlyphName, transformation in self.components:
+            pointPen.addComponent(baseGlyphName, transformation)
         for contour in self.contours:
             pointPen.beginPath()
             for point in contour:
                 pointPen.addPoint(**point)
             pointPen.endPath()
 
-class CleanPen(BasePen):
+class CounterPen(BasePen):
 
-    def __init__(self, pen):
-        self.pen = pen
-        self.startPoint = False
-        self.previousPoint = None
+    def __init__(self):
+        self.pointCount = 0
 
     def _moveTo(self, pt):
-        self.startPoint = True
+        self.pointCount += 1
 
     def _lineTo(self, pt):
-
-        if self.startPoint == True:
-            self.pen.moveTo(self.previousPoint)
-            self.startPoint = False
-
-        if self.previousPoint is not None:
-            self.pen.lineTo(pt)
-            self.previousPoint = pt
+        self.pointCount += 1
 
     def _curveToOne(self, pt1, pt2, pt3):
-
-        if self.startPoint == True:
-            self.pen.moveTo(self.previousPoint)
-            self.startPoint = False
-
-        if self.previousPoint is not None:
-            self.pen.curveTo(pt1, pt2, pt3)
-            self.previousPoint = pt3
+        self.pointCount += 1
 
     def endPath(self):
-        self.previousPoint = None
-        self.pen.endPath()
+        pass
 
     def closePath(self):
-        self.previousPoint = None
-        self.pen.closePath()
+        pass
+
+    def getPointCount(self):
+        return self.pointCount
+
+    def addComponent(self, baseGlyphName, transformation):
+        pass

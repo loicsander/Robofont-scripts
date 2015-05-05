@@ -6,7 +6,7 @@ from booleanOperations.booleanGlyph import BooleanGlyph
 from fontTools.pens.basePen import BasePen
 from robofab.world import RGlyph
 from errorGlyph import ErrorGlyph
-from cleanPen import FilterPointPen
+from controlPens import FilterPointPen
 
 def getFileName(path):
     fileName = path.split('/')
@@ -36,7 +36,7 @@ class GlyphFilter(object):
         filterObjects = self.filterObjects
         processedGlyph = self.cleanGlyph(glyph)
 
-        for filterObject in filterObjects:
+        for i, filterObject in enumerate(filterObjects):
             filterArguments = self.filterArguments[filterObject]
             mode = self.modes[filterObject]
             source = self.sources[filterObject]
@@ -49,7 +49,20 @@ class GlyphFilter(object):
                     glyphToProcess = ErrorGlyph('none')
             elif not source:
                 glyphToProcess = processedGlyph
-            arguments = {argumentName: argumentValue for argumentName, argumentValue in globalArguments.items() if argumentName in filterArguments}
+
+            arguments = {}
+
+            for argumentName, argumentValue in globalArguments.items():
+                filterObjectName = None
+                index = None
+                if '@' in argumentName:
+                    argumentName, filterObjectName = argumentName.split('@')
+                    if ':' in filterObjectName:
+                        index = filterObjectName.split(':')[1]
+                if (argumentName in filterArguments and filterObjectName is None) or (argumentName in filterArguments and filterObjectName == filterObject.__name__ and index == i):
+                    arguments[argumentName] = argumentValue
+
+            # arguments = {argumentName: argumentValue for argumentName, argumentValue in globalArguments.items() if argumentName in filterArguments}
             filteredGlyph = self.processGlyph(filterObject, glyphToProcess, font=font, **arguments)
             if not mode:
                 processedGlyph = filteredGlyph
@@ -63,7 +76,7 @@ class GlyphFilter(object):
                     action = getattr(b1, mode)
                     processedGlyph = action(b2)
                 except Exception as e:
-                    print u'PenBallWizard — GlyphFilter booleanOperation Error: {0}'.format(e)
+                    print u'PenBallWizard — GlyphFilter: booleanOperation Error: {0}'.format(e)
                     processedGlyph = ErrorGlyph('boolean')
 
         outputGlyph = RGlyph()
@@ -91,7 +104,7 @@ class GlyphFilter(object):
                     filteredGlyph = glyph
 
             except Exception as e:
-                print u'PenBallWizard — GlyphFilter Error (function): {0}'.format(e)
+                print u'PenBallWizard — GlyphFilter: Error (function): {0}'.format(e)
                 filteredGlyph = ErrorGlyph()
         else:
             try:
@@ -102,7 +115,7 @@ class GlyphFilter(object):
                 glyph.draw(filterPen)
 
             except Exception as e:
-                print u'PenBallWizard — GlyphFilter Error (pen): {0}'.format(e)
+                print u'PenBallWizard — GlyphFilter: Error (pen): {0}'.format(e)
                 filteredGlyph = ErrorGlyph()
 
         return filteredGlyph
