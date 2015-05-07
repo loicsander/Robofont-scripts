@@ -6,9 +6,9 @@
 	<array>
 		<dict>
 			<key>path</key>
-			<string>penBallWizard.py</string>
+			<string>penBallWizardController.py</string>
 			<key>preferredName</key>
-			<string>PenBall Wizard</string>
+			<string>Launch PenBallWizard</string>
 			<key>shortKey</key>
 			<string></string>
 		</dict>
@@ -24,10 +24,14 @@
 	<key>mainScript</key>
 	<string></string>
 	<key>name</key>
-	<string>PenBall Wizard</string>
+	<string>PenBallWizard</string>
+	<key>requiresVersionMajor</key>
+	<string>1</string>
+	<key>requiresVersionMinor</key>
+	<string>4</string>
 	<key>timeStamp</key>
-	<real>1429809735.2420311</real>
+	<real>1431035758.513617</real>
 	<key>version</key>
-	<string>0.48</string>
+	<string>0.6</string>
 </dict>
 </plist>

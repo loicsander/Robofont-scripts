@@ -1,9 +1,12 @@
 from fontTools.pens.basePen import BasePen
 from robofab.pens.pointPen import AbstractPointPen
 
+
+
 class FilterPointPen(AbstractPointPen):
 
-    def __init__(self):
+    def __init__(self, glyphSet=None):
+        self.glyphSet = glyphSet
         self.contours = []
         self.components = []
 
@@ -35,6 +38,26 @@ class FilterPointPen(AbstractPointPen):
             for point in contour:
                 pointPen.addPoint(**point)
             pointPen.endPath()
+
+
+
+class CollectComponentsPen(BasePen):
+
+    def __init__(self):
+        self.components = []
+
+    def ignore(self, *args):
+        pass
+
+    _moveTo = _lineTo = _curveToOne = endPath = closePath = ignore
+
+    def addComponent(self, baseGlyphName, transformation):
+        self.components.append((baseGlyphName, transformation))
+
+    def get(self):
+        return self.components
+
+
 
 class CounterPen(BasePen):
 

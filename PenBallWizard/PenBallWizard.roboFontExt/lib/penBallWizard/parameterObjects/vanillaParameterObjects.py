@@ -118,6 +118,8 @@ class ParameterSliderTextInput(Group):
         if title is None:
             sliderPosSize = (5, 3, -80, 15)
         elif title is not None:
+            if len(title) > 15:
+                title = '{0}.'.format(title[:16])
             title = title.capitalize()
             sliderPosSize = (120, 3, -55, 15)
             self.title = TextBox((0, 3, 115, 30), title, sizeStyle='small')
