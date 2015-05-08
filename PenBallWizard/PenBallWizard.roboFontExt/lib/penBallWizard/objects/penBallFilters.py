@@ -9,8 +9,6 @@ from defcon import addRepresentationFactory, removeRepresentationFactory
 from booleanOperations.booleanGlyph import BooleanGlyph
 
 from errorGlyph import ErrorGlyph
-import glyphFilter
-reload(glyphFilter)
 from glyphFilter import GlyphFilter
 from glyphUtils import passThrough, removeOverlap, reverseContours
 
@@ -448,7 +446,6 @@ class PenBallFiltersManager(object):
     def updateFilterChain(self, filterName, subfilters):
         if filterName not in self.filterNames:
             self.filterNames.append(filterName)
-        arguments = self.filters[filterName].arguments
         filterChain = PenBallFilterChain(self, filterName, subfilters, arguments)
         self.filters[filterName] = filterChain
 

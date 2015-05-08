@@ -1,2 +1,48 @@
 [
+    [
+        "Flatten", 
+        {
+            "limits": {
+                "approximateSegmentLength": [
+                    5.0, 
+                    100.0
+                ]
+            }, 
+            "module": "robofab.pens.filterPen", 
+            "arguments": [
+                [
+                    "approximateSegmentLength", 
+                    40.0
+                ]
+            ], 
+            "filterObjectName": "FlattenPen"
+        }
+    ], 
+    [
+        "Spike", 
+        {
+            "limits": {
+                "spikeLength": [
+                    0.0, 
+                    100.0
+                ], 
+                "segmentLength": [
+                    5.0, 
+                    100.0
+                ]
+            }, 
+            "module": "robofab.pens.filterPen", 
+            "arguments": [
+                [
+                    "segmentLength", 
+                    20.0
+                ], 
+                [
+                    "spikeLength", 
+                    20.0
+                ]
+            ], 
+            "filterObjectName": "spikeGlyph"
+        }
+    ]
 ]
