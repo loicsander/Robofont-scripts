@@ -263,6 +263,55 @@ class PenBallFilterChain(PenBallBaseFilter):
         return self._parent
 
 
+    def addSubfilter(self, filterName):
+        self.setSubfilter(filterName, None, None)
+
+
+    def removeSubfilter(self, index):
+        self.subfilters.pop(index)
+        for arg in self.arguments:
+            subfilterName, argumentName, filterOrder = self.splitSubfilterArgumentName(arg)
+            if filterOrder == index:
+                self.arguments.pop(arg, 0)
+
+
+    def reorderSubfilters(self, previousIndex, newIndex):
+        if previousIndex < newIndex:
+            movedSubftiler = self.subfilters.pop(previousIndex)
+            self.subfilters.insert(newIndex, movedSubftiler)
+        elif previousIndex > newIndex:
+            movedSubftiler = self.subfilters.pop(previousIndex)
+            self.subfilters.insert(newIndex, movedSubftiler)
+
+        changedArguments = {}
+
+        for arg in self.arguments:
+            subfilterName, argumentName, filterOrder = self.splitSubfilterArgumentName(arg)
+            if filterOrder == previousIndex:
+                newArg = self.joinSubfilterArgumentName(subfilterName, argumentName, newIndex)
+                changedArguments[newArg] = self.arguments[arg]
+                self.arguments.pop(arg, 0)
+            elif previousIndex < filterOrder < newIndex:
+                newArg = self.joinSubfilterArgumentName(subfilterName, argumentName, filterOrder-1)
+                changedArguments[newArg] = self.arguments[arg]
+                self.arguments.pop(arg, 0)
+            elif previousIndex > filterOrder > newIndex:
+                newArg = self.joinSubfilterArgumentName(subfilterName, argumentName, filterOrder+1)
+                changedArguments[newArg] = self.arguments[arg]
+                self.arguments.pop(arg, 0)
+            elif filterOrder == newIndex and previousIndex < newIndex:
+                newArg = self.joinSubfilterArgumentName(subfilterName, argumentName, filterOrder-1)
+                changedArguments[newArg] = self.arguments[arg]
+                self.arguments.pop(arg, 0)
+            elif filterOrder == newIndex and previousIndex > newIndex:
+                newArg = self.joinSubfilterArgumentName(subfilterName, argumentName, filterOrder+1)
+                changedArguments[newArg] = self.arguments[arg]
+                self.arguments.pop(arg, 0)
+
+        for key in changedArguments:
+            self.setArgumentValue(key, changedArguments[key])
+
+
     def setSubfilter(self, filterName, mode, source, keepExisting=False):
         assert self._parent is not None
         if filterName in self._parent and self._parent.hasSubfilters(filterName) == False:
@@ -446,6 +495,7 @@ class PenBallFiltersManager(object):
     def updateFilterChain(self, filterName, subfilters):
         if filterName not in self.filterNames:
             self.filterNames.append(filterName)
+        arguments = self.filters[filterName].arguments
         filterChain = PenBallFilterChain(self, filterName, subfilters, arguments)
         self.filters[filterName] = filterChain
 
@@ -525,66 +575,21 @@ if __name__ == '__main__':
     import robofab.pens.filterPen as filterPens
 
 
-    class TestPenBallFilter(unittest.TestCase):
-
-        def setUp(self):
-            filterDict = {
-                'module': 'robofab.pens.filterPen',
-                'filterObjectName': 'FlattenPen',
-                'arguments': {
-                    'approximateSegmentLength': 5,
-                    'segmentLines': False
-                }
-            }
-            self.filter = PenBallFilter('Flatten', filterDict)
-
-
-        def drawTestGlyph(self, pen):
-            pen.moveTo((10, 10))
-            pen.lineTo((110, 10))
-            pen.lineTo((110, 110))
-            pen.lineTo((10, 110))
-            pen.closePath()
-
-
-        def test_PenBallFilterWithModule(self):
-            self.assertEqual(self.filter.name, 'Flatten')
-            self.assertEqual(self.filter.objectName, 'FlattenPen')
-            self.assertEqual(self.filter.object, filterPens.FlattenPen)
-            self.assertIn('{0}.Flatten'.format(FACTORYKEYPREFIX), _addedRepresentationFactories)
-
-
-        def test_PenBallFilterRepr(self):
-            filterRepresentation = repr(self.filter)
-            exec 'f = PenBallFilter(*{0})'.format(filterRepresentation)
-
-
-        def test_PenBallFilterStr(self):
-            self.assertEqual(str(self.filter), 'PenBallFilter Flatten (FlattenPen)')
-
-
-        def test_CallingPenBallFilter(self):
-            testGlyph = Glyph()
-            pen = testGlyph.getPen()
-            self.drawTestGlyph(pen)
-            filteredGlyph = self.filter(testGlyph)
-
-
     class TestPenBallFilterManager(unittest.TestCase):
 
         # def setUp(self):
-        #     self.manager = PenBallFilterManager()
+        #     self.manager = PenBallFiltersManager()
 
-        def test_addFilterToManager(self):
-            self.manager = PenBallFiltersManager()
-            self.manager.setFilter('Flatten', {
+        def test_FiltersManager(self):
+            manager = PenBallFiltersManager()
+            manager.setFilter('Flatten', {
                 'module': 'robofab.pens.filterPen',
                 'filterObjectName': 'FlattenPen',
                 'arguments': {
                     'approximateSegmentLength': 5
                 }
                 })
-            self.manager.setFilter('Spike', {
+            manager.setFilter('Spike', {
                 'module': 'robofab.pens.filterPen',
                 'filterObjectName': 'spikeGlyph',
                 'arguments': {
@@ -592,11 +597,19 @@ if __name__ == '__main__':
                     'segmentLength': 20,
                     }
                 })
-            self.manager.setFilterChain(
+            manager.setFilter('Threshold', {
+                'module': 'robofab.pens.filterPen',
+                'filterObjectName': 'ThresholdPen',
+                'arguments': {
+                    'threshold': 20,
+                    }
+                })
+            manager.setFilterChain(
                 'Flatten&Spike',
                 [
                     ('Flatten', None, None),
-                    ('Spike', None, None)
+                    ('Spike', None, None),
+                    ('Threshold', None, None)
                 ]
                 )
 

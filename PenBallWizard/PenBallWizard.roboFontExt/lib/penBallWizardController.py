@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.61
+__version__ = 0.62
 
 from collections import OrderedDict
 
@@ -401,11 +401,13 @@ class PenBallWizardController(object):
 
     def addSubfilter(self, sender):
         subfiltersList = self.filterSheet.subfilters.get()
-        subfilterDict = {'filterName': '{enter filter name}', 'mode': '', 'source': ''}
+        subfilterDict = {'filterName': 'pass', 'mode': '', 'source': ''}
         subfiltersList.append(subfilterDict)
         if len(subfiltersList) > 0:
             self.filterSheet.removeSubfilter.enable(True)
         self.filterSheet.subfilters.set(subfiltersList)
+        if not self.filterSheet.new:
+            self.filters[self.currentFilterName].addSubfilter('pass')
 
     def removeSubfilter(self, sender):
         subfiltersList = self.filterSheet.subfilters.get()
@@ -414,6 +416,8 @@ class PenBallWizardController(object):
         selection = self.filterSheet.subfilters.getSelection()[0]
         subfiltersList.pop(selection)
         self.filterSheet.subfilters.set(subfiltersList)
+        if not self.filterSheet.new:
+            self.filters[self.currentFilterName].removeSubfilter(selection)
 
     def moveSubfilterUp(self, sender):
         subfiltersList = self.filterSheet.subfilters.get()
@@ -424,6 +428,8 @@ class PenBallWizardController(object):
                 itemToMove = subfiltersList.pop(selection)
                 subfiltersList.insert(selection-1, itemToMove)
                 self.filterSheet.subfilters.set(subfiltersList)
+                if not self.filterSheet.new:
+                    self.filters[self.currentFilterName].reorderSubfilters(selection, selection-1)
 
     def moveSubfilterDown(self, sender):
         subfiltersList = self.filterSheet.subfilters.get()
@@ -434,6 +440,8 @@ class PenBallWizardController(object):
                 itemToMove = subfiltersList.pop(selection)
                 subfiltersList.insert(selection+1, itemToMove)
                 self.filterSheet.subfilters.set(subfiltersList)
+                if not self.filterSheet.new:
+                    self.filters[self.currentFilterName].reorderSubfilters(selection, selection+1)
 
     def getFile(self, sender):
         path = getFile(fileTypes=['py'], allowsMultipleSelection=False, resultCallback=self.loadFilePath, parentWindow=self.filterSheet)
