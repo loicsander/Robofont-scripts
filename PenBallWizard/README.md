@@ -7,6 +7,8 @@ This extension is a helper for the wielding of [robofab pens](http://www.robofab
 
 If you provide pens, they should work according to this pattern: ```pen = MyFilterPen(otherPen, **arguments)```, if you want to use a pen that doesn’t receive another pen as argument, you should provide an intermediary function that handles the pen and returns a filtered glyph.
 
+You can find pens to get started with [here](https://github.com/loicsander/RobofabPens).
+
 ## Usage
 
 **Single filter**
