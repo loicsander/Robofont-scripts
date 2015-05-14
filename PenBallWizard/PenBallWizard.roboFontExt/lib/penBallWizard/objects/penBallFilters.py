@@ -372,7 +372,7 @@ class PenBallFilterChain(PenBallBaseFilter):
                 if error == True:
                     continue
 
-                if source is None:
+                if not source:
                     sourceGlyph = canvasGlyph
                 else:
                     try:
@@ -411,7 +411,9 @@ class PenBallFilterChain(PenBallBaseFilter):
                     canvasGlyph.clear()
 
                 processedGlyph.draw(canvasPen)
-                canvasGlyph.width = processedGlyph.width
+
+                if processedGlyph.width:
+                    canvasGlyph.width = processedGlyph.width
 
             if error == True:
                 canvasGlyph = ErrorGlyph()
