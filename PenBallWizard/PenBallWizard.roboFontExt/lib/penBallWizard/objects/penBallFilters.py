@@ -376,7 +376,7 @@ class PenBallFilterChain(PenBallBaseFilter):
                     sourceGlyph = canvasGlyph
                 else:
                     try:
-                        sourceGlyph = steps[source]
+                        sourceGlyph = steps[source-1]
                     except:
                         layerGlyph = glyph.getLayer(source)
                         if len(layerGlyph) > 0:
