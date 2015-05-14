@@ -393,6 +393,11 @@ class PenBallFilterChain(PenBallBaseFilter):
 
                 steps.append(processedGlyph)
 
+                if mode == 'ignore' and len(steps) > 1:
+                    processedGlyph = steps[-2]
+                elif mode == 'ignore':
+                    processedGlyph = sourceGlyph
+
                 if mode in ['union', 'difference', 'intersection', 'xor']:
                     try:
                         b1 = BooleanGlyph(canvasGlyph)
@@ -406,6 +411,7 @@ class PenBallFilterChain(PenBallBaseFilter):
                     canvasGlyph.clear()
 
                 processedGlyph.draw(canvasPen)
+                canvasGlyph.width = processedGlyph.width
 
             if error == True:
                 canvasGlyph = ErrorGlyph()
@@ -425,7 +431,7 @@ class PenBallFiltersManager(object):
     """Handling a collection of filters, the manager is in charge of retrieving/storing them"""
 
     internalFilters = {
-        'pass': { 'filterObject': passThrough, },
+        'get': { 'filterObject': passThrough, },
         'reverse': { 'filterObject': reverseContours, },
         'removeOverlap': { 'filterObject': removeOverlap, }
     }
@@ -476,7 +482,7 @@ class PenBallFiltersManager(object):
         elif key in self.internalFilters:
             return self.filters[key]
         else:
-            return self.filters['pass']
+            return self.filters['get']
 
 
     def setFilter(self, filterName, filterDict):

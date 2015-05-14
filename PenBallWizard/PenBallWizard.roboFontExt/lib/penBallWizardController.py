@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.62
+__version__ = 0.64
 
 from collections import OrderedDict
 
@@ -401,13 +401,13 @@ class PenBallWizardController(object):
 
     def addSubfilter(self, sender):
         subfiltersList = self.filterSheet.subfilters.get()
-        subfilterDict = {'filterName': 'pass', 'mode': '', 'source': ''}
+        subfilterDict = {'filterName': 'get', 'mode': '', 'source': ''}
         subfiltersList.append(subfilterDict)
         if len(subfiltersList) > 0:
             self.filterSheet.removeSubfilter.enable(True)
         self.filterSheet.subfilters.set(subfiltersList)
         if not self.filterSheet.new:
-            self.filters[self.currentFilterName].addSubfilter('pass')
+            self.filters[self.currentFilterName].addSubfilter('get')
 
     def removeSubfilter(self, sender):
         subfiltersList = self.filterSheet.subfilters.get()
