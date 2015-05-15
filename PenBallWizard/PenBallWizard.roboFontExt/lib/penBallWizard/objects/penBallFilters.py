@@ -391,21 +391,27 @@ class PenBallFilterChain(PenBallBaseFilter):
                 arguments = {argumentName: globalArguments[(subfilterName, argumentName, filterOrder)] for subfilterName, argumentName, filterOrder in globalArguments if subfilterName == currentFilter.name and filterOrder == i}
                 processedGlyph = currentFilter.filterGlyph(sourceGlyph, arguments)
 
+                if mode in ['union', 'difference', 'intersection', 'xor']:
+                    try:
+                        # collectedComponents = [component for component in processedGlyph.components]
+                        b1 = BooleanGlyph(canvasGlyph)
+                        b2 = BooleanGlyph(processedGlyph)
+                        operation = getattr(b1, mode)
+                        b3 = operation(b2)
+                        processedGlyph = RGlyph()
+                        processedPen = processedGlyph.getPen()
+                        b3.draw(processedPen)
+                        # for component in collectedComponents:
+                        #     processedGlyph.appendComponent(component.baseGlyph, component.offset, component.scale)
+                    except:
+                        error = True
+
                 steps.append(processedGlyph)
 
                 if mode == 'ignore' and len(steps) > 1:
                     processedGlyph = steps[-2]
                 elif mode == 'ignore':
                     processedGlyph = sourceGlyph
-
-                if mode in ['union', 'difference', 'intersection', 'xor']:
-                    try:
-                        b1 = BooleanGlyph(canvasGlyph)
-                        b2 = BooleanGlyph(processedGlyph)
-                        operation = getattr(b1, mode)
-                        processedGlyph = operation(b2)
-                    except:
-                        error = True
 
                 if mode != 'add':
                     canvasGlyph.clear()
