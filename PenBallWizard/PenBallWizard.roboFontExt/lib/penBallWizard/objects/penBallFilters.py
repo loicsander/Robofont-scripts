@@ -11,6 +11,7 @@ from booleanOperations.booleanGlyph import BooleanGlyph
 from errorGlyph import ErrorGlyph
 from glyphFilter import GlyphFilter
 from glyphUtils import passThrough, removeOverlap, reverseContours
+from penUtils import FilterPointPen
 
 FACTORYKEYPREFIX = 'com.loicsander.glyphFilter.factory'
 FILTERARGSEPARATOR = '.'
@@ -424,7 +425,13 @@ class PenBallFilterChain(PenBallBaseFilter):
             if error == True:
                 canvasGlyph = ErrorGlyph()
             elif error == False:
+                cleanPen = FilterPointPen(font)
+                canvasGlyph.drawPoints(cleanPen)
+                canvasGlyph.clearContours()
+                canvasPointPen = canvasGlyph.getPointPen()
+                cleanPen.extract(canvasPointPen)
                 canvasGlyph.name = glyph.name
+
 
             canvasGlyph.unicode = glyph.unicode
             if canvasGlyph.width is None:

@@ -1,7 +1,14 @@
 from fontTools.pens.basePen import BasePen
 from robofab.pens.pointPen import AbstractPointPen
 
-
+def calcArea(points):
+    l = len(points)
+    area = 0
+    for i in xrange(l):
+        x1, y1 = points[i]
+        x2, y2 = points[(i+1)%l]
+        area += (x1*y2)-(x2*y1)
+    return area / 2
 
 class FilterPointPen(AbstractPointPen):
 
@@ -23,8 +30,8 @@ class FilterPointPen(AbstractPointPen):
         self.currentContour.append(point)
 
     def endPath(self):
-        onCurves = [1 for point in self.currentContour if point['segmentType'] is not None]
-        if len(onCurves) >= 2:
+        area = calcArea([point['pt'] for point in self.currentContour])
+        if abs(area) >= 25:
             self.contours.append(self.currentContour)
 
     def addComponent(self, baseGlyphName, transformation):

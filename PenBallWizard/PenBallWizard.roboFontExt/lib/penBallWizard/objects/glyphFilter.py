@@ -88,14 +88,20 @@ class GlyphFilter(object):
         for anchor in reversed(glyph.anchors):
             anchors.append((anchor.name, (anchor.x, anchor.y)))
 
+        cleanGlyph = self.getCleanedGlyph(glyph)
+
+        return cleanGlyph, components, anchors
+
+
+    def getCleanedGlyph(self, glyph):
         cleanGlyph = RGlyph()
         cleanGlyph.width = glyph.width
         pen = cleanGlyph.getPointPen()
         cleanPen = FilterPointPen()
         glyph.drawPoints(cleanPen)
         cleanPen.extract(pen)
+        return cleanGlyph
 
-        return cleanGlyph, components, anchors
 
 
 
