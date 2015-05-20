@@ -1,28 +1,34 @@
 #coding=utf-8
-__version__ = 0.66
+__version__ = 0.67
 
 from collections import OrderedDict
 
+from AppKit import NSMenuItem
+
 from robofab.world import RFont
 from defconAppKit.tools.textSplitter import splitText
-from vanilla import Window, List, Slider, CheckBox, EditText, SquareButton, Group, TextBox, Sheet, Tabs, CheckBoxListCell, RadioGroup, Box
+from vanilla import *
 from vanilla.dialogs import getFile
 from mojo.UI import MultiLineView
+from mojo.extensions import getExtensionDefault, setExtensionDefault
 from mojo.events import addObserver, removeObserver, postEvent
 
 from penBallWizard.objects.penBallFilters import PenBallFiltersManager
 from penBallWizard.parameterObjects.vanillaParameterObjects import ParameterSliderTextInput, VanillaSingleValueParameter
 
 
-LOCALPATH = '/'.join(__file__.split('/')[:-1])
-JSONFILE = 'filters.json'
+# LOCALPATH = '/'.join(__file__.split('/')[:-1])
+# JSONFILE = 'filters.json'
+PENBALLWIZARD_EXTENSIONKEY = 'com.loicsander.penBallWizard'
 
 
 class PenBallWizardController(object):
 
     def __init__(self):
         self.filters = PenBallFiltersManager()
-        self.filters.loadFiltersFromJSON('/'.join([LOCALPATH, JSONFILE]))
+        # self.filters.loadFiltersFromJSON('/'.join([LOCALPATH, JSONFILE]))
+        filtersList = getExtensionDefault('{0}.filtersList'.format(PENBALLWIZARD_EXTENSIONKEY), [])
+        self.filters.loadFiltersList(filtersList)
         self.glyphNames = []
         self.observedGlyphs = []
         self.cachedFont = RFont(showUI=False)
@@ -40,17 +46,33 @@ class PenBallWizardController(object):
             ('fontChanged', 'fontDidClose'),
         ]
 
+        self.displaySettingsRecord = {
+            1: (u'✓ Fill', True),
+            2: (u'Stroke', False),
+            3: (u'Inverse', False),
+        }
+
+        self.displaySettingsToggles = {
+            'Negative': ('Inverse', '')
+        }
+
         self.w = Window((100, 100, 800, 500), 'PenBall Wizard v{0}'.format(__version__), minSize=(500, 400))
         self.w.filtersPanel = Group((0, 0, 300, -0))
-        self.w.filtersPanel.filtersList = List((0, 0, -0, -40), filtersList, selectionCallback=self.filterSelectionChanged, doubleClickCallback=self.filterEdit, allowsMultipleSelection=False, allowsEmptySelection=False, rowHeight=22)
-        self.w.filtersPanel.controls = Group((0, -40, -0, 0))
-        self.w.filtersPanel.addFilter = SquareButton((0, -40, 100, 40), 'Add filter', sizeStyle='small', callback=self.addFilter)
-        self.w.filtersPanel.addFilterChain = SquareButton((100, -40, 100, 40), 'Add operations', sizeStyle='small', callback=self.addFilterChain)
-        self.w.filtersPanel.removeFilter = SquareButton((-100, -40, 100, 40), 'Remove filter', sizeStyle='small', callback=self.removeFilter)
-        self.w.textInput = EditText((300, 0, -90, 22), '', callback=self.stringInput)
-        self.w.generate = SquareButton((-90, 0, 90, 22), 'Generate', callback=self.generateGlyphsToFont, sizeStyle='small')
+        self.w.filtersPanel.filtersList = List((0, 0, -0, -80), filtersList, selectionCallback=self.filterSelectionChanged, doubleClickCallback=self.filterEdit, allowsMultipleSelection=False, allowsEmptySelection=False, rowHeight=22)
+        self.w.filtersPanel.controls = Group((0, -80, -0, 0))
+        self.w.filtersPanel.addFilter = SquareButton((0, -80, 100, 40), 'Add filter', sizeStyle='small', callback=self.addFilter)
+        self.w.filtersPanel.addFilterChain = SquareButton((100, -80, 100, 40), 'Add operations', sizeStyle='small', callback=self.addFilterChain)
+        self.w.filtersPanel.removeFilter = SquareButton((-100, -80, 100, 40), 'Remove filter', sizeStyle='small', callback=self.removeFilter)
+        self.w.textInput = EditText((300, 0, -75, 22), '', callback=self.stringInput)
+        self.w.generate = SquareButton((0, -40, 300, -0), 'Generate', callback=self.generateGlyphsToFont, sizeStyle='small')
+        self.w.displaySettings = PopUpButton(
+            (-70, 3, -10, 15),
+            self.makeDisplaySettingsMenuItems(),
+            sizeStyle='mini',
+            callback=self.changeDisplaySettings)
+        self.w.displaySettings.getNSPopUpButton().setPullsDown_(True)
+        self.w.displaySettings.getNSPopUpButton().setBordered_(False)
         self.w.preview = MultiLineView((300, 22, -0, -0))
-        self.w.switchFillStroke = SquareButton((-75, -40, 60, 25), 'Stroke', callback=self.switchFillStroke, sizeStyle='small')
         displayStates = self.w.preview.getDisplayStates()
         for key in ['Show Metrics','Upside Down','Stroke','Beam','Inverse','Water Fall','Multi Line']:
             displayStates[key] = False
@@ -66,6 +88,27 @@ class PenBallWizardController(object):
         self.w.bind('close', self.end)
         self.launchWindow()
         self.w.open()
+
+    def changeDisplaySettings(self, sender):
+        selection = sender.get()
+        name, state = self.displaySettingsRecord[selection]
+        self.setDisplayOption(selection, name, state)
+
+    def setDisplayOption(self, index, name, value):
+        if u'✓' in name: name = name[2:]
+        self.displaySettingsRecord[index] = (name if value is True else u'{0} {1}'.format(u'✓', name), not value)
+        displayStates = self.w.preview.getDisplayStates()
+        if name in ['Fill', 'Stroke', 'Inverse']:
+            displayStates[name] = not value
+        # elif name in ['Negative']:
+
+        self.w.preview.setDisplayStates(displayStates)
+        self.w.displaySettings.setItems(self.makeDisplaySettingsMenuItems())
+
+    def makeDisplaySettingsMenuItems(self):
+        displaySettingsMenuItems = [NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(self.displaySettingsRecord[key][0], None, '') for key in sorted(self.displaySettingsRecord.keys())]
+        displaySettingsMenuItems.insert(0, 'Settings')
+        return displaySettingsMenuItems
 
     def generateGlyphsToFont(self, sender):
         newFont = RFont(showUI=False)
@@ -230,10 +273,10 @@ class PenBallWizardController(object):
                     block.setPosSize((5, start, -5, boxHeight))
                     height += boxHeight + gap
 
-            height += 40
+            height += 80
 
             self.w.filtersPanel.filtersList.setPosSize((0, 0, -0, -height))
-            self.w.filtersPanel.controls.setPosSize((0, -height, -0, -45))
+            self.w.filtersPanel.controls.setPosSize((0, -height, -0, -85))
 
     def stringInput(self, sender):
         text = sender.get()
@@ -572,19 +615,6 @@ class PenBallWizardController(object):
                 return filterNamesList[selection]
         return None
 
-    def switchFillStroke(self, sender):
-        self.fill = not self.fill
-        displayStates = self.w.preview.getDisplayStates()
-        if self.fill == True:
-            sender.setTitle('Stroke')
-            displayStates['Fill'] = True
-            displayStates['Stroke'] = False
-        elif self.fill == False:
-            sender.setTitle('Fill')
-            displayStates['Fill'] = False
-            displayStates['Stroke'] = True
-        self.w.preview.setDisplayStates(displayStates)
-
     def parseValue(self, value):
         if isinstance(value, bool):
             value = bool(value)
@@ -620,8 +650,19 @@ class PenBallWizardController(object):
     def launchWindow(self):
         postEvent("PenBallWizardSubscribeFilter", subscribeFilter=self.addExternalFilter)
 
+    def loadFiltersFromJSON(self, filePath):
+        """Adding this for backwards compatibility."""
+        try:
+            filtersFile = open(filePath, 'r')
+            rawFilters = filtersFile.read()
+            filtersList = json.loads(rawFilters)
+            return filtersList
+        except IOError as e:
+            return []
+
     def end(self, notification):
-        self.filters.saveFiltersToJSON('/'.join([LOCALPATH, JSONFILE]))
+        #self.filters.saveFiltersToJSON('/'.join([LOCALPATH, JSONFILE]))
+        setExtensionDefault('{0}.filtersList'.format(PENBALLWIZARD_EXTENSIONKEY), self.filters.asList())
         self.releaseObservedGlyphs()
         for callback, event in self.observers:
             removeObserver(self, event)
