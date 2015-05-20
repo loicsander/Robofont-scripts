@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.67
+__version__ = 0.68
 
 from collections import OrderedDict
 
@@ -8,7 +8,7 @@ from AppKit import NSMenuItem
 from robofab.world import RFont
 from defconAppKit.tools.textSplitter import splitText
 from vanilla import *
-from vanilla.dialogs import getFile
+from vanilla.dialogs import getFile, message
 from mojo.UI import MultiLineView
 from mojo.extensions import getExtensionDefault, setExtensionDefault
 from mojo.events import addObserver, removeObserver, postEvent
@@ -20,6 +20,16 @@ from penBallWizard.parameterObjects.vanillaParameterObjects import ParameterSlid
 # LOCALPATH = '/'.join(__file__.split('/')[:-1])
 # JSONFILE = 'filters.json'
 PENBALLWIZARD_EXTENSIONKEY = 'com.loicsander.penBallWizard'
+
+
+def makeListFontName(font):
+    familyName = font.info.familyName
+    styleName = font.info.styleName
+    if familyName is None:
+        familyName = font.info.familyName = 'Unnamed'
+    if styleName is None:
+        styleName = font.info.styleName = 'Unnamed'
+    return ' > '.join([familyName, styleName])
 
 
 class PenBallWizardController(object):
@@ -52,10 +62,6 @@ class PenBallWizardController(object):
             3: (u'Inverse', False),
         }
 
-        self.displaySettingsToggles = {
-            'Negative': ('Inverse', '')
-        }
-
         self.w = Window((100, 100, 800, 500), 'PenBall Wizard v{0}'.format(__version__), minSize=(500, 400))
         self.w.filtersPanel = Group((0, 0, 300, -0))
         self.w.filtersPanel.filtersList = List((0, 0, -0, -80), filtersList, selectionCallback=self.filterSelectionChanged, doubleClickCallback=self.filterEdit, allowsMultipleSelection=False, allowsEmptySelection=False, rowHeight=22)
@@ -64,7 +70,7 @@ class PenBallWizardController(object):
         self.w.filtersPanel.addFilterChain = SquareButton((100, -80, 100, 40), 'Add operations', sizeStyle='small', callback=self.addFilterChain)
         self.w.filtersPanel.removeFilter = SquareButton((-100, -80, 100, 40), 'Remove filter', sizeStyle='small', callback=self.removeFilter)
         self.w.textInput = EditText((300, 0, -75, 22), '', callback=self.stringInput)
-        self.w.generate = SquareButton((0, -40, 300, -0), 'Generate', callback=self.generateGlyphsToFont, sizeStyle='small')
+        self.w.generate = SquareButton((0, -40, 300, -0), 'Generate', callback=self.buildGenerationSheet, sizeStyle='small')
         self.w.displaySettings = PopUpButton(
             (-70, 3, -10, 15),
             self.makeDisplaySettingsMenuItems(),
@@ -110,28 +116,35 @@ class PenBallWizardController(object):
         displaySettingsMenuItems.insert(0, 'Settings')
         return displaySettingsMenuItems
 
-    def generateGlyphsToFont(self, sender):
-        newFont = RFont(showUI=False)
-        font = self.currentFont
+    def generateGlyphsToFont(self, exportFont=None, layerName=None):
+        font = RFont(showUI=False) if exportFont is None else exportFont
+        currentFont = self.currentFont
         filterName = self.currentFilterName
         currentFilter = self.filters[filterName]
-        if font is not None:
-            glyphs = [font[glyphName] for glyphName in font.selection if glyphName in font]
+        if currentFont is not None and len(currentFont.selection):
+            glyphs = [currentFont[glyphName] for glyphName in currentFont.selection if glyphName in currentFont]
             for glyph in glyphs:
                 if len(glyph.components) > 0:
                     for comp in glyph.components:
                         baseGlyphName = comp.baseGlyph
-                        baseGlyph = font[baseGlyphName]
+                        baseGlyph = currentFont[baseGlyphName]
                         baseFilteredGlyph = currentFilter(baseGlyph)
                         newFont.insertGlyph(baseFilteredGlyph, baseGlyphName)
                         newFont[baseGlyphName].unicode = baseFilteredGlyph.unicode
                 filteredGlyph = currentFilter(glyph)
                 if filteredGlyph is not None:
-                    newFont.insertGlyph(filteredGlyph, glyph.name)
-            newFont.showUI()
+                    if exportFont is None:
+                        font.insertGlyph(filteredGlyph, glyph.name)
+                    else:
+                        glyph = font[glyph.name] if layerName is None else font[glyph.name].getLayer(layerName)
+                        glyph.clearContours()
+                        glyph.clearComponents()
+                        glyph.appendGlyph(filteredGlyph)
+            font.showUI()
+        else:
+            message(u'PenBallWizard', 'No selected glyphs to generate')
 
-    def generateGlyphsToLayer(self, layerName):
-        font = self.currentFont
+    def generateGlyphsToLayer(self, font, layerName):
         filterName = self.currentFilterName
         currentFilter = self.filters[filterName]
         if font is not None:
@@ -295,9 +308,30 @@ class PenBallWizardController(object):
             self.buildFilterSheet(filterName)
         self.filterSheet.open()
 
-    # def buildGenerationSheet(self, sender):
-    #     self.generationSheet = Sheet((0, 0, 400, 350), self.w)
-    #     self.generationSheet.title = TextBox((15, 15, -15, 22), u'Generate selected glyphs to:')
+    def buildGenerationSheet(self, sender):
+        self.generationSheet = Sheet((0, 0, 400, 140), self.w)
+        self.generationSheet.inner = Group((15, 20, -15, -15))
+        self.generationSheet.inner.fontChoiceTitle = TextBox((0, 0, 100, 22), u'Destination Font')
+        self.generationSheet.inner.fontChoice = PopUpButton((110, 0, -0, 22), ['New font']+[makeListFontName(font) for font in AllFonts()])
+        self.generationSheet.inner.layerNameTitle = TextBox((0, 35, 100, 22), u'Layer name')
+        self.generationSheet.inner.layerName = EditText((110, 35, -0, 22), '')
+
+        self.generationSheet.inner.generate = Button((-200, -22, -0, 22), 'Generate selected glyphs', callback=self.proceedToGeneration)
+        self.generationSheet.open()
+
+    def proceedToGeneration(self, sender):
+        fontNames = self.generationSheet.inner.fontChoice.getItems()
+        selection = self.generationSheet.inner.fontChoice.get()
+        selectedFontName = fontNames[selection]
+        if selectedFontName == 'New font':
+            font = None
+        else:
+            familyName, styleName = selectedFontName.split(' > ')
+            font = AllFonts().getFontsByFamilyNameStyleName(familyName, styleName)
+        layerName = self.generationSheet.inner.layerName.get()
+        if len(layerName) == 0: layerName = None
+        self.generationSheet.close()
+        self.generateGlyphsToFont(font, layerName)
 
     def buildFilterSheet(self, filterName='', makeNew=False):
         sheetFields = {
@@ -549,6 +583,7 @@ class PenBallWizardController(object):
                     self.updateControls()
                     self.resetRepresentations()
                     self.updatePreview()
+                    self.saveFiltersToExtensionDefault()
 
     def processFilterGroup(self, sender):
         filterName = self.filterSheet.name.get()
@@ -580,6 +615,7 @@ class PenBallWizardController(object):
         self.updateControls()
         self.resetRepresentations()
         self.updatePreview()
+        self.saveFiltersToExtensionDefault()
 
     def addFilter(self, sender):
         self.buildFilterSheet(makeNew=True)
@@ -650,19 +686,12 @@ class PenBallWizardController(object):
     def launchWindow(self):
         postEvent("PenBallWizardSubscribeFilter", subscribeFilter=self.addExternalFilter)
 
-    def loadFiltersFromJSON(self, filePath):
-        """Adding this for backwards compatibility."""
-        try:
-            filtersFile = open(filePath, 'r')
-            rawFilters = filtersFile.read()
-            filtersList = json.loads(rawFilters)
-            return filtersList
-        except IOError as e:
-            return []
+    def saveFiltersToExtensionDefault(self):
+        setExtensionDefault('{0}.filtersList'.format(PENBALLWIZARD_EXTENSIONKEY), self.filters.asList())
 
     def end(self, notification):
         #self.filters.saveFiltersToJSON('/'.join([LOCALPATH, JSONFILE]))
-        setExtensionDefault('{0}.filtersList'.format(PENBALLWIZARD_EXTENSIONKEY), self.filters.asList())
+        self.saveFiltersToExtensionDefault()
         self.releaseObservedGlyphs()
         for callback, event in self.observers:
             removeObserver(self, event)
