@@ -1,5 +1,5 @@
 #coding=utf-8
-__version__ = 0.68
+__version__ = 0.69
 
 from collections import OrderedDict
 
@@ -41,8 +41,8 @@ class PenBallWizardController(object):
         self.filters.loadFiltersList(filtersList)
         self.glyphNames = []
         self.observedGlyphs = []
-        self.cachedFont = RFont(showUI=False)
         self.currentFont = CurrentFont()
+        self.initCachedFont()
         filtersList = self.filters.keys()
         if len(filtersList) > 0:
             self.currentFilterName = filtersList[0]
@@ -174,7 +174,7 @@ class PenBallWizardController(object):
 
     def resetRepresentations(self):
         font = self.currentFont
-        self.cachedFont = RFont(showUI=False)
+        self.initCachedFont()
         if font is not None:
             for glyphName in self.glyphNames:
                 if glyphName in font:
@@ -636,7 +636,7 @@ class PenBallWizardController(object):
 
     def filterSelectionChanged(self, sender):
         selectedFilterName = self.getSelectedFilterName()
-        self.cachedFont = RFont(showUI=False)
+        self.initCachedFont()
         self.currentFilterName = selectedFilterName
         self.updateControls()
         self.updatePreview()
@@ -665,12 +665,19 @@ class PenBallWizardController(object):
                 pass
         return value
 
+    def initCachedFont(self):
+        currentFont = self.currentFont
+        self.cachedFont = RFont(showUI=False)
+        if currentFont is not None:
+            for metric in ['ascender','descender','unitsPerEm']:
+                setattr(self.cachedFont.info, metric, getattr(currentFont.info, metric))
+
     def fontChanged(self, notification):
         if 'font' in notification:
             self.releaseObservedGlyphs()
             self.stringInput(self.w.textInput)
             self.currentFont = notification['font']
-            self.cachedFont = RFont(showUI=False)
+            self.initCachedFont()
             self.updatePreview()
 
     def releaseObservedGlyphs(self):
