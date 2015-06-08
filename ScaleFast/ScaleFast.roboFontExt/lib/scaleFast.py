@@ -1,7 +1,7 @@
 #coding=utf-8
 from __future__ import division
 
-__version__ = 0.9
+__version__ = 0.91
 
 """
 Written by Loïc Sander
@@ -19,9 +19,6 @@ through interpolation, powered by Erik van Blokland’s MutatorMath.
 
 Thanks to Frederik Berlaen for the inspiration.
 """
-import sys
-sys.path.insert(0, 'Users/loicsander/Documents/100 CodeLibs/MutatorScale/lib/')
-import mutatorScale
 
 from mutatorScale.objects.scaler import MutatorScaleEngine
 from mutatorScale.utilities.fontUtils import makeListFontName, getRefStems
@@ -131,7 +128,7 @@ class ScaleFastController(object):
 
         self.availableFonts = {makeListFontName(font):{'font':font, 'selected':False, 'vstem':None, 'hstem':None, 'familyName':font.info.familyName, 'styleName':font.info.styleName} for font in AllFonts()}
 
-        self.scalingMasters = MutatorScaleEngine(stemsWithSlantedSection=True)
+        self.scalingMasters = MutatorScaleEngine()
 
         # initiating window
         self.w = Window((1100, 650), 'ScaleFast %s' % (__version__), minSize=(800, 550))
@@ -150,13 +147,14 @@ class ScaleFastController(object):
         ]
 
         self.w.titles = Group((6, 15, 12, -15))
-        self.w.titles.masters = TextBox((0, 0, -0, -412), 'MASTERS', sizeStyle='mini', alignment='center')
+        self.w.titles.masters = TextBox((0, 32, -0, -412), 'MASTERS', sizeStyle='mini', alignment='center')
         self.w.titles.stems = TextBox((0, -402, -0, 88), 'STEMS', sizeStyle='mini', alignment='center')
-        self.w.titles.scale = TextBox((0, -314, -0, 124), 'SCALE', sizeStyle='mini', alignment='center')
+        self.w.titles.height = TextBox((0, -314, -0, 62), 'HEIGHT', sizeStyle='mini', alignment='center')
+        self.w.titles.width = TextBox((0, -252, -0, 62), 'WIDTH', sizeStyle='mini', alignment='center')
         self.w.titles.position = TextBox((0, -190, -0, 94), 'POSITION', sizeStyle='mini', alignment='center')
         self.w.titles.tracking = TextBox((0, -96, -0, 62), 'TRACKING', sizeStyle='mini', alignment='center')
 
-        for key in ['masters','stems','scale','position','tracking']:
+        for key in ['masters','stems','height','width','position','tracking']:
             titleField = getattr(self.w.titles, key)
             titleField.getNSTextField().rotateByAngle_(-90)
             titleField.getNSTextField().setTextColor_(NSColor.colorWithCalibratedRed_green_blue_alpha_(0.5, 0.5, 0.5, 1))
@@ -766,12 +764,12 @@ class ScaleFastController(object):
                 scaledGlyph.angledLeftMargin = sourceGlyph.angledLeftMargin
                 scaledGlyph.angledRightMargin = sourceGlyph.angledRightMargin
 
-            scaledGlyph = self._transformGlyph(scaledGlyph, self.transformations)
+            scaledGlyph = self._transformGlyph(scaledGlyph, self.transformations, font.info.italicAngle if font.info.italicAngle is not None else 0)
 
         return font
 
 
-    def _transformGlyph(self, glyph, transformations):
+    def _transformGlyph(self, glyph, transformations, angle=0):
 
         # tracking
         trackingValue, trackingUnits = transformations['tracking']
@@ -790,6 +788,9 @@ class ScaleFastController(object):
             # if self.transformations['keepSidebearings'] == False:
             for component in glyph.components:
                 component.move((-delta, 0))
+
+        yDelta = 0
+        xDelta = 0
 
         # sticky position
         stickyPos = transformations['stickyPos']
@@ -820,23 +821,22 @@ class ScaleFastController(object):
                     alignmentHeight = 0
             else:
                 alignmentHeight = 0
-            delta = 0
 
             if zone == 'bottom':
-                delta = alignmentHeight
+                yDelta = alignmentHeight
             elif zone == 'top':
-                delta = alignmentHeight - targetHeight
+                yDelta = alignmentHeight - targetHeight
             elif zone == 'center':
-                delta = alignmentHeight - (targetHeight / 2)
+                yDelta = alignmentHeight - (targetHeight / 2)
 
-            if delta:
-                for contour in glyph.contours:
-                    contour.move((0, delta))
-                for anchor in glyph.anchors:
-                    anchor.move((0, delta))
 
         # additional (x, y) offset
         posX, posY = transformations['posX'], transformations['posY']
+        xDelta = round((yDelta + posY) * cos(radians(angle)+pi/2))
+
+        posX += xDelta
+        posY += yDelta
+
         if posX or posY:
             for contour in glyph.contours:
                 contour.move((posX, posY))
@@ -930,14 +930,11 @@ class ScaleFastController(object):
         – update master status: included or not included
         – if stem values were modified and font is included among masters, update stem values
         """
-        masterFontsSelection = sender.getSelection()
         masterFontsItems = sender.get()
-        index = masterFontsSelection[0] if len(masterFontsSelection) else None
-
         availableFonts = self.availableFonts
-        newStemValues = {}
         listValuesToChange = []
-        currentStems = {}
+
+        # updating the scaler
 
         for i, listItem in enumerate(masterFontsItems):
             fontName = listItem['font']
@@ -951,12 +948,14 @@ class ScaleFastController(object):
                 hstem = availableFonts[fontName]['hstem']
                 stems = (vstem, hstem)
 
-                # initiate new MutatorScale master
-                self.scalingMasters.addMaster(fontToAdd, stems)
-                # if self.scalingMasters.hasTwoAxes() == True:
-                #     self.isotropic = False
+                if stems != (None, None):
+                    # initiate new MutatorScale master with existing stems
+                    self.scalingMasters.addMaster(fontToAdd, stems)
+                else:
+                    # initiate new MutatorScale master, scaler will measure stem values
+                    self.scalingMasters.addMaster(fontToAdd)
 
-                # update stored stem values in available fonts in case they changed on master initiation (= were None and were calculated on master instanciation)
+                # update stored stem values in available fonts in case they changed on master initiation (= were None and were calculated on master instantiation)
                 for key in ['vstem','hstem']:
                     stemValue = getattr(self.scalingMasters[fontName], key)
                     if stemValue is None:
@@ -977,10 +976,13 @@ class ScaleFastController(object):
                 if len(self.scalingMasters) == 0:
                     self.isotropic = True
 
+
+            # editing the masters list
+
             for key in ['vstem', 'hstem']:
 
                 # if a vstem or hstem value is present in the list
-                if listItem.has_key(key):
+                if key in listItem:
 
                     value = None
                     previousValue = availableFonts[fontName][key]
@@ -988,12 +990,7 @@ class ScaleFastController(object):
 
                     # try parsing it to a number value
                     try:
-
                         value = int(strValue)
-                        if value == previousValue:
-                            value = None
-                        else:
-                            currentStems[key] = value
 
                     # if this fails, try to revert to a previous value if there is one
                     # otherwise, remove the faulty value from the list
@@ -1008,22 +1005,10 @@ class ScaleFastController(object):
                     # eventually, if there is new valid value, store it for update
                     if value is not None:
 
-                        if not newStemValues.has_key(fontName):
-                            newStemValues[fontName] = {}
-                        newStemValues[fontName][key] = value
-
                         availableFonts[fontName][key] = value
 
                         if fontName in self.scalingMasters:
                             setattr(self.scalingMasters[fontName], key, value)
-
-                        elif fontName not in self.scalingMasters:
-                            fontToAdd = self.availableFonts[fontName]['font']
-                            self.scalingMasters.addMaster(fontToAdd)
-                            # if self.scalingMasters.hasTwoAxes() == True:
-                            #     self.isotropic = False
-
-                        self.scalingMasters.update()
 
         if len(listValuesToChange):
 
@@ -1037,10 +1022,9 @@ class ScaleFastController(object):
                     key = item
                     self.masterFontsList[index].pop(key, 0)
 
-        self.setCurrentStems(**currentStems)
+        self.scalingMasters.update()
 
         self.availableFonts = availableFonts
-
         self._updatePreview(True)
 
 
