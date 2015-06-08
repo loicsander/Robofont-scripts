@@ -33,5 +33,9 @@
 	<real>1433761972.5826149</real>
 	<key>version</key>
 	<string>0.91</string>
+    <key>repository</key>
+    <string>loicsander/Robofont-scripts</string>
+    <key>extensionPath</key>
+    <string>ScaleFast.roboFontExt</string>
 </dict>
 </plist>
