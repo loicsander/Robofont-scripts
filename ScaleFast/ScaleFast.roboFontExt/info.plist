@@ -8,7 +8,7 @@
 			<key>path</key>
 			<string>scaleFast.py</string>
 			<key>preferredName</key>
-			<string>scaleFast</string>
+			<string>Launch ScaleFast</string>
 			<key>shortKey</key>
 			<string></string>
 		</dict>
@@ -30,7 +30,7 @@
 	<key>requiresVersionMinor</key>
 	<string>5</string>
 	<key>timeStamp</key>
-	<real>1433761972.5826149</real>
+	<real>1433764325.401228</real>
 	<key>version</key>
 	<string>0.91</string>
     <key>repository</key>
