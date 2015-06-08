@@ -65,7 +65,7 @@ You can add custom guides that will be stored in the font and can be displayed t
 On top of the scaling, you can defined X/Y offsets to be applied  to all glyphs.
 
 #### Sticky
-In combination with manuel offsetting, there’s a helper ‘sticky’ option that allows you to define alignments for scaled glyph. If you’re working on superiors for instance and you wish to see them aligned with the capHeight, you only need to specify [top][capHeight]. Note that the second Pop-up menu will recognize any custom guide as well as the base vertical metrics of a font.
+In combination with manual offsetting, there’s a helper ‘sticky’ option that allows you to define alignments for scaled glyph. If you’re working on superiors for instance and you wish to see them aligned with the capHeight, you only need to specify [top][capHeight]. Note that the second Pop-up menu will recognize any custom guide as well as the base vertical metrics of a font.
 
 #### Tracking
 
