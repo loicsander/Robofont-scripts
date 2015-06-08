@@ -6,8 +6,10 @@ Any transformation you input can be saved as a preset for a later use. Presets a
 
 *The tool’s flexibility comes a great deal from its relying on ![MutatorMath](https://github.com/LettError/MutatorMath), written by Erik van Blokland.*
 
-![alt tag](images/example-scalefast-6.png)
-![alt tag](images/example-scalefast-7.png)
+![alt tag](images/scalefast-1.png)
+![alt tag](images/scalefast-2.png)
+![alt tag](images/scalefast-3.png)
+![alt tag](images/scalefast-4.png)
 
 
 ### How it works
@@ -76,7 +78,7 @@ This generates glyphs with the current settings and provided glyphset + suffix.
 #### Batch
 You can also generate different glyphsets by using presets to define which settings should be applied to a specific series of glyphs.
 
-![alt tag](images/example-scalefast-1.png)
-![alt tag](images/example-scalefast-2.png)
-![alt tag](images/example-scalefast-3.png)
-![alt tag](images/example-scalefast-4.png)
+![alt tag](images/scalefast-5.png)
+![alt tag](images/scalefast-6.png)
+![alt tag](images/scalefast-7.png)
+![alt tag](images/scalefast-8.png)
