@@ -52,6 +52,10 @@ But don’t bother keeping that in mind, ScaleFast figures out on its own if it 
 #### Presets
 Any settings you define can be store as a preset (through the right hand panel). Presets are stored in the selected working font, so they will stay in the UFO unless you remove them.
 
+![alt tag](images/scalefast-5.png)
+![alt tag](images/scalefast-6.png)
+![alt tag](images/scalefast-7.png)
+
 #### Guides
 You can add custom guides that will be stored in the font and can be displayed to help with your scaling work.
 
@@ -70,7 +74,7 @@ On top of that — spacing being scaled or not — you can add tracking, either 
 
 ### Generating
 
-Generating glyphs should be relatively straightforward, I hope. You can generate any glyph set you want. The generated glyphs can then be directly reinserted into one of the existing masters, or another open font, or a new one created for the occasion. Additionally, you can suffix the generated glyphs. Note that if you reinsert generated glyphs in a existing font without suffixing glyph names, existing glyphs with the same name in the target font will be replaced.
+You can generate any glyph set you want. The generated glyphs can then be directly reinserted into one of the existing masters, or another open font, or a new one created for the occasion. Additionally, you can suffix the generated glyphs. Note that if you reinsert generated glyphs in a existing font without suffixing glyph names, existing glyphs with the same name in the target font will be replaced.
 
 #### Current
 This generates glyphs with the current settings and provided glyphset + suffix.
@@ -78,7 +82,5 @@ This generates glyphs with the current settings and provided glyphset + suffix.
 #### Batch
 You can also generate different glyphsets by using presets to define which settings should be applied to a specific series of glyphs.
 
-![alt tag](images/scalefast-5.png)
-![alt tag](images/scalefast-6.png)
-![alt tag](images/scalefast-7.png)
 ![alt tag](images/scalefast-8.png)
+![alt tag](images/scalefast-9.png)
