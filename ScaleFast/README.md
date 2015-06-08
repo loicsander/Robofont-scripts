@@ -1,8 +1,8 @@
 ## ScaleFast
 ================
 
-This script’s mission is simple: keep stem widths consistent while you fiddle with proportions of a glyph. It manages that by trying to compensate for scale deformations through interpolation. To do that, it requires at least two masters (a regular and bold for instance). This way, you can easily produce scaled versions of existing glyph for any purpose you see fit, small capitals, superiors, extended or condensed styles, scaled up, down, etc. 
-Any transformation you input can be saved as a preset for a later use. Presets are stored inside the ufo file of the first master font (see below), but you can use presets stored in any of the open fonts available when using ScaleFast.  
+This extension’s mission is simple: keep stem widths consistent while you fiddle with proportions of a glyph. It manages that by trying to compensate for scale deformations through interpolation. To achieve this result, it requires at least two masters (a regular and a bold for instance). This way, you can easily produce scaled versions of existing glyph for any purpose you see fit, small capitals, superiors, extended or condensed styles, etc. 
+Any transformation you input can be saved as a preset for a later use. Presets are stored inside the ufo file of the selected working font (among masters).  
 
 *The tool’s flexibility comes a great deal from its relying on ![MutatorMath](https://github.com/LettError/MutatorMath), written by Erik van Blokland.*
 
@@ -12,17 +12,15 @@ Any transformation you input can be saved as a preset for a later use. Presets a
 
 ### How it works
 
-To get the best possible results, here are a few explanations about how this script works.
+To get the best possible results, here are a few explanations about how this extension works.
 
-When you add masters (as many as you like), they are analyzed for vertical & horizontal stem width (based on capital I’s stem and the horizontal bar of H). These values are then used as reference points to build an interpolation space (with help of MutatorMath). If you don’t wish to work with stem values, you can replace them and work with units on any scale you like (0 to 1000 for instance), but note that this tool is built to work with stem widths, so if you work outside of this scheme, the script will work fine, but you won’t be able to track the stem values of generated glyphs.
+The scaling is handled by a [scaling engine](https://github.com/loicsander/MutatorScale). When provided with fonts as masters, the scaling engine uses interpolation to scale glyphs according to settings defined by the user. In ScaleFast, adding or removing masters to the scaling engine is done by checking/unchecking the available fonts in the masters list.
 
-#### The first master
+When you add masters (as many as you like), they are analyzed for vertical & horizontal stem width (based on capital I’s stem and the horizontal bar of H). These values are then used as reference points to build an interpolation space (with help of MutatorMath). If you don’t wish to work with stem values, you can replace them and work with units on any scale you like (0 to 1000 for instance). You should note however that this tool is built to work with stem widths, so if you work outside of this scheme, the script will work fine, but the experience won’t be as smooth.
 
-The font from which glyphs are scaled and worked on is always the first in the masters list. If you wish to work on another font in the list, just drag and drop it on top of the list.
+### Scaling
 
-#### Scaling
-
-With ScaleFast, what you scale firstly are reference heights. This is why you’ll find a text input requiring a value in units (per em) and a popup menu with predefined reference heights. What you’re asking for when you input [300]/[xHeight] is that ScaleFast reduces glyphs with a ratio of 300/500, if xHeight is 500 units high, for instance. The ratio part is taken care of, all you need to know is the change in dimensions you want. This specific input will effectively result in lowercase letters having a 300 units high xHeight themselves.
+With ScaleFast, what you scale firstly are reference heights. This is why you’ll find a slider and text input requiring a value in units (per em) and a popup menu with predefined reference heights. What you’re asking for when you input [xHeight]>[300] is effectively that ScaleFast reduces glyphs with a ratio of 300/500, if the xHeight is 500 units high, for instance. The ratio part is taken care of, all you need to know is the change in dimensions you want. This specific input used as an example will result in lowercase letters having a 300 units high xHeight themselves.
 
 #### Stems
 
@@ -49,14 +47,34 @@ Now back to ScaleFast, if you provide at least three masters that allow the scri
 To be more specific, this mode requires that at least two masters both share their horizontal stem values while having different vertical stem values, and that a a least one third master has an horizontal stem value different from the two others.
 But don’t bother keeping that in mind, ScaleFast figures out on its own if it has all that is required for bi-dimensional interpolation, it will switch automatically to this mode if it can. 
 
-#### Spacing
+#### Presets
+Any settings you define can be store as a preset (through the right hand panel). Presets are stored in the selected working font, so they will stay in the UFO unless you remove them.
 
-There are several things you can do about the spacing of the glyphs you scale. By default, the width of a scaled glyph is scaled as well. But if you’d rather avoid that, you can activate the ‘Don’t scale spacing’ checkbox, the glyphs will be scaled but  their sidebearings will remain those of the normally sized glyphs.
-On top of that — spacing being scaled or not — you can add tracking, either in percentage or units (per em).
+#### Guides
+You can add custom guides that will be stored in the font and can be displayed to help with your scaling work.
 
-#### Generating
+### Transformations
 
-Generating glyphs should be relatively straightforward, I hope. You can generate any glyph set you want, up to the whole glyph set of the first master font (on top of the masters list). Nevertheless, be aware that this kind of glyph generation doesn’t handle components, it will only output contours. The generated glyphs can then be directly reinserted into one of the existing masters, or another open font, or a new one created for the occasion. Additionally, you can suffix the generated glyphs. Note that if you reinsert generated glyphs in a existing font without suffixing glyph names, existing glyphs with the same name in the target font will be replaced.
+#### Offset
+On top of the scaling, you can defined X/Y offsets to be applied  to all glyphs.
+
+#### Sticky
+In combination with manuel offsetting, there’s a helper ‘sticky’ option that allows you to define alignments for scaled glyph. If you’re working on superiors for instance and you wish to see them aligned with the capHeight, you only need to specify [top][capHeight]. Note that the second Pop-up menu will recognize any custom guide as well as the base vertical metrics of a font.
+
+#### Tracking
+
+There are several things you can do about the spacing of the glyphs you scale. By default, the width of a scaled glyph is scaled as well. But if you’d rather avoid that, you can activate the ‘Keep inital sidebearings’ checkbox, the glyphs will be scaled but  their sidebearings will remain those of the normally sized glyphs (using the source glyph of the selected master font as reference).
+On top of that — spacing being scaled or not — you can add tracking, either in percentage or units (per em). Note that if you apply tracking with percentages, you will probably get undesired results with components (because handling those is rather tricky); it will work great for glyphs containing only contours though.
+
+### Generating
+
+Generating glyphs should be relatively straightforward, I hope. You can generate any glyph set you want. The generated glyphs can then be directly reinserted into one of the existing masters, or another open font, or a new one created for the occasion. Additionally, you can suffix the generated glyphs. Note that if you reinsert generated glyphs in a existing font without suffixing glyph names, existing glyphs with the same name in the target font will be replaced.
+
+#### Current
+This generates glyphs with the current settings and provided glyphset + suffix.
+
+#### Batch
+You can also generate different glyphsets by using presets to define which settings should be applied to a specific series of glyphs.
 
 ![alt tag](images/example-scalefast-1.png)
 ![alt tag](images/example-scalefast-2.png)
