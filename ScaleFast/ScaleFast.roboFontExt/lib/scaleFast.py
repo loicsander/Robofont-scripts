@@ -1,7 +1,7 @@
 #coding=utf-8
 from __future__ import division
 
-__version__ = 0.91
+__version__ = 0.92
 
 """
 Written by Loïc Sander
@@ -19,7 +19,6 @@ through interpolation, powered by Erik van Blokland’s MutatorMath.
 
 Thanks to Frederik Berlaen for the inspiration.
 """
-
 from mutatorScale.objects.scaler import MutatorScaleEngine
 from mutatorScale.utilities.fontUtils import makeListFontName, getRefStems
 
@@ -853,11 +852,18 @@ class ScaleFastController(object):
     def _updateControls(self, mode):
         if mode == 'Two-axes':
             self.controls.stemBox.isotropic.show(False)
+            self.controls.stemBox.vstem.enable(True)
             self.controls.stemBox.hstem.enable(True)
-        else:
+
+        elif self.scalingMasters.getCurrentStemBase() == 'vstem':
             self.controls.stemBox.isotropic.show(True)
+            self.controls.stemBox.vstem.enable(True)
             if mode == 'Isotropic':
                 self.controls.stemBox.hstem.enable(False)
+
+        elif self.scalingMasters.getCurrentStemBase() == 'hstem':
+            self.controls.stemBox.vstem.enable(False)
+            self.controls.stemBox.hstem.enable(True)
 
         transformations = self.transformations
 
