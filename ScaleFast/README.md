@@ -12,7 +12,7 @@ Any transformation you input can be saved as a preset for a later use. Presets a
 ![alt tag](images/scalefast-4.png)
 
 
-### How it works
+### — How it works
 
 To get the best possible results, here are a few explanations about how this extension works.
 
@@ -20,7 +20,7 @@ The scaling is handled by a [scaling engine](https://github.com/loicsander/Mutat
 
 When you add masters (as many as you like), they are analyzed for vertical & horizontal stem width (based on capital I’s stem and the horizontal bar of H). These values are then used as reference points to build an interpolation space (with help of MutatorMath). If you don’t wish to work with stem values, you can replace them and work with units on any scale you like (0 to 1000 for instance). You should note however that this tool is built to work with stem widths, so if you work outside of this scheme, the script will work fine, but the experience won’t be as smooth.
 
-### Scaling
+### — Scaling
 
 With ScaleFast, what you scale firstly are reference heights. This is why you’ll find a slider and text input requiring a value in units (per em) and a popup menu with predefined reference heights. What you’re asking for when you input [xHeight]>[300] is effectively that ScaleFast reduces glyphs with a ratio of 300/500, if the xHeight is 500 units high, for instance. The ratio part is taken care of, all you need to know is the change in dimensions you want. This specific input used as an example will result in lowercase letters having a 300 units high xHeight themselves.
 
@@ -59,7 +59,7 @@ Any settings you define can be store as a preset (through the right hand panel).
 #### Guides
 You can add custom guides that will be stored in the font and can be displayed to help with your scaling work.
 
-### Transformations
+### — Transformations
 
 #### Offset
 On top of the scaling, you can defined X/Y offsets to be applied  to all glyphs.
@@ -72,7 +72,7 @@ In combination with manual offsetting, there’s a helper ‘sticky’ option th
 There are several things you can do about the spacing of the glyphs you scale. By default, the width of a scaled glyph is scaled as well. But if you’d rather avoid that, you can activate the ‘Keep inital sidebearings’ checkbox, the glyphs will be scaled but  their sidebearings will remain those of the normally sized glyphs (using the source glyph of the selected master font as reference).
 On top of that — spacing being scaled or not — you can add tracking, either in percentage or units (per em). Note that if you apply tracking with percentages, you will probably get undesired results with components (because handling those is rather tricky); it will work great for glyphs containing only contours though.
 
-### Generating
+### — Generating
 
 You can generate any glyph set you want. The generated glyphs can then be directly reinserted into one of the existing masters, or another open font, or a new one created for the occasion. Additionally, you can suffix the generated glyphs. Note that if you reinsert generated glyphs in a existing font without suffixing glyph names, existing glyphs with the same name in the target font will be replaced.
 
