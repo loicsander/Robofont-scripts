@@ -1,7 +1,7 @@
 #coding=utf-8
 from __future__ import division
 
-__version__ = 0.931
+__version__ = 0.932
 
 """
 Written by Loïc Sander
@@ -1012,8 +1012,8 @@ class ScaleFastController(object):
                         if previousValue is not None:
                             listValuesToChange.append((i, 'replace', (key, int(previousValue))))
 
-                        elif previousValue is None:
-                            listValuesToChange.append((i, 'pop', key))
+                        # elif previousValue is None:
+                        #     listValuesToChange.append((i, 'pop', key))
 
                     # eventually, if there is new valid value, store it for update
                     if value is not None:
@@ -1031,9 +1031,9 @@ class ScaleFastController(object):
                     key, value = item
                     self.masterFontsList[index][key] = value
 
-                elif action == 'pop':
-                    key = item
-                    self.masterFontsList[index].pop(key, 0)
+                # elif action == 'pop':
+                #     key = item
+                #     self.masterFontsList[index].pop(key, 0)
 
         self.scalingMasters.update()
 
