@@ -1,7 +1,7 @@
 #coding=utf-8
 from __future__ import division
 
-__version__ = 0.92
+__version__ = 0.93
 
 """
 Written by Loïc Sander
@@ -1042,7 +1042,12 @@ class ScaleFastController(object):
 
         if not self.availableFonts.has_key(name):
             self.availableFonts[name] = {'font':font, 'selected':False, 'vstem':None, 'hstem':None, 'familyName':font.info.familyName, 'styleName':font.info.styleName}
-            newListItem = {self.includedGlyph:False, 'font':name}
+            newListItem = {
+                self.includedGlyph:False,
+                'font':name,
+                'vstem': None,
+                'hstem': None
+                }
             masterFontsItems.append(newListItem)
 
         self.masterFontsList.set(masterFontsItems)
