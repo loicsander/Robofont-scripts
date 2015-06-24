@@ -1,13 +1,13 @@
 #coding=utf-8
 from __future__ import division
 
-__version__ = 0.93
+__version__ = 0.931
 
 """
 Written by Loïc Sander
 –
 Version history
-1. novembre 2014
+1. november 2014
 2. march 2015
 3. june 2015
 —
@@ -136,7 +136,14 @@ class ScaleFastController(object):
         controls = self.controlsBox.settings
 
         # Masters’ list
-        masterFontsItems = [{self.includedGlyph:False, 'font':fontName} for fontName in self.availableFonts]
+        masterFontsItems = [
+                {
+                self.includedGlyph:False,
+                'font':fontName,
+                'vstem': '',
+                'hstem': ''
+                } for fontName in self.availableFonts
+            ]
 
         masterFontsListColumnDescription = [
             {'title':self.includedGlyph, 'width': 20, 'editable':True, 'cell':CheckBoxListCell()},
@@ -961,7 +968,7 @@ class ScaleFastController(object):
                     # initiate new MutatorScale master, scaler will measure stem values
                     self.scalingMasters.addMaster(fontToAdd)
 
-                # update stored stem values in available fonts in case they changed on master initiation (= were None and were calculated on master instantiation)
+                # update stored stem values in available fonts in case they changed on master initiation (= were None and calculated on master instantiation)
                 for key in ['vstem','hstem']:
                     stemValue = getattr(self.scalingMasters[fontName], key)
                     if stemValue is None:
@@ -1003,7 +1010,7 @@ class ScaleFastController(object):
                     except:
 
                         if previousValue is not None:
-                            listValuesToChange.append((i, 'replace', (key, previousValue)))
+                            listValuesToChange.append((i, 'replace', (key, int(previousValue))))
 
                         elif previousValue is None:
                             listValuesToChange.append((i, 'pop', key))
@@ -1045,8 +1052,8 @@ class ScaleFastController(object):
             newListItem = {
                 self.includedGlyph:False,
                 'font':name,
-                'vstem': None,
-                'hstem': None
+                'vstem': '',
+                'hstem': ''
                 }
             masterFontsItems.append(newListItem)
 
