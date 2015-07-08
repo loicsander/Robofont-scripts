@@ -1,7 +1,7 @@
 #coding=utf-8
 from __future__ import division
 
-__version__ = '0.93.2'
+__version__ = '0.93.3'
 
 """
 Written by Loïc Sander
@@ -307,6 +307,7 @@ class ScaleFastController(object):
         self.displayModes = ['Multi Line', 'Water Fall']
         self.guideColor = (0.75, 0.5, 0.5, 0.75)
         self.presets = []
+        self.copiedPresets = []
         self.batchGenerationList = []
 
         self.scaleFastSettings = Box((0, 0, -0, -0))
@@ -337,10 +338,13 @@ class ScaleFastController(object):
         self.scaleFastSettings.g.presets = Box((0, 365, -10, 210))
         self.scaleFastSettings.g.presets.g = Group((10, 10, -10, -10))
         self.scaleFastSettings.g.presets.g.title = TextBox((28, 0, -0, 20), 'PRESETS', sizeStyle='mini')
-        self.scaleFastSettings.g.presets.g.presetsList = List((28, 20, -0, 135), [], allowsMultipleSelection=False, editCallback=self._editPresetNames)
+        self.scaleFastSettings.g.presets.g.presetsList = List((28, 20, -0, 135), [], allowsMultipleSelection=True, editCallback=self._editPresetNames, selectionCallback=self._presetSelectionChanged)
         self.scaleFastSettings.g.presets.g.addPreset = GradientButton((28, 160, 60, 20), title='Add', sizeStyle='small', callback=self._addPreset)
         self.scaleFastSettings.g.presets.g.updatePreset = GradientButton((88, 160, 70, 20), title='Update', sizeStyle='small', callback=self._updatePreset)
+        self.scaleFastSettings.g.presets.g.updatePreset.enable(False)
         self.scaleFastSettings.g.presets.g.removePreset = GradientButton((158, 160, 70, 20), title='Remove', sizeStyle='small', callback=self._removePreset)
+        self.scaleFastSettings.g.presets.g.copyPresets = GradientButton((228, 160, 60, 20), title='Copy', sizeStyle='small', callback=self._copyPresets)
+        self.scaleFastSettings.g.presets.g.pastePresets = GradientButton((288, 160, 60, 20), title='Paste', sizeStyle='small', callback=self._pastePresets)
         self.scaleFastSettings.g.presets.g.loadPreset = Button((0, 72, 20, 25), '<', sizeStyle='small', callback=self._applyPresetCallback)
 
         # SplitView: glyph preview and settings hidden from view on the right
@@ -1379,6 +1383,14 @@ class ScaleFastController(object):
         self._savePresets()
 
 
+    def _presetSelectionChanged(self, sender):
+        selection = sender.getSelection()
+        if len(selection) > 1 or len(selection) == 0:
+            self.scaleFastSettings.g.presets.g.updatePreset.enable(False)
+        elif len(selection) == 1:
+            self.scaleFastSettings.g.presets.g.updatePreset.enable(True)
+
+
     def _updatePreset(self, sender):
         selection = self.scaleFastSettings.g.presets.g.presetsList.getSelection()
         if len(selection):
@@ -1422,8 +1434,26 @@ class ScaleFastController(object):
     def _removePreset(self, sender):
         selection = self.scaleFastSettings.g.presets.g.presetsList.getSelection()
         if len(selection):
-            index = selection[0]
-            self.presets.pop(index)
+            for index in reversed(selection):
+                self.presets.pop(index)
+            self.updatePresetsList()
+            self._savePresets()
+
+
+    def _copyPresets(self, sender):
+        selection = self.scaleFastSettings.g.presets.g.presetsList.getSelection()
+        self.copiedPresets = []
+        if len(selection):
+            for index in selection:
+                selectedPreset = self.presets[index]
+                self.copiedPresets.append(selectedPreset)
+
+
+    def _pastePresets(self, sender):
+        copiedPresets = self.copiedPresets
+        if len(copiedPresets):
+            for preset in copiedPresets:
+                self.presets.append(preset)
             self.updatePresetsList()
             self._savePresets()
 
