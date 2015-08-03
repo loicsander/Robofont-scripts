@@ -200,7 +200,7 @@ def findDuplicatePoints(segments):
 # using fontTools 2.4’s method didn’t work, don’t know why.
 
 def getGlyphBox(glyph):
-    pen = BoundsPen(None)
+    pen = BoundsPen(glyph.getParent())
     glyph.draw(pen)
     return pen.bounds
 
