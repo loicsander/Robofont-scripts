@@ -114,20 +114,23 @@ def removeOverlap(glyph):
     singleContourGlyph.name = glyph.name
     pointPen = singleContourGlyph.getPointPen()
 
-    if len(toRFGlyph) > 1:
+    if len(toRFGlyph.contours) > 1:
 
-        booleanGlyphs = []
+        try:
+            booleanGlyphs = []
 
-        for c in toRFGlyph.contours:
-            if len(c) > 1:
-                b = BooleanGlyph()
-                pen = b.getPen()
-                c.draw(pen)
-                booleanGlyphs.append(b)
+            for c in toRFGlyph.contours:
+                if len(c) > 1:
+                    b = BooleanGlyph()
+                    pen = b.getPen()
+                    c.draw(pen)
+                    booleanGlyphs.append(b)
 
-        finalBooleanGlyph = reduce(lambda g1, g2: g1 | g2, booleanGlyphs)
-        finalBooleanGlyph.drawPoints(pointPen)
+            finalBooleanGlyph = reduce(lambda g1, g2: g1 | g2, booleanGlyphs)
+            finalBooleanGlyph.drawPoints(pointPen)
 
+        except:
+            glyph.drawPoints(pointPen)
     else:
         glyph.drawPoints(pointPen)
 
