@@ -142,7 +142,7 @@ def intersect(glyph, where, isHorizontal):
     Intersection of a glyph with a horizontal or vertical line.
     Intersects each segment of a glyph using fontTools bezierTools.splitCubic and splitLine methods.
     """
-    pen = CollectSegmentsPen()
+    pen = CollectSegmentsPen(glyph.getParent())
     glyph.draw(pen)
     nakedGlyph = pen.getSegments()
     glyphIntersections = []

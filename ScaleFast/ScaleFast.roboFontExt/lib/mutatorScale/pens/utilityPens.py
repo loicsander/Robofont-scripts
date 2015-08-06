@@ -38,7 +38,8 @@ class ClockwiseTestPointPen(AbstractPointPen):
 
 class CollectSegmentsPen(BasePen):
 
-    def __init__(self):
+    def __init__(self, glyphSet):
+        self.glyphSet = glyphSet
         self.contours = []
 
     def _moveTo(self, pt):
