@@ -109,6 +109,9 @@ def removeOverlap(glyph):
     toRFpen = toRFGlyph.getPen()
     glyph.draw(toRFpen)
 
+    if len(toRFGlyph.components):
+        toRFGlyph.decompose()
+
     singleContourGlyph = RGlyph()
     singleContourGlyph.width = glyph.width
     singleContourGlyph.name = glyph.name
