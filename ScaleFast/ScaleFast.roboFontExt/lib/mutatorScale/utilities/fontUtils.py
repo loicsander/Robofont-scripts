@@ -133,9 +133,9 @@ def removeOverlap(glyph):
             finalBooleanGlyph.drawPoints(pointPen)
 
         except:
-            glyph.drawPoints(pointPen)
+            toRFGlyph.drawPoints(pointPen)
     else:
-        glyph.drawPoints(pointPen)
+        toRFGlyph.drawPoints(pointPen)
 
     return singleContourGlyph
 
