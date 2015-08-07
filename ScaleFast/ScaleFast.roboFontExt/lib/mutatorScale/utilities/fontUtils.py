@@ -13,6 +13,8 @@ from fontTools.pens.boundsPen import BoundsPen
 from mutatorScale.booleanOperations.booleanGlyph import BooleanGlyph
 from mutatorScale.pens.utilityPens import CollectSegmentsPen
 
+
+
 def makeListFontName(font):
     """
     Return a font name in the form: 'Family name — style name'.
@@ -26,9 +28,11 @@ def makeListFontName(font):
         styleName = font.info.styleName = 'Unnamed'
     return joinFontName(familyName, styleName)
 
+
 def joinFontName(familyName, styleName):
     separator = '-'
     return '{familyName} {separator} {styleName}'.format(familyName=familyName, separator=separator, styleName=styleName)
+
 
 def getRefStems(font, slantedSection=False):
     """
@@ -46,7 +50,7 @@ def getRefStems(font, slantedSection=False):
             baseGlyph = font[glyphName]
 
             # removing overlap
-            glyph = removeOverlap(baseGlyph)
+            glyph = freezeGlyph(baseGlyph)
             width = glyph.width
 
             glyph.skew(-angle)
@@ -81,16 +85,15 @@ def getRefStems(font, slantedSection=False):
 
 
 def getSlantAngle(font, returnDegrees=False):
-    """
-    Returns the probable slant/italic angle of a font measuring the slant of a capital I.
-    """
+    """Returns the probable slant/italic angle of a font measuring the slant of a capital I."""
+
     if 'I' in font:
         testGlyph = font['I']
         xMin, yMin, xMax, yMax = getGlyphBox(testGlyph)
         hCenter = (yMax - yMin) / 2
         delta = 10
         intersections = []
-        glyph = removeOverlap(testGlyph)
+        glyph = freezeGlyph(testGlyph)
 
         for i in range(2):
             horizontal = hCenter + (i * delta)
@@ -106,24 +109,17 @@ def getSlantAngle(font, returnDegrees=False):
                     return round(degrees(angle), 2)
     return 0
 
-def removeOverlap(glyph):
+
+def freezeGlyph(glyph):
+    """Return a copy of a glyph, with components decomposed and all overlap removed."""
 
     toRFGlyph = RGlyph()
     toRFpen = toRFGlyph.getPen()
     glyph.draw(toRFpen)
 
-    if len(toRFGlyph.components):
-        font = glyph.getParent()
-        for comp in reversed(toRFGlyph.components):
-            baseGlyphName = comp.baseGlyph
-            baseGlyph = font[baseGlyphName]
-            t = transform.Transform(*comp.transformation)
-            decomposedComposite = RGlyph()
-            decompPen = decomposedComposite.getPen()
-            baseGlyph.draw(decompPen)
-            decomposedComposite.transform(t)
-            toRFGlyph.removeComponent(comp)
-            toRFGlyph.appendGlyph(decomposedComposite)
+    if len(glyph.components):
+        decomposedComponents = extractComposites(glyph)
+        decomposedComponents.draw(toRFpen)
 
     singleContourGlyph = RGlyph()
     singleContourGlyph.width = glyph.width
@@ -153,10 +149,37 @@ def removeOverlap(glyph):
     return singleContourGlyph
 
 
+def extractComposites(glyph):
+    """Return a new glyph with outline copies of each composite from the source glyph."""
+
+    decomposedComposites = RGlyph()
+
+    if len(glyph.components):
+        font = glyph.getParent()
+
+        for comp in reversed(glyph.components):
+
+            # obtain source data
+            baseGlyphName = comp.baseGlyph
+            baseGlyph = font[baseGlyphName]
+            t = transform.Transform(*comp.transformation)
+
+            # create a temporary glyph on which to draw the decomposed composite
+            single_decomposedComposite = RGlyph()
+            decompPen = single_decomposedComposite.getPen()
+            baseGlyph.draw(decompPen)
+            single_decomposedComposite.transform(t)
+
+            # add single composite to the returned glyph
+            decomposedComposites.appendGlyph(single_decomposedComposite)
+
+    return decomposedComposites
+
+
 def intersect(glyph, where, isHorizontal):
     """
-    Intersection of a glyph with a horizontal or vertical line.
-    Intersects each segment of a glyph using fontTools bezierTools.splitCubic and splitLine methods.
+    Intersect a glyph with a horizontal or vertical line.
+    Intersect each segment of a glyph using fontTools bezierTools.splitCubic and splitLine methods.
     """
     pen = CollectSegmentsPen(glyph.getParent())
     glyph.draw(pen)
@@ -185,6 +208,7 @@ def intersect(glyph, where, isHorizontal):
 
     return glyphIntersections
 
+
 def calcBounds(points):
     """
     Return rectangular bounds of a list of points.
@@ -204,6 +228,7 @@ def calcBounds(points):
     box = [round(value, 4) for value in [xMin, yMin, xMax, yMax]]
     return tuple(box)
 
+
 def findDuplicatePoints(segments):
     counter = {}
     for seg in segments:
@@ -215,13 +240,15 @@ def findDuplicatePoints(segments):
                 counter[p] = 1
     return [key for key in counter if counter[key] > 1]
 
-# had to add that splitLine method from Robofont’s version of fontTools
-# using fontTools 2.4’s method didn’t work, don’t know why.
 
 def getGlyphBox(glyph):
     pen = BoundsPen(glyph.getParent())
     glyph.draw(pen)
     return pen.bounds
+
+
+# had to fetch that splitLine method from Robofont’s version of fontTools
+# fontTools 2.4’s version was buggy.
 
 def splitLine(pt1, pt2, where, isHorizontal):
     """Split the line between pt1 and pt2 at position 'where', which
@@ -263,6 +290,9 @@ def splitLine(pt1, pt2, where, isHorizontal):
     else:
         return [(pt1, pt2)]
 
+
+
+
 if __name__ == '__main__':
 
     import os
@@ -290,7 +320,7 @@ if __name__ == '__main__':
             self.assertEqual(intersections, [(426.5, 356.0), (426.5, 396.0)])
 
         def test_intersect_vertical_with_overlap_removed(self):
-            glyph = removeOverlap(self.font['H'])
+            glyph = freezeGlyph(self.font['H'])
             xCenter = glyph.width / 2
             intersections = intersect(glyph, xCenter, False)
             self.assertEqual(intersections, [(426.5, 356.0), (426.5, 396.0)])
