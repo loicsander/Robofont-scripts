@@ -3,10 +3,13 @@ from __future__ import division
 from math import atan2, tan, hypot, cos, degrees, radians
 
 from robofab.world import RGlyph
+
 import fontTools
 import fontTools.misc.bezierTools as bezierTools
 import fontTools.misc.arrayTools as arrayTools
+import fontTools.misc.transform as transform
 from fontTools.pens.boundsPen import BoundsPen
+
 from mutatorScale.booleanOperations.booleanGlyph import BooleanGlyph
 from mutatorScale.pens.utilityPens import CollectSegmentsPen
 
@@ -110,7 +113,17 @@ def removeOverlap(glyph):
     glyph.draw(toRFpen)
 
     if len(toRFGlyph.components):
-        toRFGlyph.decompose()
+        font = glyph.getParent()
+        for comp in reversed(toRFGlyph.components):
+            baseGlyphName = comp.baseGlyph
+            baseGlyph = font[baseGlyphName]
+            t = transform.Transform(*comp.transformation)
+            decomposedComposite = RGlyph()
+            decompPen = decomposedComposite.getPen()
+            baseGlyph.draw(decompPen)
+            decomposedComposite.transform(t)
+            toRFGlyph.removeComponent(comp)
+            toRFGlyph.appendGlyph(decomposedComposite)
 
     singleContourGlyph = RGlyph()
     singleContourGlyph.width = glyph.width

@@ -1,7 +1,7 @@
 #coding=utf-8
 from __future__ import division
 
-__version__ = '0.93.7'
+__version__ = '0.93.8'
 
 """
 Written by Loïc Sander
