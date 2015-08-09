@@ -35,7 +35,7 @@ Here are the possible arguments for the mode option:
 ![alt tag](images/penBallWizard-5.png)
 ![alt tag](images/penBallWizard-6.png)
 
-The ```source``` value is used to changed the source glyph, possibly at each step if you feel like it. If the cell remains empty, each operation receives the previously filtered glyph. However, you can change that by providing either layer names or numbers that correspond to previous steps. It allows you to either use the original glyph by asking for ```'foreground'``` (used to be ```initial = True```), but you can also get glyphs from other layers of the initial glyph or a specific filtered glyph.
+The ```source``` value is used to changed the source glyph, possibly at each step if you feel like it. If the cell remains empty, each operation receives the previously filtered glyph. However, you can change that by providing either layer names or numbers that correspond to previous steps. It allows you to either use the original glyph by asking for ```'foreground'```, but you can also get glyphs from other layers of the initial glyph or a specific filtered glyph.
 This functionality makes it easy to create a filter that is only a succession of boolean operations between layers, for instance.
 
 In an operation, you don’t necessarily need to call an existing filter. If at some step you simply wish to duplicate the existing glyph and only perform a boolean operation with it for instance, you can leave the ```filterName``` field empty or fill it with ```'copy'```.
