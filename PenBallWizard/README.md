@@ -28,9 +28,10 @@ When defining an operation, you call existing single filters by name and you hav
 
 Here are the possible arguments for the mode option:
 + ```add```: add filtered glyph on top of the existing glyph instead of filtering the existing
-+ ```union```: (see [BooleanOperations](http://doc.robofont.com/api/robofab-extras/boolean-glyph/))
-+ ```intersection```: (see [BooleanOperations](http://doc.robofont.com/api/robofab-extras/boolean-glyph/))
-+ ```difference```: [BooleanOperations](http://doc.robofont.com/api/robofab-extras/boolean-glyph/))
++ ```union```: *
++ ```intersection```: *
++ ```difference```: *
+* (see [BooleanOperations](http://doc.robofont.com/api/robofab-extras/boolean-glyph/))
 
 ![alt tag](images/penBallWizard-5.png)
 ![alt tag](images/penBallWizard-6.png)
