@@ -45,6 +45,7 @@ class CornerController:
 
         addObserver(self, 'preview', 'draw')
         addObserver(self, 'preview', 'drawInactive')
+        addObserver(self, 'previewSolid', 'drawPreview')
         addObserver(self, 'makePreviewGlyph', 'mouseDown')
         addObserver(self, 'makePreviewGlyph', 'mouseDragged')
         addObserver(self, 'makePreviewGlyph', 'keyDown')
@@ -96,6 +97,11 @@ class CornerController:
         sc = notification['scale']
         if self.previewGlyph is not None:
             self.previewGlyph.drawPreview(sc, styleFill=True, showNodes=False, strokeWidth=2, fillColor=cornerOutlineSoftColor, strokeColor=cornerOutlineStrongColor)
+
+    def previewSolid(self, notification):
+        sc = notification['scale']
+        if self.previewGlyph is not None:
+            self.previewGlyph.drawPreview(sc, plain=True)
 
     def makePreviewGlyph(self, sender=None):
         if (sender is not None) and isinstance(sender, dict):
@@ -182,6 +188,7 @@ class CornerController:
     def windowClose(self, notification):
         removeObserver(self, 'draw')
         removeObserver(self, 'drawInactive')
+        removeObserver(self, 'drawPreview')
         removeObserver(self, 'mouseUp')
         removeObserver(self, 'mouseDown')
         removeObserver(self, 'mouseDragged')
