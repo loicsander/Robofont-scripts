@@ -242,6 +242,11 @@ class RoundingTool(BaseEventTool):
         #     rect(mouseDownPoint[0], mouseDownPoint[1], currentPoint[0]-mouseDownPoint[0], currentPoint[1]-mouseDownPoint[1])
 
 
+    def drawPreview(self, scale):
+        if self._roundedGlyph is not None:
+            self._roundedGlyph.drawPreview(scale, plain=True)
+
+
     def makeRoundedGlyph(self):
         if self._roundedGlyph is not None:
             self._sourceGlyph.prepareUndo('round')
