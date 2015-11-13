@@ -69,6 +69,9 @@ def makePreviewGlyph(glyph, fixedWidth=True):
                 previewGlyph.scale((.75, .75), (previewGlyph.width/2, 0))
                 previewGlyph.move((0, -50))
 
+            scaleFactor = 1000.0 / font.info.unitsPerEm
+            previewGlyph.scale((scaleFactor, scaleFactor), (previewGlyph.width/2, 0))
+
             previewGlyph.name = glyph.name
 
         return previewGlyph
