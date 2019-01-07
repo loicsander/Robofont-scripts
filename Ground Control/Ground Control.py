@@ -1,8 +1,8 @@
 # -*- coding: utf8 -*-
-GCVersion = "1.01"
+GCVersion = "1.02"
 
-# Script written by Loïc Sander — may 2014
-# update 10 july 2014
+# Script originally written by Loïc Sander — may 2014
+# minimal Py3 edits, updated 17 March 2018
 
 # Based on mojo.UI’s MultiLineView
 
@@ -22,7 +22,7 @@ from mojo.UI import *
 from mojo.events import addObserver, removeObserver
 from vanilla import *
 from defconAppKit.tools.textSplitter import splitText
-from AppKit import NSColor, NSEvent
+from AppKit import NSColor, NSEvent, NSAlternateKeyMask
 
 class BenchToolBox:
 
@@ -37,7 +37,7 @@ class BenchToolBox:
                 return "* Unamed Font"
         else:
             return ""
-            print "toolBox.getFontName: No Font provided"
+            print ("toolBox.getFontName: No Font provided")
 
     def getFontByName(self, setOfFonts, fontName):
 
@@ -79,7 +79,7 @@ class BenchLine:
                 (0, 0, 0, 0),
                 pointSize = 128,
                 lineHeight = 100,
-                doubleClickCallback = None,
+                # doubleClickCallback = None,
                 applyKerning = True,
                 bordered = False,
                 hasHorizontalScroller = False,
@@ -221,7 +221,7 @@ class GroundControl:
     def __init__(self):
 
         if len(AllFonts()) == 0:
-            print "Please open at least one font before using Ground Control"
+            print ("Please open at least one font before using Ground Control")
             return
 
         # [windowWidth, maxWindowWidth, minWindowWidth]
@@ -461,7 +461,7 @@ class GroundControl:
             thisLineMethAttr = getattr(self.w.allLines, self.lineNames[i] + "MethAttr")
             trackingValue = self.globalTrackingValue + thisLineMethAttr.localTrackingValue
 
-            print self.globalTrackingValue
+            print (self.globalTrackingValue)
 
             benchToolBox.modifyTracking(thisLineMethAttr.font, trackingValue)
 
